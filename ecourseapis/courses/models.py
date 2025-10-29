@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from ckeditor.fields import RichTextField
 # Create your models here.
 
 class User(AbstractUser):
@@ -28,3 +29,15 @@ class Course(BaseModel):
 
     def __str__(self):
         return self.subject
+
+class Lesson(BaseModel):
+    subject = models.CharField(max_length=255)
+    content = RichTextField()
+    image = models.ImageField(upload_to='lessons/%Y/%m', null=True)
+    course = models.ForeignKey(Course, on_delete=models.RESTRICT)
+
+    def __str__(self):
+        return self.subject
+
+    class Meta:
+        unique_together = ('subject', 'course')

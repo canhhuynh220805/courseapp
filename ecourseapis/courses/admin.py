@@ -1,7 +1,11 @@
 from django.contrib import admin
+from django.db.models import Count
+from django.template.response import TemplateResponse
+from django.urls import path
 from django.utils.html import mark_safe
 
-from courses.models import Category, Course
+from courses.models import Category, Course, Lesson
+
 
 #Register your models here.
 class CourseAdmin(admin.ModelAdmin):
@@ -20,5 +24,19 @@ class CourseAdmin(admin.ModelAdmin):
         }
         js = ('/static/js/script.js',)
 
-admin.site.register(Category)
-admin.site.register(Course, CourseAdmin)
+
+class MyAdminSite(admin.AdminSite):
+    site_header = 'Course App'
+    def get_urls(self):
+        return [path('stats-view/', self.stats_view)] + super().get_urls()
+
+    def stats_view(self, request):
+        stats = Category.objects.annotate(count=Count('course')).values('id', 'name', 'count')
+
+        return TemplateResponse(request, 'admin/stats.html', {'stats': stats})
+
+admin_site = MyAdminSite()
+
+admin_site.register(Category)
+admin_site.register(Course, CourseAdmin)
+admin_site.register(Lesson)

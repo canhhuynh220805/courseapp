@@ -1,0 +1,113 @@
+{% extends 'admin/base_site.html' %}
+
+{% block content %}
+<h1>Thống Kê Khóa Học</h1>
+<ul>
+    {% for s in stats %}
+    <li><strong>{{s.name}}</strong>: {{s.count}}</li>
+    {% endfor %}
+</ul>
+<div style="width: 1000px">
+    <canvas id="myChart"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/js/script.js"></script>
+
+<script>
+    data = [];
+    labels = [];
+    {% for s in stats %}
+      data.push({{s.count}});
+      labels.push('{{s.name}}');
+    {% endfor %}
+    window.onload = function(){
+        const ctx = document.getElementById('myChart');
+
+
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '# Thống kê khóa học',
+          data: data,
+          backgroundColor: [
+            'rgba(75, 192, 192, 0.6)',
+            'rgba(255, 159, 64, 0.6)',
+            'rgba(255, 205, 86, 0.6)',
+            'rgba(54, 162, 235, 0.6)',
+            'rgba(153, 102, 255, 0.6)',
+            'rgba(255, 99, 132, 0.6)'
+          ],
+          borderColor: [
+            'rgba(75, 192, 192, 1)',
+            'rgba(255, 159, 64, 1)',
+            'rgba(255, 205, 86, 1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 99, 132, 1)'
+          ],
+          borderWidth: 1,
+          hoverBackgroundColor: 'rgba(0,0,0,0.1)'
+        }]
+      },
+      options: {
+        responsive: true,
+         animations: {
+          tension: {
+            duration: 1000,
+            easing: 'linear',
+            from: 1,
+            to: 0,
+            loop: true
+          }
+        },
+        plugins: {
+          title: {
+            display: true,
+            text: '📊 Biểu đồ thống kê khóa học',
+            font: {
+              size: 18,
+              weight: 'bold'
+            },
+            padding: { top: 10, bottom: 20 }
+          },
+          legend: {
+            display: true,
+            position: 'bottom',
+            labels: {
+              font: {
+                size: 14
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            titleFont: { size: 14 },
+            bodyFont: { size: 13 },
+            padding: 10
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(200, 200, 200, 0.2)' },
+            title: {
+              display: true,
+              text: 'Số lượng khóa học',
+              font: { size: 14, style: 'italic' }
+            }
+          },
+          x: {
+            grid: { display: false },
+            ticks: {
+              font: { size: 13 }
+            }
+          }
+        }
+      }
+    });
+  };
+</script>
+{% endblock %}
