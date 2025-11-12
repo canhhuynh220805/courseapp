@@ -42,9 +42,20 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'rest_framework',
     'drf_yasg',
+    'oauth2_provider'
 ]
 
 CKEDITOR_UPLOAD_PATH = "images/ckeditors/"
+
+import cloudinary
+import cloudinary.uploader
+import cloudinary.api
+
+cloudinary.config(
+    cloud_name="dpl8syyb9",
+    api_key="423338349327346",
+    api_secret="zfwveRcXlclSOKM7mqSU2j0421c"
+)
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -136,5 +147,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS':
         'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 2
+    'PAGE_SIZE': 2,
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    )
 }
+
+CLIENT_ID = "6I4vrembQeTD2KZefD3NeOzsSLDjmo7XDJHopw0w"
+CLIENT_SECRET = "WErkkoLl9PmHVpWsEK6mP0dpNxb2qBwucwyHqYSAkaBs1PCAas1ge1KCLUYon7CuPHQqq9JfrX6Il9NWaZ6ZxrXfAZ3WAabfZmJA6gq1CFvQYgvpa2akbunKXDSdwd6Z"
