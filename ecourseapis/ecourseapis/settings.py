@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-8ye3$t#ae5*#28wv!179d4+7@dv*hfvamp501hh+4d2r)=ez*!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com']
+# ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com']
 
 # Application definition
 
@@ -95,13 +95,23 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'canhdeptrai22$coursedb',
+#         'USER': 'canhdeptrai22',
+#         'PASSWORD': 'admin@123',
+#         'HOST': 'canhdeptrai22.mysql.pythonanywhere-services.com'  # mặc định localhost
+#     }
+# }
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'canhdeptrai22$coursedb',
-        'USER': 'canhdeptrai22',
-        'PASSWORD': 'admin@123',
-        'HOST': 'canhdeptrai22.mysql.pythonanywhere-services.com'  # mặc định localhost
+        'NAME': 'coursedb',
+        'USER': 'root',
+        'PASSWORD': '123456',
+        'HOST': ''  # mặc định localhost
     }
 }
 
@@ -136,8 +146,8 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
-import os
-STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# import os
+# STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 STATIC_URL = 'static/'
 
 # Default primary key field type
@@ -154,5 +164,5 @@ REST_FRAMEWORK = {
     )
 }
 
-CLIENT_ID = "6I4vrembQeTD2KZefD3NeOzsSLDjmo7XDJHopw0w"
-CLIENT_SECRET = "WErkkoLl9PmHVpWsEK6mP0dpNxb2qBwucwyHqYSAkaBs1PCAas1ge1KCLUYon7CuPHQqq9JfrX6Il9NWaZ6ZxrXfAZ3WAabfZmJA6gq1CFvQYgvpa2akbunKXDSdwd6Z"
+CLIENT_ID = "XNmumHqNiJeZgL1nK9wV9JjLOQhP4mOQQCkwlA26"
+CLIENT_SECRET = "h5ywYK6zytwayHxLoxOPgHzvWuJlxptGXbNYxIreYYcVNaQ9UjZPsI2RoPVpBe5Q5468HTJ4pve5cr0Yl6UsXCRtRb6R6e2TG6tUIOFKXFEL3mTtXjFVG14326kY5Anm"
