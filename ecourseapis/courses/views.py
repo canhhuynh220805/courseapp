@@ -43,6 +43,23 @@ class CourseView(viewsets.ModelViewSet):
         enrollments = Enrollment.objects.filter(user = user)
         return Response(EnrollmentSerializer(enrollments, many=True).data)
 
+    @action(methods=['get'], url_path='progress', detail=True, permission_classes=[permissions.IsAuthenticated])
+    def get_course_progress(self, request, pk=None):
+        user = request.user
+        course = self.get_object()
+
+        enrollment = Enrollment.objects.filter(user=user, course=course).first()
+
+        if enrollment:
+            return Response({
+                "course_id": course.id,
+                "progress": enrollment.progress,
+                "status": enrollment.status,
+                "message": "Lấy tiến độ thành công"
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "Bạn chưa đăng ký khóa học này."}, status=status.HTTP_404_NOT_FOUND)
+
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
