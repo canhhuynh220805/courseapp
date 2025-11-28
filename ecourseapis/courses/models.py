@@ -79,6 +79,17 @@ class Enrollment(BaseModel):
     def __str__(self):
         return f"{self.user.name} - {self.course.subject}"
 
+class LessonComplete(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+    enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'lesson')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.lesson.subject}"
+
 class Payment(BaseModel):
     class Method(models.TextChoices):
         PAYPAL = 'PAYPAL', 'PayPal'

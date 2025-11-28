@@ -10,6 +10,7 @@ from courses import views
 router = routers.DefaultRouter()
 router.register('courses', views.CourseView)
 router.register('users', views.UserView)
+router.register('lessons', views.LessonView)
 
 urlpatterns = [
     path('', include(router.urls))

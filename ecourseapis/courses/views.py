@@ -2,12 +2,13 @@ from django.http import HttpResponse
 
 from django.template import loader
 from rest_framework import viewsets, permissions, generics, parsers, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 
 from courses import perms, serializers
-from courses.models import Course, User
-from courses.serializers import CoursesSerializer, UserSerializer
+from courses.models import Course, User, Enrollment, Lesson, LessonComplete
+from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer
+
 
 # POST http://domain/o/token/
 # POST http://domain/o/revoke_token/
@@ -31,6 +32,16 @@ class CourseView(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
+    # @action(methods=['post'], url_path='enroll', detail=True, permission_classes= [permissions.IsAuthenticated])
+    # def enroll(self, request, pk = None): #lam kieu j ta
+    #     course = self.get_object()
+    #     user = request.user
+
+    @action(methods=['get'], url_path='my-course', detail= False, permission_classes = [permissions.IsAuthenticated])
+    def get_my_course(self, request):
+        user = request.user
+        enrollments = Enrollment.objects.filter(user = user)
+        return Response(EnrollmentSerializer(enrollments, many=True).data)
 
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -55,4 +66,44 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
         user.is_lecturer_verified = True
         user.save()
         return Response ({"message": f"Đã nâng cấp {user.username} thành Giảng viên."})
+
+# class EnrollmentView(viewsets.ViewSet, generics.CreateAPIView):
+#     serializer_class = EnrollmentSerializer
+#     permission_classes = [permissions.IsAuthenticated]
+#
+#     def get_queryset(self):
+#         return Enrollment.objects.filter(user = self.request.user)
+#
+#     @action(methods=['patch'], url_path='progress', detail=True)
+#     def update_progress(self, request, pk):
+#         enrollment = self.get_object()
+
+class LessonView(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = Lesson.objects.filter(active = True)
+    serializer_class = LessonSerializer
+
+    @action(methods=['post'], detail=True, url_path='complete', permission_classes = [permissions.IsAuthenticated])
+    def mark_complete(self, request, pk):
+        lesson = self.get_object()
+        user = request.user
+
+        enrollment = Enrollment.objects.filter(user=user, course=lesson.course, status=Enrollment.Status.ACTIVE).first()
+        if enrollment is None:
+            return Response({"error": "Bạn chưa đăng ký khóa học này."}, status=status.HTTP_403_FORBIDDEN)
+
+        LessonComplete.objects.get_or_create(user = user, lesson = lesson, enrollment = enrollment)
+        total_lessons = Lesson.objects.filter(course = lesson.course, active = True).count()
+        completed_lessons = LessonComplete.objects.filter(enrollment = enrollment).count()
+
+        if total_lessons > 0:
+            new_progress = int((completed_lessons / total_lessons) * 100)
+            enrollment.progress = new_progress
+            enrollment.save()
+
+        return Response({
+            "message": "Đã hoàn thành bài học.",
+            "progress": enrollment.progress,
+            "completed_lessons_count": completed_lessons,
+            "total_lessons": total_lessons
+        }, status=status.HTTP_200_OK)
 

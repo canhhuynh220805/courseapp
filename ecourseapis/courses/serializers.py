@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from courses.models import Course, User
+from courses.models import Course, User, Enrollment, Lesson
 
 
 class ImageSerializer(serializers.ModelSerializer):
@@ -39,3 +39,15 @@ class UserSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
         data['avatar'] = instance.avatar.url if instance.avatar else ''
         return data
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    courses = CoursesSerializer()
+    class Meta:
+        model = Enrollment
+        fields = ['id', 'user', 'course', 'status', 'progress', 'created_date']
+
+class LessonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Lesson
+        fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
+
