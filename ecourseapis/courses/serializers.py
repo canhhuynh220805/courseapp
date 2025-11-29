@@ -15,7 +15,21 @@ class ImageSerializer(serializers.ModelSerializer):
 class CoursesSerializer(ImageSerializer):
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image', 'price', 'category']
+        fields = ['id', 'subject', 'description', 'image', 'price', 'category', 'is_registered', 'progress']
+
+    def is_registered(self, course):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Enrollment.objects.filter(user=request.user, course=course).exists()
+        return False
+
+    def get_progress(self, course):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+            if enrollment:
+                return enrollment.progress
+        return None
 
 
 class UserSerializer(serializers.ModelSerializer):
