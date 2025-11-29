@@ -32,10 +32,27 @@ class CourseView(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
-    # @action(methods=['post'], url_path='enroll', detail=True, permission_classes= [permissions.IsAuthenticated])
-    # def enroll(self, request, pk = None): #lam kieu j ta
-    #     course = self.get_object()
-    #     user = request.user
+    @action(methods=['post'], url_path='enroll', detail=True, permission_classes= [permissions.IsAuthenticated])
+    def enroll(self, request, pk = None):
+        course = self.get_object()
+        user = request.user
+
+        enrollment, created = Enrollment.objects.get_or_create(user=user, course=course)
+
+        if not created:
+            return Response({
+                "message": "Bạn đã đăng ký khóa học này rồi.",
+                "status": enrollment.status,
+                "enrollment_id": enrollment.id
+            }, status=status.HTTP_409_CONFLICT)
+
+        if course.price and course.price > 0:
+            enrollment.status = Enrollment.Status.PENDING
+        else:
+            enrollment.status = Enrollment.Status.ACTIVE
+
+        enrollment.save()
+        return Response(EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], url_path='my-course', detail= False, permission_classes = [permissions.IsAuthenticated])
     def get_my_course(self, request):
