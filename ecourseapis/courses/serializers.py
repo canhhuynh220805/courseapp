@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from courses.models import Course, User, Enrollment, Lesson, Category
+from courses.models import Course, User, Enrollment, Lesson, Payment, Category
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -70,3 +70,15 @@ class LessonSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
 
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['id', 'amount', 'payment_method', 'transaction_id', 'created_date']
+
+class CourseRevenueSerializer(serializers.ModelSerializer):
+    student_count = serializers.IntegerField(read_only=True)
+    total_revenue = serializers.DecimalField(max_digits=20, decimal_places=0, read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ['id', 'subject', 'image', 'student_count', 'total_revenue']
