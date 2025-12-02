@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-8ye3$t#ae5*#28wv!179d4+7@dv*hfvamp501hh+4d2r)=ez*!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-# ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com']
+ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com','127.0.0.1', 'localhost', '10.0.2.2']
 
 # Application definition
 
@@ -110,7 +110,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'coursedb',
         'USER': 'root',
-        'PASSWORD': 'root',
+        'PASSWORD': '123456',
         'HOST': ''  # mặc định localhost
     }
 }
@@ -158,7 +158,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS':
         'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 2,
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
     )

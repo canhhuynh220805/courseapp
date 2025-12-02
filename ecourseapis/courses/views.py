@@ -5,9 +5,10 @@ from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 
-from courses import perms, serializers
-from courses.models import Course, User, Enrollment, Lesson, LessonComplete
-from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer
+from courses import perms, serializers, paginators
+from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category
+from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
+    CategorySerializer
 
 
 # POST http://domain/o/token/
@@ -19,10 +20,15 @@ def index(request):
     index = loader.get_template('index.html')
     return HttpResponse(index.render())
 
+class CategoryView(viewsets.ViewSet, generics.ListAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    # permission_classes = [permissions.IsAuthenticated]
+
 class CourseView(viewsets.ModelViewSet):
     queryset = Course.objects.filter(active=True)
     serializer_class = CoursesSerializer
-
+    pagination_class = paginators.CoursePaginator
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]

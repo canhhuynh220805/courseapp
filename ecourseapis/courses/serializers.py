@@ -1,7 +1,12 @@
 from rest_framework import serializers
 
-from courses.models import Course, User, Enrollment, Lesson, Payment
+from courses.models import Course, User, Enrollment, Lesson, Payment, Category
 
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = '__all__'
 
 class ImageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
@@ -15,7 +20,7 @@ class ImageSerializer(serializers.ModelSerializer):
 class CoursesSerializer(ImageSerializer):
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image', 'price', 'category', 'is_registered', 'progress']
+        fields = ['id', 'subject', 'description', 'image', 'price', 'category']
 
     def is_registered(self, course):
         request = self.context.get('request')

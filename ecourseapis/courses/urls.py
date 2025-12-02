@@ -11,6 +11,7 @@ router = routers.DefaultRouter()
 router.register('courses', views.CourseView)
 router.register('users', views.UserView)
 router.register('lessons', views.LessonView)
+router.register('categories', views.CategoryView)
 
 router.register('stats', views.StatsView)
 
