@@ -141,3 +141,5 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView):
             "total_lessons": total_lessons
         }, status=status.HTTP_200_OK)
 
+class StatView(viewsets.ViewSet, generics.CreateAPIView):
+    pass

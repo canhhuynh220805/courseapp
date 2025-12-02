@@ -17,13 +17,13 @@ class MoMoPaymentStrategy(PaymentStrategy):
     def process_payment(self, enrollment, amount):
         pass
 
-class ZaloPayPaymentStrategy(PaymentStrategy):
-    def process_payment(self, enrollment, amount):
-        pass
-
-class PayPalPaymentStrategy(PaymentStrategy):
-    def process_payment(self, enrollment, amount):
-        pass
+# class ZaloPayPaymentStrategy(PaymentStrategy):
+#     def process_payment(self, enrollment, amount):
+#         pass
+#
+# class PayPalPaymentStrategy(PaymentStrategy):
+#     def process_payment(self, enrollment, amount):
+#         pass
 
 
 class PaymentFactory:
@@ -32,8 +32,8 @@ class PaymentFactory:
         strategies = {
             'CASH': CashPaymentStrategy(),
             'MOMO': MoMoPaymentStrategy(),
-            'ZALOPAY': ZaloPayPaymentStrategy(),
-            'PAYPAL': PayPalPaymentStrategy(),
+            # 'ZALOPAY': ZaloPayPaymentStrategy(),
+            # 'PAYPAL': PayPalPaymentStrategy(),
         }
         strategy = strategies.get(payment_method)
         if not strategy:
