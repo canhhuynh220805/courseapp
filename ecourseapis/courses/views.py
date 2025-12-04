@@ -1,3 +1,5 @@
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import Coalesce, TruncYear, TruncMonth
 from django.http import HttpResponse
 
 from django.template import loader
@@ -6,9 +8,9 @@ from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 
 from courses import perms, serializers, paginators
-from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category
+from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
-    CategorySerializer
+    CategorySerializer, CourseRevenueSerializer
 
 
 # POST http://domain/o/token/
@@ -147,5 +149,70 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView):
             "total_lessons": total_lessons
         }, status=status.HTTP_200_OK)
 
-class StatView(viewsets.ViewSet, generics.CreateAPIView):
-    pass
+
+class StatView(viewsets.ViewSet):
+    permission_classes = [perms.IsAdminOrLecturer]
+
+    @action(methods=['get'], detail=False, url_path='course-stats')
+    def course_stats(self, request):
+        user = request.user
+        if user.role == User.Role.ADMIN:
+            queryset = Course.objects.all()
+        else:
+            queryset = Course.objects.filter(lecturer=user)
+
+        queryset = queryset.annotate(
+            student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)),
+            total_revenue=Coalesce(Sum('enrollments__payments__amount'),0)).order_by('-total_revenue')
+
+        serializer = CourseRevenueSerializer(queryset, many=True, context={'request': request})
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=['get'], detail=False, url_path='revenue-stats')
+    def revenue_stats(self, request):
+        user = request.user
+        period = request.query_params.get('period', 'month')
+
+        payments = Payment.objects.filter(enrollment__course__active=True)
+
+        if user.role == User.Role.LECTURER:
+            payments = payments.filter(enrollment__course__lecturer=user)
+        trunc_func = TruncYear('created_date') if period == 'year' else TruncMonth('created_date')
+
+        stats = payments.annotate(period_date=trunc_func).values('period_date').annotate(total_revenue=Sum('amount')).order_by('period_date')
+
+        data = [{
+            'period': s['period_date'].strftime('%Y' if period == 'year' else '%m-%Y'),
+            'total_revenue': s['total_revenue']
+        } for s in stats]
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=['get'], detail=False, url_path='general-stats')
+    def general_stats(self, request):
+        user = request.user
+
+        course_qs = Course.objects.filter(active=True)
+        enrollment_qs = Enrollment.objects.filter(status=Enrollment.Status.ACTIVE)
+        payment_qs = Payment.objects.all()
+
+        total_students = 0
+        total_revenue = 0
+
+        if user.role == User.Role.LECTURER:
+            course_qs = course_qs.filter(lecturer=user)
+            total_students = enrollment_qs.filter(course__lecturer=user).values('user').distinct().count()
+            total_revenue = payment_qs.filter(enrollment__course__lecturer=user).aggregate(sum=Sum('amount'))['sum'] or 0
+
+        elif user.role == User.Role.ADMIN:
+            total_students = User.objects.filter(role=User.Role.STUDENT, is_active=True).count()
+            total_revenue = payment_qs.aggregate(sum=Sum('amount'))['sum'] or 0
+
+        total_courses = course_qs.count()
+
+        return Response({
+            "total_courses": total_courses,
+            "total_students": total_students,
+            "total_revenue": total_revenue
+        }, status=status.HTTP_200_OK)
+

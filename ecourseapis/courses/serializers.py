@@ -60,7 +60,7 @@ class UserSerializer(serializers.ModelSerializer):
         return data
 
 class EnrollmentSerializer(serializers.ModelSerializer):
-    courses = CoursesSerializer()
+    course = CoursesSerializer()
     class Meta:
         model = Enrollment
         fields = ['id', 'user', 'course', 'status', 'progress', 'created_date']
@@ -75,10 +75,10 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = ['id', 'amount', 'payment_method', 'transaction_id', 'created_date']
 
-class CourseRevenueSerializer(serializers.ModelSerializer):
+class CourseRevenueSerializer(ImageSerializer):
     student_count = serializers.IntegerField(read_only=True)
     total_revenue = serializers.DecimalField(max_digits=20, decimal_places=0, read_only=True)
 
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'image', 'student_count', 'total_revenue']
+        fields = ['id', 'subject', 'image', 'student_count', 'total_revenue ']
