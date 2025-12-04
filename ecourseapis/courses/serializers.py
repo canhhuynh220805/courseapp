@@ -82,3 +82,10 @@ class CourseRevenueSerializer(ImageSerializer):
     class Meta:
         model = Course
         fields = ['id', 'subject', 'image', 'student_count', 'total_revenue ']
+
+class StudentEnrollmentSerializer(serializers.ModelSerializer):
+    user = UserSerializer()
+
+    class Meta:
+        model = Enrollment
+        fields = ['id', 'user', 'progress', 'status', 'created_date']

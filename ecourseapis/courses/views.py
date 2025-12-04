@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from courses import perms, serializers, paginators
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
-    CategorySerializer, CourseRevenueSerializer
+    CategorySerializer, CourseRevenueSerializer, StudentEnrollmentSerializer
 
 
 # POST http://domain/o/token/
@@ -36,7 +36,7 @@ class CourseView(viewsets.ModelViewSet):
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
-        if self.action in ['update', 'partial_update', 'destroy']:
+        if self.action in ['update', 'partial_update', 'destroy', 'get_students']:
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
@@ -84,6 +84,19 @@ class CourseView(viewsets.ModelViewSet):
             }, status=status.HTTP_200_OK)
         else:
             return Response({"error": "Bạn chưa đăng ký khóa học này."}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(methods=['get'], url_path='students', detail=True)
+    def get_students(self, request, pk=None):
+        course = self.get_object()
+
+        enrollments = Enrollment.objects.filter(course=course)
+
+        username = request.query_params.get('q')
+        if username:
+            enrollments = enrollments.filter(user__username__icontains=username)
+
+        serializer = StudentEnrollmentSerializer(enrollments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
