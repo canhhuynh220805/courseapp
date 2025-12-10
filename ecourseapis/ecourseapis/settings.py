@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'rest_framework',
     'drf_yasg',
-    'oauth2_provider'
+    'oauth2_provider',
 ]
 
 CKEDITOR_UPLOAD_PATH = "images/ckeditors/"
@@ -110,7 +110,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'coursedb',
         'USER': 'root',
-        'PASSWORD': '123456',
+        'PASSWORD': 'root',
         'HOST': ''  # mặc định localhost
     }
 }
