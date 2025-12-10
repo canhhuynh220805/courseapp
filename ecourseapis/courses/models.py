@@ -104,3 +104,18 @@ class Payment(BaseModel):
 
     def __str__(self):
         return f"Bill: {self.amount} VND - {self.enrollment.user.username}"
+
+class Comment(BaseModel):
+    content = models.TextField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.content
+
+class Like(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'lesson')

@@ -8,7 +8,7 @@ from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 
 from courses import perms, serializers, paginators
-from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment
+from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
     CategorySerializer, CourseRevenueSerializer, StudentEnrollmentSerializer
 
@@ -28,24 +28,37 @@ class CategoryView(viewsets.ViewSet, generics.ListAPIView):
     serializer_class = CategorySerializer
     # permission_classes = [permissions.IsAuthenticated]
 
-
 class CourseView(viewsets.ModelViewSet):
     queryset = Course.objects.filter(active=True)
     serializer_class = CoursesSerializer
     pagination_class = paginators.CoursePaginator
 
     def get_queryset(self):
-        query = self.queryset
+        queries = self.queryset
 
-        q = self.request.query_params.get('q')
+        q = self.request.query_params.get("q")
         if q:
-            query = query.filter(subject__icontains=q)
+            queries = queries.filter(subject__icontains=q)
 
-        cate_id = self.request.query_params.get('category_id')
-        if cate_id:
-            query = query.filter(category_id=cate_id)
+        category_id = self.request.query_params.get("category_id")
+        if category_id:
+            queries = queries.filter(category_id=category_id)
 
-        return query.order_by('-id')
+        min_price = self.request.query_params.get("min_price")
+        if min_price:
+            queries = queries.filter(price__gte=min_price)
+
+        max_price = self.request.query_params.get("max_price")
+        if max_price:
+            queries = queries.filter(price__lte=max_price)
+
+        # ordering = self.request.query_params.get("ordering")
+        # if ordering:
+        #     allowed_ordering_fields = ['id', 'created_date', 'updated_date', 'price', '-id', '-created_date',
+        #                                '-updated_date', '-price']
+        #     if ordering in allowed_ordering_fields:
+        #         queries = queries.order_by(ordering)
+        return queries
 
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
@@ -185,6 +198,29 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView):
             "completed_lessons_count": completed_lessons,
             "total_lessons": total_lessons
         }, status=status.HTTP_200_OK)
+
+    @action(methods=['get'], detail=True, url_path='comments')
+    def get_comments(self, request, pk=None):
+        comments = self.get_object().comment_set.select_related('user').filter(active=True).order_by('-created_date')
+        return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
+
+    @action(methods=['post'], detail=True, url_path='add-comment')
+    def add_comment(self, request, pk=None):
+        content = request.data.get('content')
+        if not content:
+            return Response({"error": "Nội dung không được để trống"}, status=status.HTTP_400_BAD_REQUEST)
+
+        c = Comment.objects.create(user=request.user, lesson=self.get_object(), content=content)
+        return Response(serializers.CommentSerializer(c).data, status=status.HTTP_201_CREATED)
+
+    @action(methods=['post'], detail=True, url_path='like')
+    def like(self, request, pk=None):
+        like, created = Like.objects.get_or_create(user=request.user, lesson=self.get_object())
+        if not created:
+            like.active = not like.active
+            like.save()
+
+        return Response(serializers.LessonDetailsSerializer(self.get_object(), context={'request': request}).data)
 
 
 class StatView(viewsets.ViewSet):

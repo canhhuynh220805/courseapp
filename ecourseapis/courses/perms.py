@@ -1,3 +1,4 @@
+from rest_framework import permissions
 from rest_framework.permissions import BasePermission
 
 from courses.models import User
@@ -27,3 +28,7 @@ class IsAdminOrLecturer(BasePermission):
             return True
 
         return False
+
+class OwnerAuthenticated(permissions.IsAuthenticated):
+    def has_object_permission(self, request, view, obj):
+        return self.has_permission(request, view) and request.user == obj.user
