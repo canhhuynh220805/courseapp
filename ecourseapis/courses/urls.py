@@ -12,7 +12,7 @@ router.register('courses', views.CourseView)
 router.register('users', views.UserView)
 router.register('lessons', views.LessonView)
 router.register('categories', views.CategoryView)
-router.register('stats', views.StatView)
+router.register('stats', views.StatView, basename='stats')
 
 urlpatterns = [
     path('', include(router.urls))

@@ -22,15 +22,31 @@ def index(request):
     index = loader.get_template('index.html')
     return HttpResponse(index.render())
 
+
 class CategoryView(viewsets.ViewSet, generics.ListAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     # permission_classes = [permissions.IsAuthenticated]
 
+
 class CourseView(viewsets.ModelViewSet):
     queryset = Course.objects.filter(active=True)
     serializer_class = CoursesSerializer
     pagination_class = paginators.CoursePaginator
+
+    def get_queryset(self):
+        query = self.queryset
+
+        q = self.request.query_params.get('q')
+        if q:
+            query = query.filter(subject__icontains=q)
+
+        cate_id = self.request.query_params.get('category_id')
+        if cate_id:
+            query = query.filter(category_id=cate_id)
+
+        return query.order_by('-id')
+
     def get_permissions(self):
         if self.action in ['list', 'retrieve']:
             return [permissions.AllowAny()]
@@ -40,8 +56,8 @@ class CourseView(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
-    @action(methods=['post'], url_path='enroll', detail=True, permission_classes= [permissions.IsAuthenticated])
-    def enroll(self, request, pk = None):
+    @action(methods=['post'], url_path='enroll', detail=True, permission_classes=[permissions.IsAuthenticated])
+    def enroll(self, request, pk=None):
         course = self.get_object()
         user = request.user
 
@@ -62,10 +78,10 @@ class CourseView(viewsets.ModelViewSet):
         enrollment.save()
         return Response(EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED)
 
-    @action(methods=['get'], url_path='my-course', detail= False, permission_classes = [permissions.IsAuthenticated])
+    @action(methods=['get'], url_path='my-course', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_my_course(self, request):
         user = request.user
-        enrollments = Enrollment.objects.filter(user = user)
+        enrollments = Enrollment.objects.filter(user=user)
         return Response(EnrollmentSerializer(enrollments, many=True).data)
 
     @action(methods=['get'], url_path='progress', detail=True, permission_classes=[permissions.IsAuthenticated])
@@ -98,12 +114,19 @@ class CourseView(viewsets.ModelViewSet):
         serializer = StudentEnrollmentSerializer(enrollments, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(methods=['get'], url_path='lessons', detail=True)
+    def get_lessons(self, request, pk):
+        lessons = self.get_object().lesson_set.filter(active=True)
+        return Response(serializers.LessonSerializer(lessons, many=True).data, status=status.HTTP_200_OK)
+
+
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
     parser_classes = [parsers.MultiPartParser]
 
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False, permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
+            permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
         u = request.user
         if request.method.__eq__('PATCH'):
@@ -112,15 +135,16 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
                     setattr(u, k, v)
             u.save()
 
-        return Response(serializers.UserSerializer(u).data, status= status.HTTP_200_OK)
+        return Response(serializers.UserSerializer(u).data, status=status.HTTP_200_OK)
 
-    @action(methods=['patch'], url_path='grant-lecturer' ,detail=True, permission_classes=[permissions.IsAdminUser])
+    @action(methods=['patch'], url_path='grant-lecturer', detail=True, permission_classes=[permissions.IsAdminUser])
     def grant_lecturer(self, request, pk):
         user = self.get_object()
         user.role = User.Role.LECTURER
         user.is_lecturer_verified = True
         user.save()
-        return Response ({"message": f"Đã nâng cấp {user.username} thành Giảng viên."})
+        return Response({"message": f"Đã nâng cấp {user.username} thành Giảng viên."})
+
 
 # class EnrollmentView(viewsets.ViewSet, generics.CreateAPIView):
 #     serializer_class = EnrollmentSerializer
@@ -134,10 +158,10 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
 #         enrollment = self.get_object()
 
 class LessonView(viewsets.ViewSet, generics.CreateAPIView):
-    queryset = Lesson.objects.filter(active = True)
+    queryset = Lesson.objects.filter(active=True)
     serializer_class = LessonSerializer
 
-    @action(methods=['post'], detail=True, url_path='complete', permission_classes = [permissions.IsAuthenticated])
+    @action(methods=['post'], detail=True, url_path='complete', permission_classes=[permissions.IsAuthenticated])
     def mark_complete(self, request, pk):
         lesson = self.get_object()
         user = request.user
@@ -146,9 +170,9 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView):
         if enrollment is None:
             return Response({"error": "Bạn chưa đăng ký khóa học này."}, status=status.HTTP_403_FORBIDDEN)
 
-        LessonComplete.objects.get_or_create(user = user, lesson = lesson, enrollment = enrollment)
-        total_lessons = Lesson.objects.filter(course = lesson.course, active = True).count()
-        completed_lessons = LessonComplete.objects.filter(enrollment = enrollment).count()
+        LessonComplete.objects.get_or_create(user=user, lesson=lesson, enrollment=enrollment)
+        total_lessons = Lesson.objects.filter(course=lesson.course, active=True).count()
+        completed_lessons = LessonComplete.objects.filter(enrollment=enrollment).count()
 
         if total_lessons > 0:
             new_progress = int((completed_lessons / total_lessons) * 100)
@@ -176,7 +200,7 @@ class StatView(viewsets.ViewSet):
 
         queryset = queryset.annotate(
             student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)),
-            total_revenue=Coalesce(Sum('enrollments__payments__amount'),0)).order_by('-total_revenue')
+            total_revenue=Coalesce(Sum('enrollments__payments__amount'), 0)).order_by('-total_revenue')
 
         serializer = CourseRevenueSerializer(queryset, many=True, context={'request': request})
 
@@ -193,7 +217,8 @@ class StatView(viewsets.ViewSet):
             payments = payments.filter(enrollment__course__lecturer=user)
         trunc_func = TruncYear('created_date') if period == 'year' else TruncMonth('created_date')
 
-        stats = payments.annotate(period_date=trunc_func).values('period_date').annotate(total_revenue=Sum('amount')).order_by('period_date')
+        stats = payments.annotate(period_date=trunc_func).values('period_date').annotate(
+            total_revenue=Sum('amount')).order_by('period_date')
 
         data = [{
             'period': s['period_date'].strftime('%Y' if period == 'year' else '%m-%Y'),
@@ -215,7 +240,8 @@ class StatView(viewsets.ViewSet):
         if user.role == User.Role.LECTURER:
             course_qs = course_qs.filter(lecturer=user)
             total_students = enrollment_qs.filter(course__lecturer=user).values('user').distinct().count()
-            total_revenue = payment_qs.filter(enrollment__course__lecturer=user).aggregate(sum=Sum('amount'))['sum'] or 0
+            total_revenue = payment_qs.filter(enrollment__course__lecturer=user).aggregate(sum=Sum('amount'))[
+                                'sum'] or 0
 
         elif user.role == User.Role.ADMIN:
             total_students = User.objects.filter(role=User.Role.STUDENT, is_active=True).count()
@@ -228,4 +254,3 @@ class StatView(viewsets.ViewSet):
             "total_students": total_students,
             "total_revenue": total_revenue
         }, status=status.HTTP_200_OK)
-

@@ -16,5 +16,10 @@ export default StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 50
+    }, title: {
+        fontSize: 30,
+        fontWeight: "bold",
+        color: "blue",
+        alignSelf: "center"
     }
 });
