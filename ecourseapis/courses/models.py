@@ -16,13 +16,6 @@ class User(AbstractUser):
     role = models.CharField(choices=Role.choices, max_length=20, default=Role.STUDENT)
     is_lecturer_verified = models.BooleanField(default=False)
 
-
-class Category(models.Model):
-    name = models.CharField(max_length=50, unique=True)
-
-    def __str__(self):
-        return self.name
-
 class BaseModel(models.Model):
     active = models.BooleanField(default=True)
     created_date = models.DateTimeField(auto_now_add=True)
@@ -30,6 +23,12 @@ class BaseModel(models.Model):
 
     class Meta:
         abstract = True
+
+class Category(BaseModel):
+    name = models.CharField(max_length=50, unique=True)
+
+    def __str__(self):
+        return self.name
 
 class Course(BaseModel):
     subject = models.CharField(max_length=255)
@@ -39,6 +38,7 @@ class Course(BaseModel):
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=0, default=0)
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='courses')
+    tags = models.ManyToManyField('Tag')
 
     def __str__(self):
         return self.subject
@@ -92,9 +92,7 @@ class LessonComplete(BaseModel):
 
 class Payment(BaseModel):
     class Method(models.TextChoices):
-        PAYPAL = 'PAYPAL', 'PayPal'
         MOMO = 'MOMO', 'MoMo'
-        ZALOPAY = 'ZALOPAY', 'ZaloPay'
         CASH = 'CASH', 'Tiền mặt'
 
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
@@ -105,17 +103,27 @@ class Payment(BaseModel):
     def __str__(self):
         return f"Bill: {self.amount} VND - {self.enrollment.user.username}"
 
-class Comment(BaseModel):
-    content = models.TextField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+class Interaction(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null= False)
+    lesson = models.ForeignKey(Lesson, on_delete= models.CASCADE, null = False)
 
-    def __str__(self):
-        return self.content
+    class Meta:
+        abstract = True
 
-class Like(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE)
+class Comment(Interaction):
+    content = models.CharField(max_length=255, null=False)
+
+class Like(Interaction):
+    active = models.BooleanField(default=True)
 
     class Meta:
         unique_together = ('user', 'lesson')
+
+class Rating(BaseModel):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='ratings')
+    rate = models.IntegerField(default=5)
+    content = models.CharField(max_length=255, null=True, blank=True)
+
+    class Meta:
+        unique_together = ('user', 'course')
