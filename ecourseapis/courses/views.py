@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from courses import perms, serializers, paginators
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
-    CategorySerializer, CourseRevenueSerializer, StudentEnrollmentSerializer
+    CategorySerializer, CourseRevenueSerializer, StudentEnrollmentSerializer, CommentSerializer
 
 
 # POST http://domain/o/token/
@@ -290,3 +290,9 @@ class StatView(viewsets.ViewSet):
             "total_students": total_students,
             "total_revenue": total_revenue
         }, status=status.HTTP_200_OK)
+
+class CommnetView(viewsets.ViewSet, generics.UpdateAPIView, generics.DestroyAPIView):
+    queryset = Comment.objects.filter(active = True)
+    permission_classes = [perms.IsOwnerAuthenticated]
+    serializer_class = serializers.CommentSerializer
+

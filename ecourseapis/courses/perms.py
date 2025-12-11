@@ -29,6 +29,6 @@ class IsAdminOrLecturer(BasePermission):
 
         return False
 
-class OwnerAuthenticated(permissions.IsAuthenticated):
+class IsOwnerAuthenticated(permissions.IsAuthenticated):
     def has_object_permission(self, request, view, obj):
         return self.has_permission(request, view) and request.user == obj.user

@@ -11,7 +11,8 @@ export default StyleSheet.create({
     margin: {
         margin: 5
     }, padding: {
-        padding: 5
+        padding: 5,
+        flex: 1
     }, avatar: {
         width: 120,
         height: 120,
