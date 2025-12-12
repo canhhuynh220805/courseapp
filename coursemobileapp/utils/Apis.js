@@ -8,6 +8,7 @@ export const endpoints = {
   courses: "/courses/",
   lessons: (courseId) => `/courses/${courseId}/lessons/`,
   login: "/o/token/",
+  register: "/users/",
   "current-user": "/users/current-user/",
 };
 
