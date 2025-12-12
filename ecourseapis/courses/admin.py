@@ -3,7 +3,7 @@ from django.db.models import Count
 from django.template.response import TemplateResponse
 from django.urls import path
 from django.utils.html import mark_safe
-
+from oauth2_provider.models import Application, AccessToken, RefreshToken
 from courses.models import Category, Course, Lesson, Tag, User
 
 
@@ -42,3 +42,6 @@ admin_site.register(Tag)
 admin_site.register(Course, CourseAdmin)
 admin_site.register(Lesson)
 admin_site.register(User)
+admin_site.register(Application)
+admin_site.register(AccessToken)
+admin_site.register(RefreshToken)

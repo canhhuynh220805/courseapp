@@ -38,6 +38,7 @@ class CoursesSerializer(ImageSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = User
         fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email']
@@ -56,7 +57,15 @@ class UserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        data['avatar'] = instance.avatar.url if instance.avatar else ''
+
+        if instance.avatar:
+            if isinstance(instance.avatar, str):
+                data['avatar'] = instance.avatar
+            else:
+                data['avatar'] = instance.avatar.url
+        else:
+            data['avatar'] = ''
+        # data['avatar'] = instance.avatar.url if instance.avatar else ''
         return data
 
 class EnrollmentSerializer(serializers.ModelSerializer):
