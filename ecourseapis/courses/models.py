@@ -34,7 +34,8 @@ class Category(models.Model):
 class Course(BaseModel):
     subject = models.CharField(max_length=255)
     description = models.TextField(null=False)
-    image = CloudinaryField('image', null=True)
+    # image = CloudinaryField('image', null=True)
+    image = models.CharField(max_length=255, null=True, blank=True)
     video = CloudinaryField('video', resource_type='video',null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=0, default=0)
@@ -49,7 +50,8 @@ class Lesson(BaseModel):
     content = RichTextField()
     course = models.ForeignKey(Course, on_delete=models.RESTRICT)
     tags = models.ManyToManyField('tag')
-    image = CloudinaryField('image', null=True)
+    # image = CloudinaryField('image', null=True)
+    image = models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return self.subject
 
