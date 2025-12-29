@@ -151,7 +151,7 @@ const Login = () => {
           </Button>
           <View style={LoginStyle.signupContainer}>
             <Text style={LoginStyle.signupText}>Chưa có tài khoản? </Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => nav.navigate("Register")}>
               <Text style={LoginStyle.signupLink}>Đăng ký ngay</Text>
             </TouchableOpacity>
           </View>
