@@ -31,9 +31,10 @@ class ImageSerializer(serializers.ModelSerializer):
 class CoursesSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
     video = serializers.CharField(required=False, allow_null=True)
+    is_free = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image', 'video' ,'price', 'category']
+        fields = ['id', 'subject', 'description', 'image', 'video' ,'price', 'category', 'is_free']
 
     def is_registered(self, course):
         request = self.context.get('request')
@@ -48,6 +49,9 @@ class CoursesSerializer(ImageSerializer):
             if enrollment:
                 return enrollment.progress
         return None
+
+    def get_is_free(self, obj):
+        return obj.price == 0 or obj.price is None
 
 
 class UserSerializer(ImageSerializer):
@@ -86,7 +90,7 @@ class LessonSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'image', 'duration', 'created_date']
+        fields = ['id', 'subject', 'image', 'duration', 'created_date']
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -133,5 +137,5 @@ class LessonDetailsSerializer(LessonSerializer):
         return False
 
     class Meta:
-        model = LessonSerializer.Meta.model
-        fields = LessonSerializer.Meta.fields + ['tags', 'content', 'liked']
+        model = Lesson
+        fields = LessonSerializer.Meta.fields + ['content', 'video', 'tags', 'liked']
