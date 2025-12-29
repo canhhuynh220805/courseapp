@@ -1,0 +1,176 @@
+import {StyleSheet} from "react-native";
+
+export default StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 32,
+    maxHeight: "80%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  closeButton: {
+    padding: 4,
+  },
+  courseInfo: {
+    backgroundColor: "#f9fafb",
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+  },
+  courseInfoTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 8,
+  },
+  courseInfoPrice: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#3b82f6",
+  },
+  paymentMethods: {
+    marginBottom: 24,
+  },
+  paymentOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 16,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  paymentOptionActive: {
+    borderColor: "#3b82f6",
+    backgroundColor: "#eff6ff",
+  },
+  paymentIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 16,
+  },
+  paymentName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  paymentNameActive: {
+    color: "#3b82f6",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#374151",
+  },
+  confirmButton: {
+    flex: 1,
+    backgroundColor: "#3b82f6",
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  confirmButtonDisabled: {
+    backgroundColor: "#d1d5db",
+  },
+  confirmButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#ffffff",
+  },
+  courseInfoCard: {
+    flexDirection: "row", // Xếp ngang
+    backgroundColor: "#ffffff",
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 24,
+    // Tạo bóng đổ (Shadow) để card nổi lên
+    shadowColor: "#000",
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
+  },
+  cardImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    marginRight: 16,
+    backgroundColor: "#E5E7EB",
+  },
+  cardImagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3B82F6", // Màu xanh placeholder
+  },
+  cardContent: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  cardLabel: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1F2937",
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: "auto", // Đẩy xuống đáy nếu content dài
+  },
+  totalLabel: {
+    fontSize: 14,
+    color: "#6B7280",
+    fontWeight: "500",
+  },
+  cardPrice: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#2563EB", // Màu xanh chủ đạo
+  },
+});

@@ -27,7 +27,8 @@ class CoursesSerializer(ImageSerializer):
     is_free = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer']
+
 
     def is_registered(self, course):
         request = self.context.get('request')

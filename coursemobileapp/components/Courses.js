@@ -11,14 +11,25 @@ import Apis, {endpoints} from "../utils/Apis";
 import {List, Searchbar} from "react-native-paper";
 import {useNavigation} from "@react-navigation/native";
 import styles from "../screens/Home/styles";
+import {Ionicons} from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
+import PaymentModal from "../screens/PaymentModal/PaymentModal";
 
 const Courses = ({cate}) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  const [priceRange, setPriceRange] = useState([0, 100000000]);
+  const [showPriceFilter, setShowPriceFilter] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   const nav = useNavigation();
 
+  const handleRegisterCourse = (course) => {
+    setSelectedCourse(course);
+    setPaymentModalVisible(true);
+  };
   const loadCourses = async () => {
     try {
       setLoading(true);
@@ -76,8 +87,35 @@ const Courses = ({cate}) => {
             inputStyle={styles.searchInput}
             iconColor="#6b7280"
           />
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => setShowPriceFilter(!showPriceFilter)}
+          >
+            <Ionicons name="options" size={20} color="#3b82f6" />
+          </TouchableOpacity>
         </View>
       </View>
+      {showPriceFilter && (
+        <View style={styles.priceFilterContainer}>
+          <Text style={styles.priceFilterLabel}>
+            Price Range: ${priceRange[0]} - ${priceRange[1]}
+          </Text>
+          <View style={styles.sliderContainer}>
+            <Text style={styles.sliderValue}>$0</Text>
+            <Slider
+              style={[styles.slider, {width: 100}]}
+              minimumValue={0}
+              maximumValue={100000000}
+              value={priceRange[1]}
+              onValueChange={(value) => setPriceRange([0, Math.round(value)])}
+              minimumTrackTintColor="#3b82f6"
+              maximumTrackTintColor="#e5e7eb"
+              thumbTintColor="#3b82f6"
+            />
+            <Text style={styles.sliderValue}>$100000000</Text>
+          </View>
+        </View>
+      )}
       <FlatList
         style={{flex: 1}}
         contentContainerStyle={styles.courseList}
@@ -97,7 +135,8 @@ const Courses = ({cate}) => {
           /* KHÔNG dùng List.Item ở đây nữa */
           <TouchableOpacity
             style={styles.courseCard}
-            onPress={() => nav.navigate("Lesson", {courseId: item.id})}
+            // onPress={() => nav.navigate("Lesson", {courseId: item.id})}
+            onPress={() => handleRegisterCourse(item)}
             activeOpacity={0.9}
           >
             {/* Hình ảnh chiếm trọn phía trên Card */}
@@ -124,6 +163,11 @@ const Courses = ({cate}) => {
             </View>
           </TouchableOpacity>
         )}
+      />
+      <PaymentModal
+        visible={paymentModalVisible}
+        onClose={() => setPaymentModalVisible(false)}
+        course={selectedCourse}
       />
     </View>
   );
