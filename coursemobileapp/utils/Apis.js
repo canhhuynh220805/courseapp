@@ -10,6 +10,7 @@ export const endpoints = {
   login: "/o/token/",
   register: "/users/",
   "current-user": "/users/current-user/",
+  
 };
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
