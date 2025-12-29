@@ -35,7 +35,6 @@ class Course(BaseModel):
     description = models.TextField(null=False)
     # image = CloudinaryField('image', null=True)
     image = models.CharField(max_length=255, null=True, blank=True)
-    video = CloudinaryField('video', resource_type='video',null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=0, default=0)
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='courses')
@@ -53,6 +52,7 @@ class Lesson(BaseModel):
     video = CloudinaryField('video', resource_type='video', null=True, blank=True)
     duration = models.IntegerField(default=0, help_text="Thời lượng bài học")
     image = models.CharField(max_length=255, null=True, blank=True)
+    video = models.CharField(max_length=255, null=True, blank=True)
     def __str__(self):
         return self.subject
 

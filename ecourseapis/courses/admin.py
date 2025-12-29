@@ -9,7 +9,7 @@ from courses.models import Category, Course, Lesson, Tag, User
 
 #Register your models here.
 class CourseAdmin(admin.ModelAdmin):
-    list_display = ["id", "subject", "description", "image", "created_date", "active", 'video']
+    list_display = ["id", "subject", "description", "image", "created_date", "active"]
     search_fields = ['subject']
     list_filter = ["id", "subject", "category"]
     readonly_fields = ["image_view"]
