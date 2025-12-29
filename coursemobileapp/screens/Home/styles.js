@@ -118,4 +118,34 @@ export default StyleSheet.create({
     fontSize: 14,
     color: "#6b7280",
   },
+  filterButton: {
+    padding: 4,
+  },
+  priceFilterContainer: {
+    backgroundColor: "#f9fafb",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  priceFilterLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  sliderContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  slider: {
+    flex: 1,
+    height: 40,
+  },
+  sliderValue: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+    width: 30,
+  },
 });

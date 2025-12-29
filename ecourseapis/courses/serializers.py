@@ -26,7 +26,7 @@ class CoursesSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'lecturer']
 
     def is_registered(self, course):
         request = self.context.get('request')
