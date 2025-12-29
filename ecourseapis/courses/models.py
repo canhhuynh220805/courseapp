@@ -12,7 +12,11 @@ class User(AbstractUser):
         LECTURER = "LECTURER", "Giảng viên"
         STUDENT = "STUDENT", "Sinh viên"
 
+<<<<<<< Updated upstream
     avatar = CloudinaryField(null=True)
+=======
+    avatar = models.CharField(max_length=255, null=True, blank=True)
+>>>>>>> Stashed changes
     role = models.CharField(choices=Role.choices, max_length=20, default=Role.STUDENT)
     is_lecturer_verified = models.BooleanField(default=False)
 
@@ -34,11 +38,11 @@ class Course(BaseModel):
     subject = models.CharField(max_length=255)
     description = models.TextField(null=False)
     image = CloudinaryField('image', null=True)
-    video = CloudinaryField('video', resource_type='video',null=True, blank=True)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     price = models.DecimalField(max_digits=10, decimal_places=0, default=0)
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='courses')
     tags = models.ManyToManyField('Tag')
+    duration = models.IntegerField(default=0)
 
     def __str__(self):
         return self.subject
@@ -49,6 +53,8 @@ class Lesson(BaseModel):
     course = models.ForeignKey(Course, on_delete=models.RESTRICT)
     tags = models.ManyToManyField('tag')
     image = CloudinaryField('image', null=True)
+    video = CloudinaryField('video', resource_type='video', null=True, blank=True)
+    duration = models.IntegerField(default=0, help_text="Thời lượng bài học")
     def __str__(self):
         return self.subject
 
@@ -77,7 +83,7 @@ class Enrollment(BaseModel):
         unique_together = ('user', 'course')
 
     def __str__(self):
-        return f"{self.user.name} - {self.course.subject}"
+        return f"{self.user.username} - {self.course.subject}"
 
 class LessonComplete(BaseModel):
     user = models.ForeignKey(User, on_delete=models.CASCADE)

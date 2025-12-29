@@ -56,7 +56,12 @@ class UserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
+<<<<<<< Updated upstream
         data['avatar'] = instance.avatar.url if instance.avatar else ''
+=======
+
+        data['avatar'] = instance.avatar if instance.avatar else ''
+>>>>>>> Stashed changes
         return data
 
 class EnrollmentSerializer(serializers.ModelSerializer):
@@ -68,7 +73,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
+        fields = ['id', 'subject', 'content', 'image', 'duration', 'created_date']
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -81,7 +86,15 @@ class CourseRevenueSerializer(ImageSerializer):
 
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'image', 'student_count', 'total_revenue ']
+        fields = ['id', 'subject', 'image', 'student_count', 'total_revenue']
+
+class CourseCompareSerializer(CoursesSerializer):
+    lecturer_name = serializers.CharField(source='lecturer.username', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ['id', 'subject', 'image', 'price', 'duration', 'lecturer_name', 'category_name']
 
 class StudentEnrollmentSerializer(serializers.ModelSerializer):
     user = UserSerializer()

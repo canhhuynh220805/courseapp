@@ -13,8 +13,7 @@ import User from "./screens/User/User";
 
 const Stack = createNativeStackNavigator();
 
-const StackNavigatior = () => {
-  
+const StackNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{headerShown: false}}>
       <Stack.Screen name="Course" component={Home} options={{title: "Khóa học"}} />
@@ -28,7 +27,7 @@ const TabNavigator = () => {
   const [user, ] = useContext(MyUserContext);
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Home" component={StackNavigatior} options={{title: "Màn hình chính", tabBarIcon: () => <Icon color="blue" source="home" size={30} />}} />
+      <Tab.Screen name="Home" component={StackNavigator} options={{title: "Màn hình chính", tabBarIcon: () => <Icon color="blue" source="home" size={30} />}} />
       {user===null?<>
         <Tab.Screen name="Register" component={Register} options={{title: "Đăng ký", tabBarIcon: () => <Icon color="blue" source="account" size={30} />}} />
         <Tab.Screen name="Login" component={Login} options={{title: "Đăng nhập", tabBarIcon: () => <Icon color="blue" source="login" size={30} />}} />

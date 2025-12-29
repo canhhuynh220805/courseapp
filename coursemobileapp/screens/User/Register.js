@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+=======
+import {Alert, Image, ScrollView, Text, TouchableOpacity, View} from "react-native";
+>>>>>>> Stashed changes
 import MyStyles from "../../styles/MyStyles";
 import { Button, HelperText, TextInput } from "react-native-paper";
 import * as ImagePicker from 'expo-image-picker';
