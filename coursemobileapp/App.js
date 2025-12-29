@@ -10,11 +10,13 @@ import { MyUserContext } from "./utils/contexts/MyContext";
 import { useContext, useReducer } from "react";
 import MyUserReducer from "./utils/reducers/MyUserReducer";
 import User from "./screens/User/User";
+import LecturerDashboard from "./screens/Lecturer/Dashboard";
+import StudentProgress from "./screens/Lecturer/StudentProgress";
+import AddCourse from "./screens/Lecturer/AddCourse";
 
 const Stack = createNativeStackNavigator();
 
-const StackNavigatior = () => {
-  
+const StackNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{headerShown: false}}>
       <Stack.Screen name="Course" component={Home} options={{title: "Khóa học"}} />
@@ -23,19 +25,33 @@ const StackNavigatior = () => {
   );
 }
 
+const LecturerStack = () => (
+    <Stack.Navigator>
+        <Stack.Screen name="LecturerHome" component={LecturerDashboard} options={{ title: "Quản lý khóa học" }} />
+        <Stack.Screen name="StudentProgress" component={StudentProgress} options={{ title: "Tiến độ sinh viên" }} />
+        <Stack.Screen name="AddCourse" component={AddCourse} options={{ title: "Tạo khóa học" }} />
+    </Stack.Navigator>
+);
+
 const Tab = createBottomTabNavigator();
 const TabNavigator = () => {
-  const [user, ] = useContext(MyUserContext);
+  const [user] = useContext(MyUserContext);
+
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Home" component={StackNavigatior} options={{title: "Màn hình chính", tabBarIcon: () => <Icon color="blue" source="home" size={30} />}} />
-      {user===null?<>
-        <Tab.Screen name="Register" component={Register} options={{title: "Đăng ký", tabBarIcon: () => <Icon color="blue" source="account" size={30} />}} />
-        <Tab.Screen name="Login" component={Login} options={{title: "Đăng nhập", tabBarIcon: () => <Icon color="blue" source="login" size={30} />}} />
-      </>:<>
-        <Tab.Screen name="Profile" component={User} options={{title: "Profile", tabBarIcon: () => <Icon color="blue" source="account" size={30} />}} />
-      </>}
+      <Tab.Screen name="Main" component={Home} options={{title: "Khóa học", tabBarIcon: () => <Icon color="blue" source="home" size={26} /> }} />
       
+      {user?.role === "LECTURER" && (
+        <Tab.Screen name="Manage" component={LecturerStack} options={{title: "Giảng dạy", tabBarIcon: () => <Icon color="blue" source="school" size={26} /> }} />
+      )}
+
+      {user === null ? (
+        <>
+          <Tab.Screen name="Login" component={Login} options={{ title: "Đăng nhập", tabBarIcon: () => <Icon color="blue" source="login" size={26} /> }} />
+        </>
+      ) : (
+        <Tab.Screen name="Profile" component={User} options={{ title: "Cá nhân", tabBarIcon: () => <Icon color="blue" source="account" size={26} /> }} />
+      )}
     </Tab.Navigator>
   );
 }

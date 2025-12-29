@@ -52,16 +52,13 @@ class CourseView(viewsets.ModelViewSet):
         if max_price:
             queries = queries.filter(price__lte=max_price)
 
-        # ordering = self.request.query_params.get("ordering")
-        # if ordering:
-        #     allowed_ordering_fields = ['id', 'created_date', 'updated_date', 'price', '-id', '-created_date',
-        #                                '-updated_date', '-price']
-        #     if ordering in allowed_ordering_fields:
-        #         queries = queries.order_by(ordering)
+        ordering = self.request.query_params.get("ordering")
+        if ordering in ['subject', 'price', '-subject', '-price']:
+            queries = queries.order_by(ordering)
         return queries
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'get_lessons']:
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
@@ -69,27 +66,26 @@ class CourseView(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
-    @action(methods=['post'], url_path='enroll', detail=True, permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get'], detail=False, url_path='compare')
+    def compare(self, request):
+        ids = request.query_params.get('ids')
+        if not ids:
+            return Response({"error": "Vui lòng cung cấp danh sách ID"}, status=status.HTTP_400_BAD_REQUEST)
+
+        course_ids = [int(pk) for pk in ids.split(',')]
+        courses = Course.objects.filter(id__in=course_ids, active=True)
+        return Response(serializers.CourseCompareSerializer(courses, many=True).data)
+
+    @action(methods=['post'], detail=True, url_path='enroll', permission_classes=[permissions.IsAuthenticated])
     def enroll(self, request, pk=None):
         course = self.get_object()
-        user = request.user
-
-        enrollment, created = Enrollment.objects.get_or_create(user=user, course=course)
-
+        enrollment, created = Enrollment.objects.get_or_create(user=request.user, course=course)
         if not created:
-            return Response({
-                "message": "Bạn đã đăng ký khóa học này rồi.",
-                "status": enrollment.status,
-                "enrollment_id": enrollment.id
-            }, status=status.HTTP_409_CONFLICT)
+            return Response({"message": "Đã đăng ký rồi."}, status=status.HTTP_409_CONFLICT)
 
-        if course.price and course.price > 0:
-            enrollment.status = Enrollment.Status.PENDING
-        else:
-            enrollment.status = Enrollment.Status.ACTIVE
-
+        enrollment.status = Enrollment.Status.ACTIVE if not course.price or course.price == 0 else Enrollment.Status.PENDING
         enrollment.save()
-        return Response(EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED)
+        return Response(serializers.EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], url_path='my-course', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_my_course(self, request):
@@ -129,8 +125,17 @@ class CourseView(viewsets.ModelViewSet):
 
     @action(methods=['get'], url_path='lessons', detail=True)
     def get_lessons(self, request, pk):
-        lessons = self.get_object().lesson_set.filter(active=True)
-        return Response(serializers.LessonSerializer(lessons, many=True).data, status=status.HTTP_200_OK)
+        course = self.get_object()
+        lessons = course.lesson_set.filter(active=True)
+        is_enrolled = False
+        if request.user.is_authenticated:
+            is_enrolled = Enrollment.objects.filter(user=request.user,course=course,status=Enrollment.Status.ACTIVE).exists()
+
+        if course.price == 0 or is_enrolled:
+            serializer = serializers.LessonDetailsSerializer(lessons, many=True, context={'request': request})
+        else:
+            serializer = serializers.LessonSerializer(lessons, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
@@ -138,8 +143,7 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
     serializer_class = UserSerializer
     # parser_classes = [parsers.MultiPartParser]
 
-    @action(methods=['get', 'patch'], url_path='current-user', detail=False,
-            permission_classes=[permissions.IsAuthenticated])
+    @action(methods=['get', 'patch'], url_path='current-user', detail=False,permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
         u = request.user
         if request.method.__eq__('PATCH'):
@@ -158,17 +162,20 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
         user.save()
         return Response({"message": f"Đã nâng cấp {user.username} thành Giảng viên."})
 
+    @action(methods=['get'], url_path='chat-contacts', detail=False, permission_classes=[permissions.IsAuthenticated])
+    def chat_contacts(self, request):
+        user = request.user
+        if user.role == User.Role.STUDENT:
+            lecturers = User.objects.filter(courses__enrollments__user=user,
+                                            courses__enrollments__status=Enrollment.Status.ACTIVE).distinct()
+            return Response(serializers.UserSerializer(lecturers, many=True).data)
 
-# class EnrollmentView(viewsets.ViewSet, generics.CreateAPIView):
-#     serializer_class = EnrollmentSerializer
-#     permission_classes = [permissions.IsAuthenticated]
-#
-#     def get_queryset(self):
-#         return Enrollment.objects.filter(user = self.request.user)
-#
-#     @action(methods=['patch'], url_path='progress', detail=True)
-#     def update_progress(self, request, pk):
-#         enrollment = self.get_object()
+        elif user.role == User.Role.LECTURER:
+            students = User.objects.filter(enrollments__course__lecturer=user,
+                                           enrollments__status=Enrollment.Status.ACTIVE).distinct()
+            return Response(serializers.UserSerializer(students, many=True).data)
+
+        return Response([])
 
 class LessonView(viewsets.ViewSet, generics.CreateAPIView):
     queryset = Lesson.objects.filter(active=True)
@@ -222,6 +229,16 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView):
 
         return Response(serializers.LessonDetailsSerializer(self.get_object(), context={'request': request}).data)
 
+class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
+    queryset = Payment.objects.all()
+    serializer_class = serializers.PaymentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        payment = serializer.save()
+        enrollment = payment.enrollment
+        enrollment.status = Enrollment.Status.ACTIVE
+        enrollment.save()
 
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]
