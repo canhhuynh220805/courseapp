@@ -58,7 +58,7 @@ class CourseView(viewsets.ModelViewSet):
         return queries
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'get_lessons']:
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
@@ -125,8 +125,17 @@ class CourseView(viewsets.ModelViewSet):
 
     @action(methods=['get'], url_path='lessons', detail=True)
     def get_lessons(self, request, pk):
-        lessons = self.get_object().lesson_set.filter(active=True)
-        return Response(serializers.LessonSerializer(lessons, many=True).data, status=status.HTTP_200_OK)
+        course = self.get_object()
+        lessons = course.lesson_set.filter(active=True)
+        is_enrolled = False
+        if request.user.is_authenticated:
+            is_enrolled = Enrollment.objects.filter(user=request.user,course=course,status=Enrollment.Status.ACTIVE).exists()
+
+        if course.price == 0 or is_enrolled:
+            serializer = serializers.LessonDetailsSerializer(lessons, many=True, context={'request': request})
+        else:
+            serializer = serializers.LessonSerializer(lessons, many=True, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
