@@ -178,9 +178,9 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
 
         return Response([])
 
-class LessonView(viewsets.ViewSet, generics.CreateAPIView):
+class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView):
     queryset = Lesson.objects.filter(active=True)
-    serializer_class = LessonSerializer
+    serializer_class = serializers.LessonDetailsSerializer
 
     @action(methods=['post'], detail=True, url_path='complete', permission_classes=[permissions.IsAuthenticated])
     def mark_complete(self, request, pk):
