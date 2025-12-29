@@ -10,6 +10,11 @@ export const endpoints = {
   login: "/o/token/",
   register: "/users/",
   "current-user": "/users/current-user/",
+  'course-stats': "/stats/course-stats/",
+  "general-stats": "/stats/general-stats/",
+  "course-students": (courseId) => `/courses/${courseId}/students/`,
+  "add-course": "/courses/",
+  "add-lesson": "/lessons/",
 };
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;

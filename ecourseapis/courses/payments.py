@@ -17,10 +17,10 @@ class MoMoPaymentStrategy(PaymentStrategy):
     def process_payment(self, enrollment, amount):
         pass
 
-# class ZaloPayPaymentStrategy(PaymentStrategy):
-#     def process_payment(self, enrollment, amount):
-#         pass
-#
+class VNPayPaymentStrategy(PaymentStrategy):
+    def process_payment(self, enrollment, amount):
+        pass
+
 # class PayPalPaymentStrategy(PaymentStrategy):
 #     def process_payment(self, enrollment, amount):
 #         pass

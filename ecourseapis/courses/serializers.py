@@ -24,9 +24,11 @@ class ImageSerializer(serializers.ModelSerializer):
 
 class CoursesSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
+    is_free = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'lecturer']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer']
+
 
     def is_registered(self, course):
         request = self.context.get('request')
@@ -41,6 +43,9 @@ class CoursesSerializer(ImageSerializer):
             if enrollment:
                 return enrollment.progress
         return None
+
+    def get_is_free(self, obj):
+        return obj.price == 0 or obj.price is None
 
 
 class UserSerializer(ImageSerializer):
@@ -60,6 +65,13 @@ class UserSerializer(ImageSerializer):
         user.role = User.Role.STUDENT
         user.save()
         return user
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+#         data['avatar'] = instance.avatar.url if instance.avatar else ''
+
+        data['avatar'] = instance.avatar if instance.avatar else ''
+        return data
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
@@ -99,7 +111,15 @@ class CourseRevenueSerializer(ImageSerializer):
 
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'image', 'student_count', 'total_revenue ']
+        fields = ['id', 'subject', 'image', 'student_count', 'total_revenue']
+
+class CourseCompareSerializer(CoursesSerializer):
+    lecturer_name = serializers.CharField(source='lecturer.username', read_only=True)
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
+    class Meta:
+        model = Course
+        fields = ['id', 'subject', 'image', 'price', 'duration', 'lecturer_name', 'category_name']
 
 class StudentEnrollmentSerializer(serializers.ModelSerializer):
     user = UserSerializer()
@@ -125,5 +145,5 @@ class LessonDetailsSerializer(LessonSerializer):
         return False
 
     class Meta:
-        model = LessonSerializer.Meta.model
-        fields = LessonSerializer.Meta.fields + ['tags', 'content', 'liked']
+        model = Lesson
+        fields = LessonSerializer.Meta.fields + ['content', 'video', 'tags', 'liked']
