@@ -19,21 +19,14 @@ class ImageSerializer(serializers.ModelSerializer):
             elif hasattr(instance.image, 'url'):
                 data['image'] = instance.image.url
 
-        if instance.video:
-            if isinstance(instance.video, str):
-                data['video'] = instance.video
-            elif hasattr(instance.video, 'url'):
-                data['video'] = instance.video.url
-
         return data
 
 
 class CoursesSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
-    video = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image', 'video' ,'price', 'category']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category']
 
     def is_registered(self, course):
         request = self.context.get('request')
@@ -75,11 +68,25 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         model = Enrollment
         fields = ['id', 'user', 'course', 'status', 'progress', 'created_date']
 
-class LessonSerializer(ImageSerializer):
+class LessonSerializer(serializers.ModelSerializer):
     image = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
+        fields = ['id', 'subject', 'content', 'course', 'tags', 'image', 'video']
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.image:
+            if isinstance(instance.image, str):
+                data['image'] = instance.image
+            elif hasattr(instance.image, 'url'):
+                data['image'] = instance.image.url
+        if instance.video:
+            if isinstance(instance.video, str):
+                data['video'] = instance.video
+            elif hasattr(instance.video, 'url'):
+                data['video'] = instance.video.url
+        return data
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
