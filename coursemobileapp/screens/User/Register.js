@@ -1,18 +1,21 @@
 import {
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import MyStyles from "../../styles/MyStyles";
-import { Button, HelperText, TextInput } from "react-native-paper";
+import {Button, HelperText, TextInput} from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
-import { useState } from "react";
-import Apis, { endpoints } from "../../utils/Apis";
-import { useNavigation } from "@react-navigation/native";
+import {useState} from "react";
+import Apis, {endpoints} from "../../utils/Apis";
+import {useNavigation} from "@react-navigation/native";
 import axios from "axios";
+import RegisterStyle from "./RegisterStyle";
 
 const Register = () => {
   const info = [
@@ -65,7 +68,7 @@ const Register = () => {
       const res = await axios.post(
         "https://api.cloudinary.com/v1_1/dpl8syyb9/image/upload",
         data,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {headers: {"Content-Type": "multipart/form-data"}}
       );
 
       return res.data.secure_url;
@@ -76,14 +79,14 @@ const Register = () => {
   };
 
   const pickImage = async () => {
-    let { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    let {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
       alert("Permissions denied!");
     } else {
       const result = await ImagePicker.launchImageLibraryAsync();
       if (!result.canceled) {
-        setUser({ ...user, avatar: result.assets[0] });
+        setUser({...user, avatar: result.assets[0]});
       }
     }
   };
@@ -143,45 +146,104 @@ const Register = () => {
   };
 
   return (
-    <View style={MyStyles.padding}>
-      <Text style={MyStyles.title}>ĐĂNG KÝ NGƯỜI DÙNG</Text>
-      <ScrollView>
-        <HelperText type="error" visible={err}>
-          Mật khẩu KHÔNG khớp!
-        </HelperText>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={RegisterStyle.container}
+    >
+      <ScrollView
+        contentContainerStyle={RegisterStyle.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={RegisterStyle.content}>
+          {/* Header Section */}
+          <View style={RegisterStyle.header}>
+            <Text style={RegisterStyle.title}>ĐĂNG KÝ</Text>
+            <Text style={RegisterStyle.subtitle}>
+              Tạo tài khoản mới để trải nghiệm
+            </Text>
+          </View>
 
-        {info.map((i) => (
-          <TextInput
-            key={i.field}
-            style={MyStyles.margin}
-            value={user[i.field]}
-            onChangeText={(t) => setUser({ ...user, [i.field]: t })}
-            label={i.title}
-            secureTextEntry={i.secureTextEntry}
-            right={<TextInput.Icon icon={i.icon} />}
-          />
-        ))}
+          <View style={RegisterStyle.form}>
+            {/* Error Message */}
+            <HelperText type="error" visible={err} style={{marginBottom: 8}}>
+              Mật khẩu KHÔNG khớp!
+            </HelperText>
 
-        <TouchableOpacity style={MyStyles.margin} onPress={pickImage}>
-          <Text>Chọn ảnh đại diện...</Text>
-        </TouchableOpacity>
+            {/* Input Fields */}
+            {info.map((i) => (
+              <View key={i.field} style={RegisterStyle.inputContainer}>
+                <TextInput
+                  mode="outlined"
+                  outlineColor="#e5e7eb"
+                  activeOutlineColor="#2563eb"
+                  placeholder={`Nhập ${i.title.toLowerCase()}`}
+                  style={{backgroundColor: "#f9fafb"}}
+                  value={user[i.field]}
+                  onChangeText={(t) => setUser({...user, [i.field]: t})}
+                  secureTextEntry={i.secureTextEntry}
+                  right={<TextInput.Icon icon={i.icon} color="#6b7280" />}
+                />
+              </View>
+            ))}
 
-        {user.avatar && (
-          <Image source={{ uri: user.avatar.uri }} style={MyStyles.avatar} />
-        )}
+            {/* Avatar Picker Section */}
+            <View style={RegisterStyle.inputContainer}>
+              <Text style={RegisterStyle.label}>Ảnh đại diện</Text>
+              <TouchableOpacity
+                style={[
+                  RegisterStyle.inputWrapper,
+                  {borderStyle: "dashed", justifyContent: "center"},
+                ]}
+                onPress={pickImage}
+              >
+                <Text style={{color: "#2563eb", fontWeight: "500"}}>
+                  {user.avatar
+                    ? "Thay đổi ảnh đại diện"
+                    : "Chọn ảnh từ thư viện..."}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-        <Button
-          loading={loading}
-          disabled={loading}
-          style={MyStyles.margin}
-          icon="account"
-          mode="contained"
-          onPress={register}
-        >
-          Đăng ký
-        </Button>
+            {user.avatar && (
+              <View style={{alignItems: "center", marginBottom: 20}}>
+                <Image
+                  source={{uri: user.avatar.uri}}
+                  style={{
+                    width: 100,
+                    height: 100,
+                    borderRadius: 50,
+                    borderWidth: 2,
+                    borderColor: "#2563eb",
+                  }}
+                />
+              </View>
+            )}
+
+            {/* Register Button */}
+            <Button
+              loading={loading}
+              disabled={loading}
+              mode="contained"
+              onPress={register}
+              contentStyle={{height: 56}}
+              style={RegisterStyle.registerButton}
+              labelStyle={RegisterStyle.registerButtonText}
+              icon="account-plus"
+            >
+              Đăng ký ngay
+            </Button>
+
+            {/* Footer */}
+            <View style={RegisterStyle.loginContainer}>
+              <Text style={RegisterStyle.loginText}>Đã có tài khoản? </Text>
+              <TouchableOpacity>
+                <Text style={RegisterStyle.loginLink}>Đăng nhập</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 

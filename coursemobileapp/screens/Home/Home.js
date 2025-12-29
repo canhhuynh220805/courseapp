@@ -1,16 +1,16 @@
-import { useState } from "react";
+import {useState} from "react";
 import Categories from "../../components/Categories";
 import Courses from "../../components/Courses";
 
 const Home = () => {
-    const [cate, setCate] = useState();
+  const [cate, setCate] = useState();
 
-    return (
-        <>
-            <Categories setCate={setCate} />
-            <Courses cate={cate} />
-        </>
-    );
-}
+  return (
+    <>
+      <Categories setCate={setCate} activeCate={cate} />
+      <Courses cate={cate} />
+    </>
+  );
+};
 
 export default Home;
