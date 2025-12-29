@@ -132,7 +132,7 @@ class CourseView(viewsets.ModelViewSet):
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
-    parser_classes = [parsers.MultiPartParser]
+    # parser_classes = [parsers.MultiPartParser]
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):

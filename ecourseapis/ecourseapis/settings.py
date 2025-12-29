@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-8ye3$t#ae5*#28wv!179d4+7@dv*hfvamp501hh+4d2r)=ez*!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com','127.0.0.1', 'localhost', '10.0.2.2', '*']
+ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com','127.0.0.1', 'localhost', '10.0.2.2', '*', 'courseapp.pythonanywhere.com']
 
 # Application definition
 
@@ -54,7 +54,8 @@ import cloudinary.api
 cloudinary.config(
     cloud_name="dpl8syyb9",
     api_key="423338349327346",
-    api_secret="zfwveRcXlclSOKM7mqSU2j0421c"
+    api_secret="zfwveRcXlclSOKM7mqSU2j0421c",
+    api_proxy="http://proxy.server:3128"
 )
 
 MIDDLEWARE = [
@@ -95,25 +96,25 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'canhdeptrai22$coursedb',
-#         'USER': 'canhdeptrai22',
-#         'PASSWORD': 'admin@123',
-#         'HOST': 'canhdeptrai22.mysql.pythonanywhere-services.com'  # mặc định localhost
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'coursedb',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': ''  # mặc định localhost
+        'NAME': 'courseapp$coursedb',
+        'USER': 'courseapp',
+        'PASSWORD': 'admin@123',
+        'HOST': 'courseapp.mysql.pythonanywhere-services.com'  # mặc định localhost
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'coursedb',
+#         'USER': 'root',
+#         'PASSWORD': 'root',
+#         'HOST': ''  # mặc định localhost
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

@@ -12,15 +12,28 @@ class ImageSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
 
-        data['image'] = instance.image.url
+        # data['image'] = instance.image.url
+        if instance.image:
+            if isinstance(instance.image, str):
+                data['image'] = instance.image
+            elif hasattr(instance.image, 'url'):
+                data['image'] = instance.image.url
+
+        if instance.video:
+            if isinstance(instance.video, str):
+                data['video'] = instance.video
+            elif hasattr(instance.video, 'url'):
+                data['video'] = instance.video.url
 
         return data
 
 
 class CoursesSerializer(ImageSerializer):
+    image = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image', 'price', 'category']
+        fields = ['id', 'subject', 'description', 'image', 'video' ,'price', 'category']
 
     def is_registered(self, course):
         request = self.context.get('request')
@@ -37,7 +50,8 @@ class CoursesSerializer(ImageSerializer):
         return None
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(ImageSerializer):
+    avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = User
         fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email']
@@ -56,13 +70,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-<<<<<<< Updated upstream
-        data['avatar'] = instance.avatar.url if instance.avatar else ''
-=======
+#         data['avatar'] = instance.avatar.url if instance.avatar else ''
 
         data['avatar'] = instance.avatar if instance.avatar else ''
->>>>>>> Stashed changes
         return data
+
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CoursesSerializer()
@@ -70,7 +82,8 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         model = Enrollment
         fields = ['id', 'user', 'course', 'status', 'progress', 'created_date']
 
-class LessonSerializer(serializers.ModelSerializer):
+class LessonSerializer(ImageSerializer):
+    image = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Lesson
         fields = ['id', 'subject', 'content', 'image', 'duration', 'created_date']

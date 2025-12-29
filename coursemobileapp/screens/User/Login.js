@@ -49,12 +49,22 @@ const Login = () => {
       try {
         setLoading(true);
         console.info(user);
-        let res = await Apis.post(endpoints["login"], {
-          ...user,
-          client_id: CLIENT_ID,
-          client_secret: CLIENT_SECRET,
-          grant_type: "password",
-        });
+        // let res = await Apis.post(endpoints["login"], {
+        //   ...user,
+        //   client_id: CLIENT_ID,
+        //   client_secret: CLIENT_SECRET,
+        //   grant_type: "password",
+        // });
+
+        let res = await Apis.post(
+          endpoints["login"],
+          `grant_type=password&username=${user.username}&password=${user.password}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
+          {
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+          }
+        );
 
         console.info(res.data);
         AsyncStorage.setItem("token", res.data.access_token);
