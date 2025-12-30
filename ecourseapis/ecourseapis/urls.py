@@ -27,8 +27,8 @@ schema_view = get_schema_view(
         title="Course API",
         default_version='v1',
         description="APIs for CourseApp",
-        contact=openapi.Contact(email="thanh.dh@ou.edu.vn"),
-        license=openapi.License(name="Dương Hữu Thành@2021"),
+        contact=openapi.Contact(email="nguyenhuucong295@gmail.com"),
+        license=openapi.License(name="CozgWCanh@2025"),
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
@@ -37,6 +37,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('', include('courses.urls')),
     path('admin/', admin_site.urls),
+    path('api-auth/', include('rest_framework.urls')),
     re_path(r'^ckeditor/', include('ckeditor_uploader.urls')),
     re_path(r'^swagger(?P<format>\.json|\.yaml)$', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     re_path(r'^swagger/$', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
