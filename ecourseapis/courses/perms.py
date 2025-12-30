@@ -12,12 +12,17 @@ class IsLecturerVerified(BasePermission):
             and request.user.is_lecturer_verified
         )
 
+
 class IsCourseOwnerOrAdmin(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.user.role == User.Role.ADMIN:
             return True
-        return obj.lecturer == request.user
 
+        if hasattr(obj, 'course'):
+            return obj.course.lecturer == request.user
+
+        # Nếu đối tượng là Course, kiểm tra trực tiếp giảng viên
+        return getattr(obj, 'lecturer', None) == request.user
 class IsAdminOrLecturer(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:

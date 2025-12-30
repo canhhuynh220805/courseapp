@@ -112,6 +112,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     )
 }
 
@@ -128,5 +130,5 @@ cloudinary.config(
     cloud_name="dpl8syyb9",
     api_key="423338349327346",
     api_secret="zfwveRcXlclSOKM7mqSU2j0421c",
-    api_proxy="http://proxy.server:3128"
+    # api_proxy="http://proxy.server:3128"
 )
