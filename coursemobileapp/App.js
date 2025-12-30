@@ -13,6 +13,7 @@ import User from "./screens/User/User";
 import LecturerHome from "./screens/Lecturer/LecturerHome";
 import StudentProgress from "./screens/Lecturer/StudentProgress";
 import AddCourse from "./screens/Lecturer/AddCourse";
+import AddLesson from "./screens/Lecturer/AddLesson";
 
 const Stack = createNativeStackNavigator();
 
@@ -30,6 +31,7 @@ const LecturerStack = () => (
     <Stack.Screen name="LecturerHome" component={LecturerHome} options={{ title: "Quản lý khóa học" }} />
     <Stack.Screen name="StudentProgress" component={StudentProgress} options={{ title: "Tiến độ sinh viên" }} />
     <Stack.Screen name="AddCourse" component={AddCourse} options={{ title: "Tạo khóa học" }} />
+    <Stack.Screen name="AddLesson" component={AddLesson} options={{ title: "Thêm bài học mới" }} />
   </Stack.Navigator>
 );
 
@@ -47,46 +49,46 @@ const TabNavigator = () => {
 
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "blue" }}>
-      <Tab.Screen 
-        name="Main" 
-        component={CourseStack} 
-        options={{ 
-          title: "Khóa học", 
+      <Tab.Screen
+        name="Main"
+        component={CourseStack}
+        options={{
+          title: "Khóa học",
           headerShown: false,
-          tabBarIcon: ({ color }) => <Icon color={color} source="home" size={26} /> 
-        }} 
+          tabBarIcon: ({ color }) => <Icon color={color} source="home" size={26} />
+        }}
       />
 
       {user?.role === "LECTURER" && (
-        <Tab.Screen 
-          name="Manage" 
-          component={LecturerStack} 
-          options={{ 
-            title: "Giảng dạy", 
+        <Tab.Screen
+          name="Manage"
+          component={LecturerStack}
+          options={{
+            title: "Giảng dạy",
             headerShown: false,
-            tabBarIcon: ({ color }) => <Icon color={color} source="school" size={26} /> 
-          }} 
+            tabBarIcon: ({ color }) => <Icon color={color} source="school" size={26} />
+          }}
         />
       )}
-      
+
       {user === null ? (
-        <Tab.Screen 
-          name="Auth" 
-          component={AuthStack} 
-          options={{ 
-            title: "Đăng nhập", 
+        <Tab.Screen
+          name="Auth"
+          component={AuthStack}
+          options={{
+            title: "Đăng nhập",
             headerShown: false,
-            tabBarIcon: ({ color }) => <Icon color={color} source="login" size={26} /> 
-          }} 
+            tabBarIcon: ({ color }) => <Icon color={color} source="login" size={26} />
+          }}
         />
       ) : (
-        <Tab.Screen 
-          name="Profile" 
-          component={User} 
-          options={{ 
-            title: "Cá nhân", 
-            tabBarIcon: ({ color }) => <Icon color={color} source="account" size={26} /> 
-          }} 
+        <Tab.Screen
+          name="Profile"
+          component={User}
+          options={{
+            title: "Cá nhân",
+            tabBarIcon: ({ color }) => <Icon color={color} source="account" size={26} />
+          }}
         />
       )}
     </Tab.Navigator>
@@ -94,7 +96,10 @@ const TabNavigator = () => {
 }
 
 const App = () => {
-  const [user, dispatch] = useReducer(MyUserReducer, null);
+  const [user, dispatch] = useReducer(MyUserReducer, {
+    "username": "cozg_test",
+    "role": "LECTURER"
+  });
 
   return (
     <MyUserContext.Provider value={[user, dispatch]}>
