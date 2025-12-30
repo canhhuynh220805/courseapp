@@ -68,16 +68,6 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'courseapp$coursedb',
-#         'USER': 'courseapp',
-#         'PASSWORD': 'admin@123',
-#         'HOST': 'courseapp.mysql.pythonanywhere-services.com'  # mặc định localhost
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
@@ -87,6 +77,16 @@ DATABASES = {
         'HOST': ''  # mặc định localhost
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'coursedb',
+#         'USER': 'root',
+#         'PASSWORD': '123456',
+#         'HOST': ''  # mặc định localhost
+#     }
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [

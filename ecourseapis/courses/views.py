@@ -38,7 +38,7 @@ class CourseView(viewsets.ModelViewSet):
 
         q = self.request.query_params.get("q")
         if q:
-            queries = queries.filter(subject__icontains=q)
+            queries = queries.filter(Q(subject__icontains=q) | Q(lecturer__username__icontains=q))
 
         category_id = self.request.query_params.get("category_id")
         if category_id:
@@ -51,6 +51,7 @@ class CourseView(viewsets.ModelViewSet):
         max_price = self.request.query_params.get("max_price")
         if max_price:
             queries = queries.filter(price__lte=max_price)
+        
 
         ordering = self.request.query_params.get("ordering")
         if ordering in ['subject', 'price', '-subject', '-price']:
