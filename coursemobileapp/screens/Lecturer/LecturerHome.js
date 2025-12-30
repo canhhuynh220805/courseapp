@@ -4,7 +4,7 @@ import { Text, Card, Title, Paragraph, Button, Icon, ActivityIndicator } from 'r
 import { MyUserContext } from '../../utils/contexts/MyContext';
 import { authApis, endpoints } from '../../utils/Apis';
 import MyStyles from '../../styles/MyStyles';
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const LecturerHome = ({ navigation }) => {
     const [user] = useContext(MyUserContext);
     const [stats, setStats] = useState([]);
@@ -12,10 +12,17 @@ const LecturerHome = ({ navigation }) => {
 
     const loadStats = async () => {
         try {
-            let res = await authApis(user.token).get(endpoints['course-stats']);
+            setLoading(true);
+            // Lấy token trực tiếp từ bộ nhớ máy
+            const token = await AsyncStorage.getItem("token");
+
+            console.log("Token thực tế gửi đi:", token); // Log để em kiểm tra
+
+            // Truyền token vừa lấy vào authApis
+            let res = await authApis(token).get(endpoints['course-stats']);
             setStats(res.data);
         } catch (ex) {
-            console.error(ex);
+            console.error("Lỗi chi tiết:", ex.response?.data || ex.message);
         } finally {
             setLoading(false);
         }
@@ -45,8 +52,8 @@ const LecturerHome = ({ navigation }) => {
 
     return (
         <View style={{ flex: 1 }}>
-            <Button mode="contained" icon="plus" style={{ margin: 10 }} 
-                    onPress={() => navigation.navigate("AddCourse")}>
+            <Button mode="contained" icon="plus" style={{ margin: 10 }}
+                onPress={() => navigation.navigate("AddCourse")}>
                 Tạo khóa học mới
             </Button>
             {loading ? <ActivityIndicator animating={true} /> :

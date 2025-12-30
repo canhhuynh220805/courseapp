@@ -11,7 +11,8 @@ const StudentProgress = ({ route }) => {
 
     useEffect(() => {
         const loadStudents = async () => {
-            let res = await authApis(user.token).get(endpoints['course-students'](courseId));
+            const token = await AsyncStorage.getItem("token");
+            let res = await authApis(token).get(endpoints['course-students'](courseId));
             setStudents(res.data); 
         };
         loadStudents();
