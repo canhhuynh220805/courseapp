@@ -20,9 +20,8 @@ class IsCourseOwnerOrAdmin(BasePermission):
 
         if hasattr(obj, 'course'):
             return obj.course.lecturer == request.user
-
-        # Nếu đối tượng là Course, kiểm tra trực tiếp giảng viên
         return getattr(obj, 'lecturer', None) == request.user
+    
 class IsAdminOrLecturer(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
