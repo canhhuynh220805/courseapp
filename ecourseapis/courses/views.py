@@ -51,11 +51,13 @@ class CourseView(viewsets.ModelViewSet):
         max_price = self.request.query_params.get("max_price")
         if max_price:
             queries = queries.filter(price__lte=max_price)
-        
+
 
         ordering = self.request.query_params.get("ordering")
         if ordering in ['subject', 'price', '-subject', '-price']:
             queries = queries.order_by(ordering)
+        else:
+            queries = queries.order_by('-id')
         return queries
 
     def get_permissions(self):

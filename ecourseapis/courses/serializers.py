@@ -52,7 +52,7 @@ class UserSerializer(ImageSerializer):
     avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email']
+        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'role']
         extra_kwargs = {
             'password': {
                 'write_only': True,
