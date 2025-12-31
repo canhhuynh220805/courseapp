@@ -136,7 +136,11 @@ const Courses = ({cate}) => {
           <TouchableOpacity
             style={styles.courseCard}
             // onPress={() => nav.navigate("Lesson", {courseId: item.id})}
-            onPress={() => handleRegisterCourse(item)}
+            onPress={() =>
+              item.is_free
+                ? nav.navigate("Lesson", {courseId: item.id})
+                : handleRegisterCourse(item)
+            }
             activeOpacity={0.9}
           >
             {/* Hình ảnh chiếm trọn phía trên Card */}
@@ -154,7 +158,13 @@ const Courses = ({cate}) => {
 
               <View style={styles.courseFooter}>
                 <View style={styles.levelBadge}>
-                  <Text style={styles.levelText}>Cơ bản</Text>
+                  {item.is_free ? (
+                    <Text style={styles.levelBadgeText}>
+                      Ít thì 2 quả trứng
+                    </Text>
+                  ) : (
+                    <Text style={styles.levelBadgeText}>Nhiều thì tên lửa</Text>
+                  )}
                 </View>
                 <Text style={styles.coursePrice}>
                   {item.price == 0 ? "Miễn phí" : `${item.price} VNĐ`}
