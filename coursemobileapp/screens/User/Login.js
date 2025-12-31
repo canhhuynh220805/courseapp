@@ -87,6 +87,8 @@ const Login = () => {
             type: "login",
             payload: user.data,
           });
+          const next = route.params?.next;
+          if (next) nav.navigate(next);
         }, 500);
       } catch (ex) {
         console.error(ex);

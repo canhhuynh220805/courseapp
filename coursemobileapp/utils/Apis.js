@@ -10,11 +10,12 @@ export const endpoints = {
   login: "/o/token/",
   register: "/users/",
   "current-user": "/users/current-user/",
-  'course-stats': "/stats/course-stats/",
+  "course-stats": "/stats/course-stats/",
   "general-stats": "/stats/general-stats/",
   "course-students": (courseId) => `/courses/${courseId}/students/`,
   "add-course": "/courses/",
   "add-lesson": "/lessons/",
+  "lesson-detail": (lessonId) => `/lessons/${lessonId}/`,
 };
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
@@ -33,4 +34,4 @@ export default axios.create({
   baseURL: BASE_URL,
 });
 
-export { CLIENT_ID, CLIENT_SECRET };
+export {CLIENT_ID, CLIENT_SECRET};
