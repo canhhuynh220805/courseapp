@@ -96,10 +96,7 @@ const TabNavigator = () => {
 }
 
 const App = () => {
-  const [user, dispatch] = useReducer(MyUserReducer, {
-    "username": "cozg_test",
-    "role": "LECTURER"
-  });
+  const [user, dispatch] = useReducer(MyUserReducer, null);
 
   return (
     <MyUserContext.Provider value={[user, dispatch]}>
