@@ -1,3 +1,4 @@
+
 from django.db.models import Count, Q, Sum
 from django.db.models.functions import Coalesce, TruncYear, TruncMonth
 from django.http import HttpResponse
@@ -51,11 +52,13 @@ class CourseView(viewsets.ModelViewSet):
         max_price = self.request.query_params.get("max_price")
         if max_price:
             queries = queries.filter(price__lte=max_price)
-        
+
 
         ordering = self.request.query_params.get("ordering")
         if ordering in ['subject', 'price', '-subject', '-price']:
             queries = queries.order_by(ordering)
+        else:
+            queries = queries.order_by('-id')
         return queries
 
     def get_permissions(self):
@@ -138,6 +141,8 @@ class CourseView(viewsets.ModelViewSet):
             serializer = serializers.LessonSerializer(lessons, many=True, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def perform_create(self, serializer):
+        serializer.save(lecturer=self.request.user)
 
 class UserView(viewsets.ViewSet, generics.CreateAPIView):
     queryset = User.objects.filter(is_active=True)
@@ -178,9 +183,17 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
 
         return Response([])
 
-class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView):
+class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.DestroyAPIView):
     queryset = Lesson.objects.filter(active=True)
     serializer_class = serializers.LessonDetailsSerializer
+    def get_permissions(self):
+        if self.action in ['retrieve', 'get_comments']:
+            return [permissions.AllowAny()]
+        if self.action == 'create':
+            return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
+        if self.action == 'destroy':
+            return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
+        return [permissions.IsAuthenticated()]
 
     @action(methods=['post'], detail=True, url_path='complete', permission_classes=[permissions.IsAuthenticated])
     def mark_complete(self, request, pk):
@@ -309,7 +322,7 @@ class StatView(viewsets.ViewSet):
             "total_revenue": total_revenue
         }, status=status.HTTP_200_OK)
 
-class CommnetView(viewsets.ViewSet, generics.UpdateAPIView, generics.DestroyAPIView):
+class CommentView(viewsets.ViewSet, generics.UpdateAPIView, generics.DestroyAPIView):
     queryset = Comment.objects.filter(active = True)
     permission_classes = [perms.IsOwnerAuthenticated]
     serializer_class = serializers.CommentSerializer

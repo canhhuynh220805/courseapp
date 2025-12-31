@@ -15,7 +15,11 @@ export const endpoints = {
   "course-students": (courseId) => `/courses/${courseId}/students/`,
   "add-course": "/courses/",
   "add-lesson": "/lessons/",
+<<<<<<< HEAD
   "lesson-detail": (lessonId) => `/lessons/${lessonId}/`,
+=======
+  "lesson-details": (lessonId) => `/lessons/${lessonId}/`,
+>>>>>>> fe19560e1ab6043edbeade9524f5c8eb2b548eff
 };
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
