@@ -13,7 +13,7 @@ class ImageSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         # data['image'] = instance.image.url
-        if instance.image:
+        if hasattr(instance, 'image') and instance.image:
             if isinstance(instance.image, str):
                 data['image'] = instance.image
             elif hasattr(instance.image, 'url'):
@@ -52,7 +52,7 @@ class UserSerializer(ImageSerializer):
     avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'role']
+        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'role', 'is_lecturer_verified']
         extra_kwargs = {
             'password': {
                 'write_only': True,

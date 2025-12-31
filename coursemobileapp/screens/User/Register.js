@@ -237,7 +237,7 @@ const Register = () => {
             {/* Footer */}
             <View style={RegisterStyle.loginContainer}>
               <Text style={RegisterStyle.loginText}>Đã có tài khoản? </Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => nav.navigate("Login")}>
                 <Text style={RegisterStyle.loginLink}>Đăng nhập</Text>
               </TouchableOpacity>
             </View>

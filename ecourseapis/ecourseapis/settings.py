@@ -71,10 +71,10 @@ AUTH_USER_MODEL = 'courses.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'courseapp$coursedb',
-        'USER': 'courseapp',
-        'PASSWORD': 'admin@123',
-        'HOST': 'courseapp.mysql.pythonanywhere-services.com'  # mặc định localhost
+        'NAME': 'coursedb',
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'HOST': ''  # mặc định localhost
     }
 }
 
@@ -112,6 +112,8 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.BasicAuthentication',
     )
 }
 
