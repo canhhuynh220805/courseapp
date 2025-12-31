@@ -13,12 +13,12 @@ class ImageSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         # data['image'] = instance.image.url
-        if hasattr(instance, 'image') and instance.image:
-            if isinstance(instance.image, str):
-                data['image'] = instance.image
-            elif hasattr(instance.image, 'url'):
-                data['image'] = instance.image.url
-
+        image = getattr(instance, 'image', None)
+        if image:
+            if isinstance(image, str):
+                data['image'] = image
+            elif hasattr(image, 'url'):
+                data['image'] = image.url
         return data
 
 
@@ -48,7 +48,7 @@ class CoursesSerializer(ImageSerializer):
         return obj.price == 0 or obj.price is None
 
 
-class UserSerializer(ImageSerializer):
+class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = User
@@ -68,9 +68,10 @@ class UserSerializer(ImageSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-#         data['avatar'] = instance.avatar.url if instance.avatar else ''
-
-        data['avatar'] = instance.avatar if instance.avatar else ''
+        if instance.avatar:
+            data['avatar'] = instance.avatar
+        else:
+            data['avatar'] = ''
         return data
 
 
