@@ -6,6 +6,8 @@ import { Picker } from '@react-native-picker/picker';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const PRIMARY_COLOR = '#2563eb';
+
 const AddCourse = ({ navigation }) => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -18,7 +20,6 @@ const AddCourse = ({ navigation }) => {
     });
     const [image, setImage] = useState(null);
 
-    // 1. Tải danh mục từ Server để chọn
     useEffect(() => {
         const loadCategories = async () => {
             try {
@@ -132,10 +133,11 @@ const AddCourse = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { padding: 20 },
-    header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#2563eb' },
+    container: { padding: 20, backgroundColor: '#fff' },
+    header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: PRIMARY_COLOR },
+    label: { marginTop: 10, fontWeight: 'bold', color: PRIMARY_COLOR },
     input: { marginBottom: 15 },
-    pickerContainer: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginTop: 5, marginBottom: 15 },
+    pickerContainer: { borderWidth: 1, borderColor: PRIMARY_COLOR, borderRadius: 5, marginTop: 5, marginBottom: 15 },
     imagePicker: { alignItems: 'center', marginVertical: 15 },
     previewImage: { width: '100%', height: 200, borderRadius: 10 },
     btn: { paddingVertical: 5, marginBottom: 40 }

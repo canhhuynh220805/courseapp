@@ -19,6 +19,7 @@ import AddCourse from "./screens/Lecturer/AddCourse";
 
 import LessonDetail from "./screens/Home/LessonDetail";
 import AddLesson from "./screens/Lecturer/AddLesson";
+import ManageCourse from "./screens/Lecturer/ManageCourse";
 
 const Stack = createNativeStackNavigator();
 
@@ -46,26 +47,10 @@ const CourseStack = () => {
 
 const LecturerStack = () => (
   <Stack.Navigator>
-    <Stack.Screen
-      name="LecturerHome"
-      component={LecturerHome}
-      options={{title: "Quản lý khóa học"}}
-    />
-    <Stack.Screen
-      name="StudentProgress"
-      component={StudentProgress}
-      options={{title: "Tiến độ sinh viên"}}
-    />
-    <Stack.Screen
-      name="AddCourse"
-      component={AddCourse}
-      options={{title: "Tạo khóa học"}}
-    />
-    <Stack.Screen
-      name="AddLesson"
-      component={AddLesson}
-      options={{title: "Thêm bài học mới"}}
-    />
+    <Stack.Screen name="LecturerHome" component={LecturerHome} options={{ title: "Quản lý giảng dạy" }} />
+    <Stack.Screen name="ManageCourse" component={ManageCourse} options={{ title: "Chi tiết khóa học" }} />
+    <Stack.Screen name="AddCourse" component={AddCourse} options={{ title: "Tạo khóa học" }} />
+    <Stack.Screen name="AddLesson" component={AddLesson} options={{ title: "Thêm bài học" }} />
   </Stack.Navigator>
 );
 
@@ -99,9 +84,7 @@ const TabNavigator = () => {
           options={{
             title: "Giảng dạy",
             headerShown: false,
-            tabBarIcon: ({color}) => (
-              <Icon color={color} source="school" size={26} />
-            ),
+            tabBarIcon: ({ color }) => <Icon source="school" size={26} color={color} />
           }}
         />
       )}

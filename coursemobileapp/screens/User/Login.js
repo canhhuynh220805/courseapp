@@ -53,35 +53,35 @@ const Login = () => {
   };
 
   const login = async () => {
-    if (validate() === true) {
+    if (validate()) {
       try {
         setLoading(true);
-        console.info(user);
-        // let res = await Apis.post(endpoints["login"], {
-        //   ...user,
-        //   client_id: CLIENT_ID,
-        //   client_secret: CLIENT_SECRET,
-        //   grant_type: "password",
-        // });
 
+        // 1. Lấy Token
         let res = await Apis.post(
           endpoints["login"],
           `grant_type=password&username=${user.username}&password=${user.password}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
           {
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-            },
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
           }
         );
 
-        console.info(res.data);
-        AsyncStorage.setItem("token", res.data.access_token);
+        console.info("Token Response:", res.data);
+        await AsyncStorage.setItem("token", res.data.access_token);
 
-        setTimeout(async () => {
-          let user = await authApis(res.data.access_token).get(
-            endpoints["current_user"]
-          );
-          console.info(user.data);
+        const resUser = await authApis(res.data.access_token).get(
+          endpoints["current-user"]
+        );
+
+        console.info("User Profile Data:", resUser.data);
+
+        dispatch({
+          type: "login",
+          payload: resUser.data,
+        });
+
+        // 4. CHUYỂN MÀN HÌNH (Nếu Navigator của bạn không tự động nhảy)
+        // nav.navigate("Home"); 
 
           dispatch({
             type: "login",
@@ -91,7 +91,8 @@ const Login = () => {
           if (next) nav.navigate(next);
         }, 500);
       } catch (ex) {
-        console.error(ex);
+        console.error("Login Error:", ex);
+        alert("Đăng nhập thất bại. Vui lòng kiểm tra lại!");
       } finally {
         setLoading(false);
       }
