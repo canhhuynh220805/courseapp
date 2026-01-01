@@ -10,7 +10,7 @@ export const endpoints = {
   login: "/o/token/",
   register: "/users/",
   "current-user": "/users/current-user/",
-  'course-stats': "/stats/course-stats/",
+  "course-stats": "/stats/course-stats/",
   "general-stats": "/stats/general-stats/",
   "course-students": (courseId) => `/courses/${courseId}/students/`,
   "add-course": "/courses/",
@@ -35,4 +35,4 @@ export default axios.create({
   baseURL: BASE_URL,
 });
 
-export { CLIENT_ID, CLIENT_SECRET };
+export {CLIENT_ID, CLIENT_SECRET};

@@ -82,10 +82,9 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     image = serializers.CharField(required=False, allow_null=True)
-    video = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'course', 'tags', 'image', 'video']
+        fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.image:
@@ -93,11 +92,6 @@ class LessonSerializer(serializers.ModelSerializer):
                 data['image'] = instance.image
             elif hasattr(instance.image, 'url'):
                 data['image'] = instance.image.url
-        if instance.video:
-            if isinstance(instance.video, str):
-                data['video'] = instance.video
-            elif hasattr(instance.video, 'url'):
-                data['video'] = instance.video.url
         return data
 
 class PaymentSerializer(serializers.ModelSerializer):
@@ -137,13 +131,21 @@ class CommentSerializer(serializers.ModelSerializer):
 
 class LessonDetailsSerializer(LessonSerializer):
     liked = serializers.SerializerMethodField()
-
+    video = serializers.CharField(required=False, allow_null=True)
     def get_liked(self, lesson):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return Like.objects.filter(lesson=lesson, user=request.user, active=True).exists()
         return False
-
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.video:
+            if isinstance(instance.video, str):
+                data['video'] = instance.video
+            elif hasattr(instance.video, 'url'):
+                data['video'] = instance.video.url
+        return data
     class Meta:
         model = Lesson
-        fields = LessonSerializer.Meta.fields + ['content', 'video', 'tags', 'liked']
+        fields = LessonSerializer.Meta.fields + ['content', 'video', 'liked']
+

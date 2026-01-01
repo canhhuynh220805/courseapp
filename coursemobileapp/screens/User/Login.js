@@ -83,6 +83,13 @@ const Login = () => {
         // 4. CHUYỂN MÀN HÌNH (Nếu Navigator của bạn không tự động nhảy)
         // nav.navigate("Home"); 
 
+          dispatch({
+            type: "login",
+            payload: user.data,
+          });
+          const next = route.params?.next;
+          if (next) nav.navigate(next);
+        }, 500);
       } catch (ex) {
         console.error("Login Error:", ex);
         alert("Đăng nhập thất bại. Vui lòng kiểm tra lại!");

@@ -20,14 +20,8 @@ class IsCourseOwnerOrAdmin(BasePermission):
 
         if hasattr(obj, 'course'):
             return obj.course.lecturer == request.user
-<<<<<<< HEAD
 
         return getattr(obj, 'lecturer', None) == request.user
-
-=======
-        return getattr(obj, 'lecturer', None) == request.user
-    
->>>>>>> 82ecac5efa827b48224e26487dd117f9ba57bf3b
 class IsAdminOrLecturer(BasePermission):
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
