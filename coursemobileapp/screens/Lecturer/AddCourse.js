@@ -1,23 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Image, TouchableOpacity, Alert, StyleSheet } from 'react-native';
-import { TextInput, Button, Text, ActivityIndicator } from 'react-native-paper';
-import * as ImagePicker from 'expo-image-picker';
+import { TextInput, Button, Text, Title, Caption, ActivityIndicator } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
+import axios from 'axios';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
-const PRIMARY_COLOR = '#2563eb';
+const PRIMARY_BLUE = '#2563eb';
 
 const AddCourse = ({ navigation }) => {
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [course, setCourse] = useState({
-        subject: '',
-        description: '',
-        price: '',
-        duration: '',
-        category: ''
-    });
+    const [course, setCourse] = useState({ subject: '', description: '', price: '', duration: '', category: '' });
     const [image, setImage] = useState(null);
 
     useEffect(() => {
@@ -26,121 +21,128 @@ const AddCourse = ({ navigation }) => {
                 const res = await authApis().get(endpoints['categories']);
                 setCategories(res.data);
                 if (res.data.length > 0) setCourse(c => ({ ...c, category: res.data[0].id }));
-            } catch (ex) {
-                console.error("Lỗi tải danh mục:", ex);
-            }
+            } catch (ex) { console.error(ex); }
         };
         loadCategories();
     }, []);
 
-    // 2. Hàm chọn ảnh minh họa
-    const pickImage = async () => {
-        let { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert("Thông báo", "Ứng dụng cần quyền truy cập ảnh!");
-            return;
-        }
+    // Hàm upload ảnh lên Cloudinary
+    const uploadToCloudinary = async (file) => {
+        if (!file) return null;
+        const data = new FormData();
+        data.append("file", {
+            uri: file.uri,
+            type: file.mimeType || "image/jpeg",
+            name: file.fileName || "upload.jpg",
+        });
+        data.append("upload_preset", "courseapp_preset");
+        data.append("cloud_name", "dpl8syyb9");
 
+        try {
+            const res = await axios.post(
+                "https://api.cloudinary.com/v1_1/dpl8syyb9/image/upload",
+                data,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+            return res.data.secure_url;
+        } catch (error) {
+            console.error("Lỗi upload ảnh:", error);
+            return null;
+        }
+    };
+
+    const pickImage = async () => {
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [4, 3],
             quality: 1,
         });
-
-        if (!result.canceled) {
-            setImage(result.assets[0]);
-        }
+        if (!result.canceled) setImage(result.assets[0]);
     };
 
-    // 3. Hàm gửi dữ liệu lên Backend
     const handleAddCourse = async () => {
-        if (!course.subject || !course.price) {
-            Alert.alert("Lỗi", "Vui lòng nhập tên và học phí!");
+        if (!course.subject || !course.price || !course.description) {
+            Alert.alert("Lỗi", "Vui lòng nhập đầy đủ tên, mô tả và học phí!");
             return;
         }
 
         setLoading(true);
         try {
-            const token = await AsyncStorage.getItem("token");
-            const formData = new FormData();
-
-            // Gắn các trường text
-            formData.append('subject', course.subject);
-            formData.append('description', course.description);
-            formData.append('price', course.price);
-            formData.append('duration', course.duration);
-            formData.append('category', course.category);
-
-            // Gắn file ảnh nếu có
+            let imageUrl = "";
             if (image) {
-                formData.append('image', {
-                    uri: image.uri,
-                    name: 'course.jpg',
-                    type: 'image/jpeg'
-                });
+                imageUrl = await uploadToCloudinary(image);
+                if (!imageUrl) {
+                    Alert.alert("Lỗi", "Không thể upload ảnh lên Cloudinary!");
+                    setLoading(false);
+                    return;
+                }
             }
 
-            // Gọi API POST /courses/
-            await authApis(token).post(endpoints['courses'], formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const token = await AsyncStorage.getItem("token");
+            const payload = { ...course, image: imageUrl };
+
+            await authApis(token).post(endpoints['courses'], payload);
 
             Alert.alert("Thành công", "Đã tạo khóa học mới!");
-            navigation.goBack(); // Quay lại trang quản lý
+            navigation.goBack();
         } catch (ex) {
-            console.error(ex);
-            Alert.alert("Lỗi", "Không thể tạo khóa học. Kiểm tra lại quyền Giảng viên!");
-        } finally {
-            setLoading(false);
-        }
+            console.error(ex.response?.data || ex);
+            Alert.alert("Lỗi", "Không thể tạo khóa học. Kiểm tra lại dữ liệu!");
+        } finally { setLoading(false); }
     };
 
     return (
         <ScrollView style={styles.container}>
-            <Text style={styles.header}>TẠO KHÓA HỌC MỚI</Text>
-
-            <TextInput label="Tên khóa học" value={course.subject}
-                onChangeText={t => setCourse({ ...course, subject: t })} mode="outlined" style={styles.input} />
-
-            <TextInput label="Mô tả chi tiết" value={course.description} multiline numberOfLines={4}
-                onChangeText={t => setCourse({ ...course, description: t })} mode="outlined" style={styles.input} />
-
-            <TextInput label="Học phí (VNĐ)" value={course.price} keyboardType="numeric"
-                onChangeText={t => setCourse({ ...course, price: t })} mode="outlined" style={styles.input} />
-
-            <TextInput label="Thời lượng (giờ)" value={course.duration} keyboardType="numeric"
-                onChangeText={t => setCourse({ ...course, duration: t })} mode="outlined" style={styles.input} />
-
-            <Text style={{ marginTop: 10 }}>Chọn danh mục:</Text>
-            <View style={styles.pickerContainer}>
-                <Picker selectedValue={course.category}
-                    onValueChange={(val) => setCourse({ ...course, category: val })}>
-                    {categories.map(c => <Picker.Item key={c.id} label={c.name} value={c.id} />)}
-                </Picker>
+            <View style={styles.header}>
+                <Title style={styles.title}>Tạo khóa học</Title>
             </View>
 
-            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-                {image ? <Image source={{ uri: image.uri }} style={styles.previewImage} />
-                    : <Button icon="camera" mode="outlined">Chọn ảnh minh họa</Button>}
-            </TouchableOpacity>
+            <View style={styles.form}>
+                <TextInput label="Tên khóa học" value={course.subject} mode="outlined"
+                    onChangeText={t => setCourse({ ...course, subject: t })}
+                    style={styles.input} activeOutlineColor={PRIMARY_BLUE} />
 
-            <Button mode="contained" onPress={handleAddCourse} loading={loading} disabled={loading} style={styles.btn}>
-                Tạo khóa học
-            </Button>
+                <TextInput label="Mô tả chi tiết" value={course.description} mode="outlined" multiline numberOfLines={4}
+                    onChangeText={t => setCourse({ ...course, description: t })}
+                    style={styles.input} activeOutlineColor={PRIMARY_BLUE} />
+
+                <TextInput label="Học phí (VNĐ)" value={course.price} mode="outlined" keyboardType="numeric"
+                    onChangeText={t => setCourse({ ...course, price: t })}
+                    style={styles.input} activeOutlineColor={PRIMARY_BLUE} />
+
+                <Text style={styles.label}>Danh mục</Text>
+                <View style={styles.pickerContainer}>
+                    <Picker selectedValue={course.category} onValueChange={(v) => setCourse({ ...course, category: v })}>
+                        {categories.map(c => <Picker.Item key={c.id} label={c.name} value={c.id} />)}
+                    </Picker>
+                </View>
+
+                <TouchableOpacity onPress={pickImage} style={styles.imageDrop}>
+                    {image ? <Image source={{ uri: image.uri }} style={styles.previewImage} />
+                        : <Text style={{ color: PRIMARY_BLUE }}>+ Chọn ảnh minh họa</Text>}
+                </TouchableOpacity>
+
+                <Button mode="contained" onPress={handleAddCourse} loading={loading}
+                    buttonColor={PRIMARY_BLUE} style={styles.submitBtn}>
+                    Tạo khóa học
+                </Button>
+            </View>
         </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { padding: 20, backgroundColor: '#fff' },
-    header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: PRIMARY_COLOR },
-    label: { marginTop: 10, fontWeight: 'bold', color: PRIMARY_COLOR },
-    input: { marginBottom: 15 },
-    pickerContainer: { borderWidth: 1, borderColor: PRIMARY_COLOR, borderRadius: 5, marginTop: 5, marginBottom: 15 },
-    imagePicker: { alignItems: 'center', marginVertical: 15 },
-    previewImage: { width: '100%', height: 200, borderRadius: 10 },
-    btn: { paddingVertical: 5, marginBottom: 40 }
+    container: { flex: 1, backgroundColor: '#fff' },
+    header: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    title: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
+    form: { padding: 20 },
+    input: { marginBottom: 15, backgroundColor: '#fff' },
+    label: { marginBottom: 5, fontWeight: '500', color: '#374151' },
+    pickerContainer: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginBottom: 15 },
+    imageDrop: { height: 180, borderRadius: 10, borderStyle: 'dashed', borderWidth: 1, borderColor: PRIMARY_BLUE, justifyContent: 'center', alignItems: 'center', marginVertical: 10 },
+    previewImage: { width: '100%', height: '100%', borderRadius: 10 },
+    submitBtn: { marginTop: 10, borderRadius: 8, paddingVertical: 5 }
 });
 
-export default AddCourse; 
+export default AddCourse;

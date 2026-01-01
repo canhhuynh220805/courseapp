@@ -1,9 +1,12 @@
 import React, { useState, useCallback } from 'react';
-import { View, FlatList, StyleSheet } from 'react-native';
-import { Card, Title, Paragraph, Button, ActivityIndicator, Text } from 'react-native-paper';
+import { View, FlatList, StyleSheet, TouchableOpacity, Image } from 'react-native';
+// Sử dụng React Native Paper thay cho nativecn-ui
+import { Button, Card, Text, Title, Paragraph, Caption, ActivityIndicator } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
+
+const PRIMARY_BLUE = '#2563eb';
 
 const LecturerHome = ({ navigation }) => {
     const [stats, setStats] = useState([]);
@@ -21,7 +24,7 @@ const LecturerHome = ({ navigation }) => {
             setStats(resStats.data);
             setSummary(resGeneral.data);
         } catch (ex) {
-            console.error("Lỗi tải dữ liệu:", ex);
+            console.error(ex);
         } finally {
             setLoading(false);
         }
@@ -30,54 +33,73 @@ const LecturerHome = ({ navigation }) => {
     useFocusEffect(useCallback(() => { loadData(); }, []));
 
     const renderHeader = () => (
-        <View style={styles.summaryBox}>
-            <View style={styles.statItem}>
-                <Text style={styles.statLabel}>TỔNG DOANH THU</Text>
-                <Text style={styles.statValue}>{summary.total_revenue?.toLocaleString()} VNĐ</Text>
-            </View>
-            <View style={styles.statItem}>
-                <Text style={styles.statLabel}>TỔNG SINH VIÊN</Text>
-                <Text style={styles.statValue}>{summary.total_students}</Text>
-            </View>
+        <View style={styles.summaryGrid}>
+            <Card style={styles.flex1} mode="outlined">
+                <Card.Content>
+                    <Caption>Doanh thu</Caption>
+                    <Title style={{ color: PRIMARY_BLUE, fontWeight: 'bold' }}>
+                        {summary.total_revenue?.toLocaleString()}đ
+                    </Title>
+                </Card.Content>
+            </Card>
+            <Card style={styles.flex1} mode="outlined">
+                <Card.Content>
+                    <Caption>Sinh viên</Caption>
+                    <Title style={{ color: PRIMARY_BLUE, fontWeight: 'bold' }}>
+                        {summary.total_students}
+                    </Title>
+                </Card.Content>
+            </Card>
         </View>
     );
 
     return (
         <View style={styles.container}>
-            <Button mode="contained" icon="plus" style={styles.addBtn} onPress={() => navigation.navigate("AddCourse")}>
-                Tạo khóa học mới
-            </Button>
-            {loading ? <ActivityIndicator animating={true} style={{ marginTop: 20 }} /> :
+            <View style={styles.headerAction}>
+                <Text style={styles.title}>Quản lý giảng dạy</Text>
+                <Button
+                    mode="contained"
+                    buttonColor={PRIMARY_BLUE}
+                    onPress={() => navigation.navigate("AddCourse")}
+                >
+                    + Tạo khóa học
+                </Button>
+            </View>
+
+            {loading ? <ActivityIndicator color={PRIMARY_BLUE} style={{ marginTop: 20 }} /> : (
                 <FlatList
                     ListHeaderComponent={renderHeader}
                     data={stats}
                     keyExtractor={i => i.id.toString()}
                     renderItem={({ item }) => (
-                        <Card style={styles.card} onPress={() => navigation.navigate("ManageCourse", { course: item })}>
-                            <Card.Cover source={{ uri: item.image }} />
-                            <Card.Content>
-                                <Title>{item.subject}</Title>
-                                <Paragraph>Học viên: {item.student_count} | Doanh thu: {item.total_revenue?.toLocaleString()} VNĐ</Paragraph>
+                        <Card
+                            style={styles.courseCard}
+                            mode="elevated"
+                            onPress={() => navigation.navigate("ManageCourse", { course: item })}
+                        >
+                            <Card.Cover source={{ uri: item.image }} style={styles.courseImg} />
+                            <Card.Content style={{ marginTop: 10 }}>
+                                <Title style={{ fontSize: 18 }}>{item.subject}</Title>
+                                <Paragraph style={{ color: 'gray' }}>
+                                    {item.student_count} học viên • {item.total_revenue?.toLocaleString()}đ
+                                </Paragraph>
                             </Card.Content>
-                            <Card.Actions>
-                                <Button mode="outlined">Quản lý chi tiết</Button>
-                            </Card.Actions>
                         </Card>
                     )}
                 />
-            }
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
-    summaryBox: { flexDirection: 'row', backgroundColor: '#2563eb', padding: 20, margin: 10, borderRadius: 10 },
-    statItem: { flex: 1, alignItems: 'center' },
-    statLabel: { color: '#fff', fontSize: 12, opacity: 0.8 },
-    statValue: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-    addBtn: { margin: 10 },
-    card: { margin: 10, elevation: 4 }
+    container: { flex: 1, padding: 16, backgroundColor: '#fff' },
+    summaryGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
+    flex1: { flex: 1 },
+    headerAction: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, alignItems: 'center' },
+    title: { fontSize: 22, fontWeight: 'bold', color: '#111827' },
+    courseCard: { marginBottom: 20, backgroundColor: '#fff' },
+    courseImg: { height: 160 }
 });
 
 export default LecturerHome;
