@@ -21,33 +21,6 @@ class ImageSerializer(serializers.ModelSerializer):
                 data['image'] = image.url
         return data
 
-
-class CoursesSerializer(ImageSerializer):
-    image = serializers.CharField(required=False, allow_null=True)
-    is_free = serializers.SerializerMethodField()
-    class Meta:
-        model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer']
-
-
-    def is_registered(self, course):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return Enrollment.objects.filter(user=request.user, course=course).exists()
-        return False
-
-    def get_progress(self, course):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
-            if enrollment:
-                return enrollment.progress
-        return None
-
-    def get_is_free(self, obj):
-        return obj.price == 0 or obj.price is None
-
-
 class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
@@ -74,6 +47,32 @@ class UserSerializer(serializers.ModelSerializer):
             data['avatar'] = ''
         return data
 
+class CoursesSerializer(ImageSerializer):
+    image = serializers.CharField(required=False, allow_null=True)
+    is_free = serializers.SerializerMethodField()
+    lecturer = UserSerializer(read_only=True)
+    class Meta:
+        model = Course
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration']
+
+
+    def is_registered(self, course):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Enrollment.objects.filter(user=request.user, course=course).exists()
+        return False
+
+    def get_progress(self, course):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+            if enrollment:
+                return enrollment.progress
+        return None
+
+    def get_is_free(self, obj):
+        return obj.price == 0 or obj.price is None
+
 
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CoursesSerializer()
@@ -83,9 +82,10 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     image = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
+        fields = ['id', 'subject', 'content', 'course', 'tags', 'image', 'video', 'duration']
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.image:
