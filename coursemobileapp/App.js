@@ -11,10 +11,12 @@ import LessonDetail from "./screens/Home/LessonDetail";
 import Login from "./screens/User/Login";
 import Register from "./screens/User/Register";
 import User from "./screens/User/User";
+import StudentProgress from "./screens/Lecturer/StudentProgress";
 import LecturerHome from "./screens/Lecturer/LecturerHome";
 import ManageCourse from "./screens/Lecturer/ManageCourse";
 import AddCourse from "./screens/Lecturer/AddCourse";
 import AddLesson from "./screens/Lecturer/AddLesson";
+import UserCourse from "./screens/User/UserCourse";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -69,15 +71,51 @@ const TabNavigator = () => {
         />
       )}
 
-      <Tab.Screen
-        name="ProfileTab"
-        component={user ? User : AuthStack}
-        options={{
-          title: user ? "Cá nhân" : "Đăng nhập",
-          headerShown: user ? true : false,
-          tabBarIcon: ({ color }) => <Icon color={color} source="account" size={26} />,
-        }}
-      />
+      {user === null ? (
+        <>
+          <Tab.Screen
+            name="Login"
+            component={Login}
+            options={{
+              title: "Đăng nhập",
+              tabBarIcon: () => <Icon color="blue" source="login" size={26} />,
+            }}
+          />
+          <Tab.Screen
+            name="Register"
+            component={Register}
+            options={{
+              title: "Đăng ký",
+              tabBarIcon: () => (
+                <Icon color="blue" source="account-plus" size={26} />
+              ),
+            }}
+          />
+        </>
+      ) : (
+        <>
+          <Tab.Screen
+            name="Profile"
+            component={User}
+            options={{
+              title: "Cá nhân",
+              tabBarIcon: () => (
+                <Icon color="blue" source="account" size={26} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="UserCourse"
+            component={UserCourse}
+            options={{
+              title: "Khóa học của tôi",
+              tabBarIcon: () => (
+                <Icon color="blue" source="account" size={26} />
+              ),
+            }}
+          />
+        </>
+      )}
     </Tab.Navigator>
   );
 };

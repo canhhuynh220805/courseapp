@@ -8,17 +8,18 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import { Button, HelperText, TextInput } from "react-native-paper";
-import { useNavigation } from "@react-navigation/native";
+import MyStyles from "../../styles/MyStyles";
+import {useContext, useState} from "react";
+import {useNavigation} from "@react-navigation/native";
+import {Button, HelperText, TextInput} from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Import từ dự án của bạn
 import Apis, {
   authApis,
   CLIENT_ID,
   CLIENT_SECRET,
   endpoints,
-} from "../../utils/Apis"; //
+}  from "../../utils/Apis"; //
 import { MyUserContext } from "../../utils/contexts/MyContext"; //
 import LoginStyle from "./LoginStyle"; //
 
@@ -71,32 +72,22 @@ const Login = ({ route }) => {
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
           }
         );
+        console.info(res.data);
+        AsyncStorage.setItem("token", res.data.access_token);
 
-        console.info("Token Response:", res.data);
-        const accessToken = res.data.access_token;
-        await AsyncStorage.setItem("token", accessToken);
+        setTimeout(async () => {
+          let user = await authApis(res.data.access_token).get(
+            endpoints["current-user"]
+          );
+          console.info(user.data);
 
-        // 2. Lấy thông tin chi tiết người dùng (có chứa trường 'role')
-        const resUser = await authApis(accessToken).get(
-          endpoints["current-user"]
-        );
-
-        console.info("User Profile Data:", resUser.data);
-
-        // 3. Cập nhật trạng thái người dùng vào Context toàn cục
-        dispatch({
-          type: "login",
-          payload: resUser.data,
-        });
-
-        // 4. Điều hướng sau khi đăng nhập thành công
-        const next = route.params?.next;
-        if (next) {
-          nav.navigate(next);
-        }
-        // Lưu ý: Nếu App.js đã cấu hình Navigator dựa trên user context, 
-        // màn hình sẽ tự động chuyển mà không cần lệnh navigate ở đây.
-
+          dispatch({
+            type: "login",
+            payload: user.data,
+          });
+          const next = route.params?.next;
+          if (next) nav.navigate(next);
+        }, 500);
       } catch (ex) {
         console.error("Login Error:", ex);
         Alert.alert(
@@ -133,10 +124,12 @@ const Login = ({ route }) => {
               <TextInput
                 mode="outlined"
                 outlineColor="#e5e7eb"
-                activeOutlineColor={PRIMARY_COLOR}
-                style={{ backgroundColor: "#f9fafb" }}
+                activeOutlineColor="#2563eb"
+                key={i.field}
+                style={{backgroundColor: "#f9fafb"}}
+
                 value={user[i.field]}
-                onChangeText={(t) => setUser({ ...user, [i.field]: t })}
+                onChangeText={(t) => setUser({...user, [i.field]: t})}
                 label={i.title}
                 secureTextEntry={i.secureTextEntry}
                 right={<TextInput.Icon icon={i.icon} color="#6b7280" />}
@@ -153,12 +146,12 @@ const Login = ({ route }) => {
             disabled={loading}
             style={[
               LoginStyle.loginButton,
-              { backgroundColor: loading ? "#93c5fd" : PRIMARY_COLOR },
+              {backgroundColor: loading ? "#93c5fd" : "#2563eb"},
             ]}
             icon="login"
             mode="contained"
             onPress={login}
-            contentStyle={{ height: 50 }}
+            contentStyle={{height: 50}}
             labelStyle={LoginStyle.loginButtonText}
           >
             Đăng nhập

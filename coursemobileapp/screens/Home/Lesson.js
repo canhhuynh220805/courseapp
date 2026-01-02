@@ -47,7 +47,12 @@ const Lesson = ({route}) => {
         renderItem={({item}) => (
           <TouchableOpacity
             style={styles.courseCard}
-            onPress={() => nav.navigate("LessonDetail", {lessonId: item.id})}
+            onPress={() =>
+              nav.navigate("LessonDetail", {
+                lessonId: item.id,
+                courseId: courseId,
+              })
+            }
             activeOpacity={0.9}
           >
             {/* Hình ảnh chiếm trọn phía trên Card */}
