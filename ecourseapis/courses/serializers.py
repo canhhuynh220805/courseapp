@@ -27,7 +27,7 @@ class CoursesSerializer(ImageSerializer):
     is_free = serializers.SerializerMethodField()
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration']
 
 
     def is_registered(self, course):
@@ -84,7 +84,7 @@ class LessonSerializer(serializers.ModelSerializer):
     image = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
+        fields = ['id', 'subject', 'content', 'course', 'tags', 'image', 'video', 'duration']
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.image:

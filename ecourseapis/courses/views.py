@@ -183,7 +183,7 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
 
         return Response([])
 
-class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.DestroyAPIView):
+class LessonView(viewsets.ModelViewSet):
     queryset = Lesson.objects.filter(active=True)
     serializer_class = serializers.LessonDetailsSerializer
     def get_permissions(self):
@@ -191,7 +191,7 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIV
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
-        if self.action == 'destroy':
+        if self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
