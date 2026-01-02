@@ -6,7 +6,7 @@ import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 
-const PRIMARY_BLUE = '#2563eb';
+const PRIMARY_COLOR = '#2563eb';
 
 const LecturerHome = ({ navigation }) => {
     const [stats, setStats] = useState([]);
@@ -37,7 +37,7 @@ const LecturerHome = ({ navigation }) => {
             <Card style={styles.flex1} mode="outlined">
                 <Card.Content>
                     <Caption>Doanh thu</Caption>
-                    <Title style={{ color: PRIMARY_BLUE, fontWeight: 'bold' }}>
+                    <Title style={{ color: PRIMARY_COLOR, fontWeight: 'bold' }}>
                         {summary.total_revenue?.toLocaleString()}đ
                     </Title>
                 </Card.Content>
@@ -45,7 +45,7 @@ const LecturerHome = ({ navigation }) => {
             <Card style={styles.flex1} mode="outlined">
                 <Card.Content>
                     <Caption>Sinh viên</Caption>
-                    <Title style={{ color: PRIMARY_BLUE, fontWeight: 'bold' }}>
+                    <Title style={{ color: PRIMARY_COLOR, fontWeight: 'bold' }}>
                         {summary.total_students}
                     </Title>
                 </Card.Content>
@@ -56,17 +56,16 @@ const LecturerHome = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <View style={styles.headerAction}>
-                <Text style={styles.title}>Quản lý giảng dạy</Text>
                 <Button
                     mode="contained"
-                    buttonColor={PRIMARY_BLUE}
+                    buttonColor={PRIMARY_COLOR}
                     onPress={() => navigation.navigate("AddCourse")}
                 >
                     + Tạo khóa học
                 </Button>
             </View>
 
-            {loading ? <ActivityIndicator color={PRIMARY_BLUE} style={{ marginTop: 20 }} /> : (
+            {loading ? <ActivityIndicator color={PRIMARY_COLOR} style={{ marginTop: 20 }} /> : (
                 <FlatList
                     ListHeaderComponent={renderHeader}
                     data={stats}
