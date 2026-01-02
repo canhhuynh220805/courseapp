@@ -11,14 +11,13 @@ import {useContext, useReducer} from "react";
 import MyUserReducer from "./utils/reducers/MyUserReducer";
 import User from "./screens/User/User";
 
-import LecturerHome from "./screens/Lecturer/LecturerHome";
-
 import StudentProgress from "./screens/Lecturer/StudentProgress";
 import LecturerHome from "./screens/Lecturer/LecturerHome";
 import AddCourse from "./screens/Lecturer/AddCourse";
 
 import LessonDetail from "./screens/Home/LessonDetail";
 import AddLesson from "./screens/Lecturer/AddLesson";
+import UserCourse from "./screens/User/UserCourse";
 
 const Stack = createNativeStackNavigator();
 
@@ -85,7 +84,7 @@ const TabNavigator = () => {
     <Tab.Navigator>
       <Tab.Screen
         name="Main"
-        component={StackNavigator}
+        component={CourseStack}
         options={{
           title: "Trang chủ",
           tabBarIcon: () => <Icon color="blue" source="home" size={26} />,
@@ -128,17 +127,28 @@ const TabNavigator = () => {
           />
         </>
       ) : (
-        <Tab.Screen
-          name="Profile"
-          component={User}
-          options={{
-            title: "Cá nhân",
-            tabBarIcon: () => <Icon color="blue" source="account" size={26} />,
-            tabBarIcon: ({color}) => (
-              <Icon color={color} source="account" size={26} />
-            ),
-          }}
-        />
+        <>
+          <Tab.Screen
+            name="Profile"
+            component={User}
+            options={{
+              title: "Cá nhân",
+              tabBarIcon: () => (
+                <Icon color="blue" source="account" size={26} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="UserCourse"
+            component={UserCourse}
+            options={{
+              title: "Khóa học của tôi",
+              tabBarIcon: () => (
+                <Icon color="blue" source="account" size={26} />
+              ),
+            }}
+          />
+        </>
       )}
     </Tab.Navigator>
   );

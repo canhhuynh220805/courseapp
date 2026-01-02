@@ -477,4 +477,41 @@ export default StyleSheet.create({
     fontWeight: "600",
     color: "#3b82f6",
   },
+  registerSection: {
+    padding: 20,
+    backgroundColor: "#F0F9FF", // Màu nền xanh rất nhạt để làm nổi bật khu vực này
+    marginHorizontal: 16,
+    borderRadius: 16,
+    alignItems: "center",
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: "#BAE6FD", // Viền xanh nhạt
+  },
+  registerHint: {
+    fontSize: 14,
+    color: "#64748B",
+    marginBottom: 16,
+    textAlign: "center",
+  },
+  registerButton: {
+    flexDirection: "row",
+    backgroundColor: "#2563eb",
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 30,
+    alignItems: "center",
+    justifyContent: "center",
+    width: "100%",
+    shadowColor: "#2563eb",
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  registerButtonText: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: 0.5,
+  },
 });

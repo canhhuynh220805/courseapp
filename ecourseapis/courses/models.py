@@ -97,11 +97,12 @@ class LessonComplete(BaseModel):
 class Payment(BaseModel):
     class Method(models.TextChoices):
         MOMO = 'MOMO', 'MoMo'
-        CASH = 'CASH', 'Tiền mặt'
+        ZALOPAY = 'ZALOPAY', 'ZaloPay'
+        PAYPAL = 'PAYPAL', 'PayPal'
 
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_method = models.CharField(choices=Method.choices, max_length=20, default=Method.CASH)
+    payment_method = models.CharField(choices=Method.choices, max_length=20, default=Method.MOMO)
     transaction_id = models.CharField(max_length=100, null=True, blank=True)#mã giao dịch để đối soát
 
     def __str__(self):

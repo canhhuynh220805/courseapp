@@ -6,9 +6,9 @@ import {
   View,
 } from "react-native";
 import MyStyles from "../../styles/MyStyles";
-import { useContext, useState } from "react";
-import { useNavigation } from "@react-navigation/native";
-import { Button, HelperText, TextInput } from "react-native-paper";
+import {useContext, useState} from "react";
+import {useNavigation} from "@react-navigation/native";
+import {Button, HelperText, TextInput} from "react-native-paper";
 import Apis, {
   authApis,
   CLIENT_ID,
@@ -16,9 +16,9 @@ import Apis, {
   endpoints,
 } from "../../utils/Apis";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MyUserContext } from "../../utils/contexts/MyContext";
+import {MyUserContext} from "../../utils/contexts/MyContext";
 import LoginStyle from "./LoginStyle";
-import { TouchableOpacity } from "react-native";
+import {TouchableOpacity} from "react-native";
 
 const Login = () => {
   const info = [
@@ -79,7 +79,7 @@ const Login = () => {
 
         setTimeout(async () => {
           let user = await authApis(res.data.access_token).get(
-            endpoints["current_user"]
+            endpoints["current-user"]
           );
           console.info(user.data);
 
@@ -112,7 +112,7 @@ const Login = () => {
         contentContainerStyle={LoginStyle.scrollContent}
       >
         <View style={LoginStyle.content}>
-          <HelperText type="error" visible={err} style={{ marginBottom: 10 }}>
+          <HelperText type="error" visible={err} style={{marginBottom: 10}}>
             Mật khẩu KHÔNG khớp!
           </HelperText>
 
@@ -123,9 +123,9 @@ const Login = () => {
                 outlineColor="#e5e7eb"
                 activeOutlineColor="#2563eb"
                 key={i.field}
-                style={{ backgroundColor: "#f9fafb" }}
+                style={{backgroundColor: "#f9fafb"}}
                 value={user[i.field]}
-                onChangeText={(t) => setUser({ ...user, [i.field]: t })}
+                onChangeText={(t) => setUser({...user, [i.field]: t})}
                 label={i.title}
                 secureTextEntry={i.secureTextEntry}
                 right={<TextInput.Icon icon={i.icon} color="#6b7280" />}
@@ -141,12 +141,12 @@ const Login = () => {
             disabled={loading}
             style={[
               LoginStyle.loginButton,
-              { backgroundColor: loading ? "#93c5fd" : "#2563eb" },
+              {backgroundColor: loading ? "#93c5fd" : "#2563eb"},
             ]}
             icon="login"
             mode="contained"
             onPress={login}
-            contentStyle={{ height: 50 }}
+            contentStyle={{height: 50}}
             labelStyle={LoginStyle.loginButtonText}
           >
             Đăng nhập

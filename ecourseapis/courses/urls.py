@@ -12,6 +12,7 @@ router.register('courses', views.CourseView)
 router.register('users', views.UserView)
 router.register('lessons', views.LessonView)
 router.register('categories', views.CategoryView)
+router.register('payments', views.PaymentViewSet)
 router.register('stats', views.StatView, basename='stats')
 # router.register('comments', views.CommentViewSet)
 
