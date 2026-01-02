@@ -96,9 +96,10 @@ class LessonSerializer(serializers.ModelSerializer):
         return data
 
 class PaymentSerializer(serializers.ModelSerializer):
+    enrollment = EnrollmentSerializer()
     class Meta:
         model = Payment
-        fields = ['id', 'amount', 'payment_method', 'transaction_id', 'created_date']
+        fields = ['id', 'amount', 'payment_method', 'transaction_id', 'created_date', "enrollment"]
 
 class CourseRevenueSerializer(ImageSerializer):
     student_count = serializers.IntegerField(read_only=True)

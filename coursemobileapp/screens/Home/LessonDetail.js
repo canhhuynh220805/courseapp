@@ -15,10 +15,12 @@ import {SafeAreaView} from "react-native";
 import styles from "./styles";
 import Apis, {endpoints} from "../../utils/Apis";
 import {MyUserContext} from "../../utils/contexts/MyContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {useNavigation} from "@react-navigation/native";
 
 function LessonDetail({route, navigation}) {
   const lessonId = route.params?.lessonId;
+  const courseId = route.params?.courseId;
   const [lesson, setLesson] = useState();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -26,6 +28,7 @@ function LessonDetail({route, navigation}) {
   const [newComment, setNewComment] = useState("");
   const [showAllComments, setShowAllComments] = useState(false);
   const [comments, setComments] = useState(100);
+  const [isEnrolled, setIsEnrolled] = useState(false);
   const [user] = useContext(MyUserContext);
   const nav = useNavigation();
   const handleLike = () => {
@@ -51,9 +54,51 @@ function LessonDetail({route, navigation}) {
     }
   };
 
+  const checkEnrollment = async () => {
+    if (!user) return;
+    try {
+      let token = await AsyncStorage.getItem("token");
+      let res = await Apis.get(endpoints["my-courses"], {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      let enrolled = res.data.some((c) => c.course.id == courseId);
+      setIsEnrolled(enrolled);
+    } catch (ex) {
+      console.error(ex);
+    } finally {
+    }
+  };
+
+  const registerCourse = async () => {
+    try {
+      setLoading(true);
+      let token = await AsyncStorage.getItem("token");
+      let res = await Apis.post(endpoints["enroll-course"](courseId), null, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 201) {
+        setIsEnrolled(true);
+      }
+      console.info(res.data);
+    } catch (ex) {
+      console.error(ex);
+      setIsEnrolled(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadLesson();
-  }, [lessonId]);
+  }, [lessonId, courseId]);
+
+  useEffect(() => {
+    checkEnrollment();
+  }, [user]);
   return (
     <SafeAreaView style={styles.container}>
       {loading && <ActivityIndicator size="large" color="blue" />}
@@ -72,20 +117,12 @@ function LessonDetail({route, navigation}) {
               <Ionicons name="arrow-back" size={24} color="#111827" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Lesson Details</Text>
-            <TouchableOpacity style={styles.moreButton}>
-              <Ionicons name="ellipsis-vertical" size={24} color="#111827" />
-            </TouchableOpacity>
           </View>
 
           <ScrollView
             style={styles.scrollView}
             showsVerticalScrollIndicator={false}
           >
-            {/* Lesson Image */}
-            {/* <View style={styles.imageContainer}>
-            <Image source={{uri: lesson.image}} style={styles.lessonImage} />
-          </View> */}
-
             {/* Lesson Title and Info */}
             <View style={styles.contentContainer}>
               <View style={styles.titleSection}>
@@ -126,38 +163,98 @@ function LessonDetail({route, navigation}) {
               </View>
 
               {/* Video Section */}
-              <View style={styles.videoSection}>
-                <View style={styles.sectionHeader}>
-                  <Ionicons name="play-circle" size={24} color="#3b82f6" />
-                  <Text style={styles.sectionTitle}>Lesson Video</Text>
-                </View>
-                {lesson.video ? (
-                  <View style={styles.videoPlayer}>
-                    <View style={styles.videoPlaceholder}>
-                      <TouchableOpacity style={styles.playButton}>
-                        <Ionicons name="play" size={40} color="#ffffff" />
-                      </TouchableOpacity>
-                      <Text style={styles.videoUrl} numberOfLines={1}>
-                        {lesson.video}
+              {user === null || !isEnrolled ? (
+                <View style={styles.videoSection}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="play-circle" size={24} color="#3b82f6" />
+                    <Text style={styles.sectionTitle}>Lesson Video Proxy</Text>
+                  </View>
+                  {lesson.video ? (
+                    <View style={styles.videoPlayer}>
+                      <View style={styles.videoPlaceholder}>
+                        <TouchableOpacity style={styles.playButton}>
+                          <Ionicons name="play" size={40} color="#ffffff" />
+                        </TouchableOpacity>
+                        <Text style={styles.videoUrl} numberOfLines={1}>
+                          {lesson.video}
+                        </Text>
+                      </View>
+                      <Text style={styles.videoNote}>
+                        Tap to play video (Video player integration required)
                       </Text>
                     </View>
-                    <Text style={styles.videoNote}>
-                      Tap to play video (Video player integration required)
+                  ) : (
+                    <View style={styles.noVideoContainer}>
+                      <Ionicons
+                        name="videocam-off-outline"
+                        size={48}
+                        color="#d1d5db"
+                      />
+                      <Text style={styles.noVideoText}>
+                        No video available for this lesson
+                      </Text>
+                    </View>
+                  )}
+                  <View style={styles.registerSection}>
+                    <Text style={styles.registerHint}>
+                      Bạn cần đăng ký khóa học để xem nội dung này
                     </Text>
+
+                    <TouchableOpacity
+                      style={styles.registerButton}
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        user === null
+                          ? nav.navigate("Login", {next: "LessonDetails"})
+                          : registerCourse()
+                      }
+                    >
+                      <Ionicons
+                        name="log-in-outline"
+                        size={24}
+                        color="#FFF"
+                        style={{marginRight: 8}}
+                      />
+                      <Text style={styles.registerButtonText}>
+                        ĐĂNG KÝ HỌC NGAY
+                      </Text>
+                    </TouchableOpacity>
                   </View>
-                ) : (
-                  <View style={styles.noVideoContainer}>
-                    <Ionicons
-                      name="videocam-off-outline"
-                      size={48}
-                      color="#d1d5db"
-                    />
-                    <Text style={styles.noVideoText}>
-                      No video available for this lesson
-                    </Text>
+                </View>
+              ) : (
+                <View style={styles.videoSection}>
+                  <View style={styles.sectionHeader}>
+                    <Ionicons name="play-circle" size={24} color="#3b82f6" />
+                    <Text style={styles.sectionTitle}>Lesson Video</Text>
                   </View>
-                )}
-              </View>
+                  {lesson.video ? (
+                    <View style={styles.videoPlayer}>
+                      <View style={styles.videoPlaceholder}>
+                        <TouchableOpacity style={styles.playButton}>
+                          <Ionicons name="play" size={40} color="#ffffff" />
+                        </TouchableOpacity>
+                        <Text style={styles.videoUrl} numberOfLines={1}>
+                          {lesson.video}
+                        </Text>
+                      </View>
+                      <Text style={styles.videoNote}>
+                        Tap to play video (Video player integration required)
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.noVideoContainer}>
+                      <Ionicons
+                        name="videocam-off-outline"
+                        size={48}
+                        color="#d1d5db"
+                      />
+                      <Text style={styles.noVideoText}>
+                        No video available for this lesson
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
 
               {/* Comment Section */}
               <View style={styles.commentSection}>

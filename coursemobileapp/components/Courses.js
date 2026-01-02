@@ -160,10 +160,14 @@ const Courses = ({cate}) => {
                 <View style={styles.levelBadge}>
                   {item.is_free ? (
                     <Text style={styles.levelBadgeText}>
-                      Ít thì 2 quả trứng
+                      Giảng viên: {item.lecturer?.last_name}
+                      {item.lecturer?.first_name}
                     </Text>
                   ) : (
-                    <Text style={styles.levelBadgeText}>Nhiều thì tên lửa</Text>
+                    <Text style={styles.levelBadgeText}>
+                      Giảng viên: {item.lecturer?.last_name}
+                      {item.lecturer?.first_name}
+                    </Text>
                   )}
                 </View>
                 <Text style={styles.coursePrice}>

@@ -1,144 +1,128 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Image, TouchableOpacity, Alert, StyleSheet } from 'react-native';
-import { TextInput, Button, Text, ActivityIndicator } from 'react-native-paper';
-import * as ImagePicker from 'expo-image-picker';
+import { TextInput, Button, Text, Title, ActivityIndicator } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
+import axios from 'axios';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
 
-const AddCourse = ({ navigation }) => {
+const PRIMARY_BLUE = '#2563eb';
+
+const AddCourse = ({ route, navigation }) => {
+    const courseEditId = route.params?.courseEdit?.id;
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [course, setCourse] = useState({
-        subject: '',
-        description: '',
-        price: '',
-        duration: '',
-        category: ''
-    });
+    const [course, setCourse] = useState({ subject: '', description: '', price: '', category: '' });
     const [image, setImage] = useState(null);
 
-    // 1. Tải danh mục từ Server để chọn
     useEffect(() => {
-        const loadCategories = async () => {
+        const loadData = async () => {
+            setLoading(true);
             try {
-                const res = await authApis().get(endpoints['categories']);
-                setCategories(res.data);
-                if (res.data.length > 0) setCourse(c => ({ ...c, category: res.data[0].id }));
+                const resCate = await authApis().get(endpoints['categories']);
+                setCategories(resCate.data);
+
+                if (courseEditId) {
+                    const resDetail = await authApis().get(endpoints['course-details'](courseEditId));
+                    const data = resDetail.data;
+
+                    setCourse({
+                        subject: data.subject ?? '',
+                        description: data.description ?? '',
+                        price: data.price !== undefined && data.price !== null ? String(data.price) : '0',
+                        category: data.category ?? (resCate.data[0]?.id || '')
+                    });
+                    if (data.image) setImage({ uri: data.image });
+                } else if (resCate.data.length > 0) {
+                    setCourse(c => ({ ...c, category: resCate.data[0].id }));
+                }
             } catch (ex) {
-                console.error("Lỗi tải danh mục:", ex);
-            }
+                console.error(ex);
+            } finally { setLoading(false); }
         };
-        loadCategories();
-    }, []);
+        loadData();
+    }, [courseEditId]);
 
-    // 2. Hàm chọn ảnh minh họa
+    const uploadToCloudinary = async (file) => {
+        if (!file || file.uri.startsWith('http')) return file.uri;
+        const data = new FormData();
+        data.append("file", { uri: file.uri, type: "image/jpeg", name: "upload.jpg" });
+        data.append("upload_preset", "courseapp_preset");
+        data.append("cloud_name", "dpl8syyb9");
+        try {
+            const res = await axios.post("https://api.cloudinary.com/v1_1/dpl8syyb9/image/upload", data);
+            return res.data.secure_url;
+        } catch (error) { return null; }
+    };
+
     const pickImage = async () => {
-        let { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert("Thông báo", "Ứng dụng cần quyền truy cập ảnh!");
-            return;
-        }
-
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
             allowsEditing: true,
             aspect: [4, 3],
             quality: 1,
         });
-
-        if (!result.canceled) {
-            setImage(result.assets[0]);
-        }
+        if (!result.canceled) setImage(result.assets[0]);
     };
 
-    // 3. Hàm gửi dữ liệu lên Backend
-    const handleAddCourse = async () => {
-        if (!course.subject || !course.price) {
-            Alert.alert("Lỗi", "Vui lòng nhập tên và học phí!");
+    const handleSave = async () => {
+        if (!course.subject?.trim() || course.price === '' || !course.description?.trim()) {
+            Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin!");
             return;
         }
-
         setLoading(true);
         try {
-            const token = await AsyncStorage.getItem("token");
-            const formData = new FormData();
-
-            // Gắn các trường text
-            formData.append('subject', course.subject);
-            formData.append('description', course.description);
-            formData.append('price', course.price);
-            formData.append('duration', course.duration);
-            formData.append('category', course.category);
-
-            // Gắn file ảnh nếu có
-            if (image) {
-                formData.append('image', {
-                    uri: image.uri,
-                    name: 'course.jpg',
-                    type: 'image/jpeg'
-                });
+            let imageUrl = image?.uri || "";
+            if (image && !image.uri.startsWith('http')) {
+                imageUrl = await uploadToCloudinary(image);
             }
 
-            // Gọi API POST /courses/
-            await authApis(token).post(endpoints['courses'], formData, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
+            const token = await AsyncStorage.getItem("token");
+            const payload = { ...course, image: imageUrl };
 
-            Alert.alert("Thành công", "Đã tạo khóa học mới!");
-            navigation.goBack(); // Quay lại trang quản lý
-        } catch (ex) {
-            console.error(ex);
-            Alert.alert("Lỗi", "Không thể tạo khóa học. Kiểm tra lại quyền Giảng viên!");
-        } finally {
-            setLoading(false);
-        }
+            if (courseEditId) {
+                await authApis(token).patch(endpoints['course-details'](courseEditId), payload);
+                Alert.alert("Thành công", "Đã cập nhật khóa học!");
+            } else {
+                await authApis(token).post(endpoints['courses'], payload);
+                Alert.alert("Thành công", "Đã tạo khóa học mới!");
+            }
+            navigation.goBack();
+        } catch (ex) { Alert.alert("Lỗi", "Không thể lưu."); } finally { setLoading(false); }
     };
+
+    if (loading && !categories.length) return <ActivityIndicator style={{ flex: 1 }} />;
 
     return (
         <ScrollView style={styles.container}>
-            <Text style={styles.header}>TẠO KHÓA HỌC MỚI</Text>
-
-            <TextInput label="Tên khóa học" value={course.subject}
-                onChangeText={t => setCourse({ ...course, subject: t })} mode="outlined" style={styles.input} />
-
-            <TextInput label="Mô tả chi tiết" value={course.description} multiline numberOfLines={4}
-                onChangeText={t => setCourse({ ...course, description: t })} mode="outlined" style={styles.input} />
-
-            <TextInput label="Học phí (VNĐ)" value={course.price} keyboardType="numeric"
-                onChangeText={t => setCourse({ ...course, price: t })} mode="outlined" style={styles.input} />
-
-            <TextInput label="Thời lượng (giờ)" value={course.duration} keyboardType="numeric"
-                onChangeText={t => setCourse({ ...course, duration: t })} mode="outlined" style={styles.input} />
-
-            <Text style={{ marginTop: 10 }}>Chọn danh mục:</Text>
-            <View style={styles.pickerContainer}>
-                <Picker selectedValue={course.category}
-                    onValueChange={(val) => setCourse({ ...course, category: val })}>
-                    {categories.map(c => <Picker.Item key={c.id} label={c.name} value={c.id} />)}
-                </Picker>
+            <View style={styles.header}><Title>{courseEditId ? "Sửa khóa học" : "Tạo khóa học"}</Title></View>
+            <View style={styles.form}>
+                <TextInput label="Tên khóa học" value={course.subject} mode="outlined" onChangeText={t => setCourse({ ...course, subject: t })} style={styles.input} />
+                <TextInput label="Mô tả" value={course.description} mode="outlined" multiline numberOfLines={4} onChangeText={t => setCourse({ ...course, description: t })} style={styles.input} />
+                <TextInput label="Học phí (VNĐ)" value={course.price} mode="outlined" keyboardType="numeric" onChangeText={t => setCourse({ ...course, price: t })} style={styles.input} />
+                <Text>Danh mục</Text>
+                <View style={styles.pickerContainer}>
+                    <Picker selectedValue={course.category} onValueChange={v => setCourse({ ...course, category: v })}>
+                        {categories.map(c => <Picker.Item key={c.id} label={c.name} value={c.id} />)}
+                    </Picker>
+                </View>
+                <TouchableOpacity onPress={pickImage} style={styles.imageDrop}>
+                    {image?.uri ? <Image source={{ uri: image.uri }} style={styles.previewImage} key={image.uri} /> : <Text>+ Chọn ảnh</Text>}
+                </TouchableOpacity>
+                <Button mode="contained" onPress={handleSave} loading={loading} buttonColor={PRIMARY_BLUE}>{courseEditId ? "Cập nhật" : "Tạo mới"}</Button>
             </View>
-
-            <TouchableOpacity onPress={pickImage} style={styles.imagePicker}>
-                {image ? <Image source={{ uri: image.uri }} style={styles.previewImage} />
-                    : <Button icon="camera" mode="outlined">Chọn ảnh minh họa</Button>}
-            </TouchableOpacity>
-
-            <Button mode="contained" onPress={handleAddCourse} loading={loading} disabled={loading} style={styles.btn}>
-                Tạo khóa học
-            </Button>
         </ScrollView>
     );
 };
-
+// ... Styles giữ nguyên
 const styles = StyleSheet.create({
-    container: { padding: 20 },
-    header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20, textAlign: 'center', color: '#2563eb' },
-    input: { marginBottom: 15 },
-    pickerContainer: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginTop: 5, marginBottom: 15 },
-    imagePicker: { alignItems: 'center', marginVertical: 15 },
-    previewImage: { width: '100%', height: 200, borderRadius: 10 },
-    btn: { paddingVertical: 5, marginBottom: 40 }
+    container: { flex: 1, backgroundColor: '#fff' },
+    header: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    form: { padding: 20 },
+    input: { marginBottom: 15, backgroundColor: '#fff' },
+    pickerContainer: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginBottom: 15 },
+    imageDrop: { height: 180, borderRadius: 10, borderStyle: 'dashed', borderWidth: 1, borderColor: PRIMARY_BLUE, justifyContent: 'center', alignItems: 'center', marginVertical: 10 },
+    previewImage: { width: '100%', height: '100%', borderRadius: 10 }
 });
-
-export default AddCourse; 
+export default AddCourse;

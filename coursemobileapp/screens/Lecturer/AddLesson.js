@@ -1,58 +1,66 @@
-// screens/Lecturer/AddLesson.js
-import React, { useState } from 'react';
-import { ScrollView, Alert, StyleSheet } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, Alert, StyleSheet } from 'react-native';
+import { TextInput, Button, Title, Caption } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const PRIMARY_BLUE = '#2563eb';
+
 const AddLesson = ({ route, navigation }) => {
-    const { courseId } = route.params; // Nhận ID khóa học để gán bài học vào
-    const [lesson, setLesson] = useState({ subject: '', content: '', duration: '' });
+    const { courseId, courseName, lesson: existingLesson } = route.params;
+    const [lesson, setLesson] = useState({ subject: '', content: '', duration: '', video: '' });
     const [loading, setLoading] = useState(false);
 
-    const handleAddLesson = async () => {
-        if (!lesson.subject || !lesson.content) {
-            Alert.alert("Lỗi", "Vui lòng điền tiêu đề và nội dung bài học!");
+    useEffect(() => {
+        if (existingLesson) {
+            setLesson({
+                subject: existingLesson.subject ?? '',
+                content: existingLesson.content ?? '',
+                duration: existingLesson.duration !== undefined && existingLesson.duration !== null ? String(existingLesson.duration) : '0',
+                video: existingLesson.video ?? ''
+            });
+        }
+    }, [existingLesson]);
+
+    const handleSaveLesson = async () => {
+        if (!lesson.subject?.trim() || !lesson.content?.trim()) {
+            Alert.alert("Lỗi", "Vui lòng điền đủ tiêu đề và nội dung!");
             return;
         }
-
+        setLoading(true);
         try {
-            setLoading(true);
             const token = await AsyncStorage.getItem("token");
-            const form = new FormData();
-            form.append('subject', lesson.subject);
-            form.append('content', lesson.content);
-            form.append('duration', lesson.duration || 0);
-            form.append('course', courseId); // Khớp với trường 'course' trong Lesson model
+            const payload = { ...lesson, course: courseId, duration: parseInt(lesson.duration) || 0 };
 
-            await authApis(token).post(endpoints['add-lesson'], form, {
-                headers: { 'Content-Type': 'multipart/form-data' }
-            });
-
-            Alert.alert("Thành công", "Đã thêm bài học mới!");
+            if (existingLesson) {
+                await authApis(token).patch(endpoints['lesson-details'](existingLesson.id), payload);
+            } else {
+                await authApis(token).post(endpoints['add-lesson'], payload);
+            }
+            Alert.alert("Thành công", "Đã lưu bài học!");
             navigation.goBack();
-        } catch (ex) {
-            Alert.alert("Lỗi", "Không thể thêm bài học. Vui lòng thử lại!");
-        } finally {
-            setLoading(false);
-        }
+        } catch (ex) { Alert.alert("Lỗi", "Không thể lưu."); } finally { setLoading(false); }
     };
 
     return (
-        <ScrollView style={{ padding: 20 }}>
-            <Text style={styles.header}>THÊM BÀI HỌC CHO KHÓA {courseId}</Text>
-            <TextInput label="Tiêu đề bài học" value={lesson.subject} onChangeText={t => setLesson({ ...lesson, subject: t })} mode="outlined" style={styles.input} />
-            <TextInput label="Thời lượng (phút)" value={lesson.duration} keyboardType="numeric" onChangeText={t => setLesson({ ...lesson, duration: t })} mode="outlined" style={styles.input} />
-            <TextInput label="Nội dung văn bản" value={lesson.content} multiline numberOfLines={10} onChangeText={t => setLesson({ ...lesson, content: t })} mode="outlined" style={styles.input} />
-            <Button mode="contained" onPress={handleAddLesson} loading={loading} style={styles.btn}>Lưu bài học</Button>
+        <ScrollView style={{ flex: 1, backgroundColor: '#fff' }}>
+            <View style={styles.header}>
+                <Title>{existingLesson ? "Sửa bài học" : "Thêm bài học"}</Title>
+                <Caption>Khóa học: {courseName}</Caption>
+            </View>
+            <View style={styles.form}>
+                <TextInput label="Tiêu đề bài học" value={lesson.subject} mode="outlined" onChangeText={t => setLesson({ ...lesson, subject: t })} style={styles.input} />
+                <TextInput label="Link YouTube" value={lesson.video} mode="outlined" placeholder="https://..." onChangeText={t => setLesson({ ...lesson, video: t })} style={styles.input} />
+                <TextInput label="Thời lượng (phút)" value={lesson.duration} mode="outlined" keyboardType="numeric" onChangeText={t => setLesson({ ...lesson, duration: t })} style={styles.input} />
+                <TextInput label="Nội dung" value={lesson.content} mode="outlined" multiline numberOfLines={8} onChangeText={t => setLesson({ ...lesson, content: t })} style={styles.input} />
+                <Button mode="contained" onPress={handleSaveLesson} loading={loading} buttonColor={PRIMARY_BLUE}>Lưu</Button>
+            </View>
         </ScrollView>
     );
 };
-
 const styles = StyleSheet.create({
-    header: { fontSize: 18, fontWeight: 'bold', marginBottom: 20, color: '#2563eb' },
-    input: { marginBottom: 10 },
-    btn: { marginTop: 10, padding: 5 }
+    header: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    form: { padding: 20 },
+    input: { marginBottom: 15, backgroundColor: '#fff' }
 });
-
 export default AddLesson;
