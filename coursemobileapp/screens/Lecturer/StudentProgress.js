@@ -4,7 +4,7 @@ import { Avatar, ProgressBar, Text, Divider, Title, Caption } from 'react-native
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const PRIMARY_BLUE = '#2563eb';
+const PRIMARY_COLOR = '#2563eb';
 
 const StudentProgress = ({ route }) => {
     const { courseId, courseName } = route.params;
@@ -37,7 +37,7 @@ const StudentProgress = ({ route }) => {
         <View style={styles.container}>
             {loading ? (
                 <View style={styles.centered}>
-                    <ActivityIndicator color={PRIMARY_BLUE} size="large" />
+                    <ActivityIndicator color={PRIMARY_COLOR} size="large" />
                 </View>
             ) : (
                 <FlatList
@@ -55,7 +55,7 @@ const StudentProgress = ({ route }) => {
                                     <Avatar.Image size={48} source={{ uri: item.user.avatar }} />
                                 ) : (
                                     <Avatar.Text size={48} label={item.user.username?.[0]?.toUpperCase()}
-                                        style={{ backgroundColor: '#dbeafe' }} color={PRIMARY_BLUE} />
+                                        style={{ backgroundColor: '#dbeafe' }} color={PRIMARY_COLOR} />
                                 )}
                                 <View style={styles.info}>
                                     <Text style={styles.username}>{item.user.username}</Text>
@@ -68,7 +68,7 @@ const StudentProgress = ({ route }) => {
                                     <Text style={styles.progressLabel}>Tiến độ</Text>
                                     <Text style={styles.progressValue}>{item.progress}%</Text>
                                 </View>
-                                <ProgressBar progress={item.progress / 100} color={PRIMARY_BLUE} style={styles.progressBar} />
+                                <ProgressBar progress={item.progress / 100} color={PRIMARY_COLOR} style={styles.progressBar} />
                             </View>
                         </View>
                     )}
@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     rightContent: { width: 110, marginLeft: 10 },
     progressLabelContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
     progressLabel: { fontSize: 11, color: '#9ca3af' },
-    progressValue: { fontSize: 11, fontWeight: '700', color: PRIMARY_BLUE },
+    progressValue: { fontSize: 11, fontWeight: '700', color: PRIMARY_COLOR },
     progressBar: { height: 6, borderRadius: 3 },
     divider: { marginHorizontal: 16 },
     emptyText: { textAlign: 'center', marginTop: 40, color: '#9ca3af' }

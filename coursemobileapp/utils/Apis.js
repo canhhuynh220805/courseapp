@@ -14,9 +14,9 @@ export const endpoints = {
   "general-stats": "/stats/general-stats/",
   "course-students": (courseId) => `/courses/${courseId}/students/`,
   "add-course": "/courses/",
+  "course-details": (courseId) => `/courses/${courseId}/`,
   "add-lesson": "/lessons/",
   "lesson-details": (lessonId) => `/lessons/${lessonId}/`,
-  "lessons": (courseId) => `/courses/${courseId}/lessons/`,
 };
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
@@ -35,4 +35,4 @@ export default axios.create({
   baseURL: BASE_URL,
 });
 
-export {CLIENT_ID, CLIENT_SECRET};
+export { CLIENT_ID, CLIENT_SECRET };
