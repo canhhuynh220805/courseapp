@@ -7,7 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const PRIMARY_BLUE = '#2563eb';
 
 const AddLesson = ({ route, navigation }) => {
-    const { courseId, courseName, lesson: existingLesson } = route.params; //
+    const { courseId, courseName, lesson: existingLesson } = route.params;
     const [lesson, setLesson] = useState({ subject: '', content: '', duration: '', video: '' });
     const [loading, setLoading] = useState(false);
 
@@ -16,7 +16,6 @@ const AddLesson = ({ route, navigation }) => {
             setLesson({
                 subject: existingLesson.subject ?? '',
                 content: existingLesson.content ?? '',
-                // FIX: Tránh hiện "undefined" bằng cách kiểm tra giá trị
                 duration: existingLesson.duration !== undefined && existingLesson.duration !== null ? String(existingLesson.duration) : '0',
                 video: existingLesson.video ?? ''
             });
@@ -34,7 +33,6 @@ const AddLesson = ({ route, navigation }) => {
             const payload = { ...lesson, course: courseId, duration: parseInt(lesson.duration) || 0 };
 
             if (existingLesson) {
-                // Cập nhật bài học hiện tại
                 await authApis(token).patch(endpoints['lesson-details'](existingLesson.id), payload);
             } else {
                 await authApis(token).post(endpoints['add-lesson'], payload);
@@ -60,7 +58,6 @@ const AddLesson = ({ route, navigation }) => {
         </ScrollView>
     );
 };
-// ... Styles giữ nguyên
 const styles = StyleSheet.create({
     header: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
     form: { padding: 20 },

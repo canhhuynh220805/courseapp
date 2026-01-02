@@ -10,7 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 const PRIMARY_BLUE = '#2563eb';
 
 const AddCourse = ({ route, navigation }) => {
-    const courseEditId = route.params?.courseEdit?.id; // Lấy ID từ params
+    const courseEditId = route.params?.courseEdit?.id;
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(false);
     const [course, setCourse] = useState({ subject: '', description: '', price: '', category: '' });
@@ -20,12 +20,10 @@ const AddCourse = ({ route, navigation }) => {
         const loadData = async () => {
             setLoading(true);
             try {
-                // 1. Load danh mục
                 const resCate = await authApis().get(endpoints['categories']);
                 setCategories(resCate.data);
 
                 if (courseEditId) {
-                    // 2. Fetch dữ liệu chi tiết để tránh thiếu trường
                     const resDetail = await authApis().get(endpoints['course-details'](courseEditId));
                     const data = resDetail.data;
 
@@ -84,7 +82,6 @@ const AddCourse = ({ route, navigation }) => {
             const payload = { ...course, image: imageUrl };
 
             if (courseEditId) {
-                // Dùng PATCH để cập nhật thay vì tạo mới
                 await authApis(token).patch(endpoints['course-details'](courseEditId), payload);
                 Alert.alert("Thành công", "Đã cập nhật khóa học!");
             } else {
