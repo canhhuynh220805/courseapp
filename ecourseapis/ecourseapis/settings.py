@@ -1,3 +1,4 @@
+
 from pathlib import Path
 import os
 
@@ -116,6 +117,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.BasicAuthentication',
     )
 }
+
+YOUTUBE_API_KEY = 'AIzaSyDK0qVKb_otHQzUkz7IZ4K3FpS42IZSaM8'
 
 # OAuth2 Provider Keys
 CLIENT_ID = "XNmumHqNiJeZgL1nK9wV9JjLOQhP4mOQQCkwlA26"

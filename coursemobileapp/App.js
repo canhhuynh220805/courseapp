@@ -1,10 +1,12 @@
-import React, { useContext, useReducer } from "react";
+import React, { useContext, useEffect, useReducer } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Icon } from "react-native-paper";
 import { MyUserContext } from "./utils/contexts/MyContext";
 import MyUserReducer from "./utils/reducers/MyUserReducer";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "./utils/firebase";
 import Home from "./screens/Home/Home";
 import Lesson from "./screens/Home/Lesson";
 import LessonDetail from "./screens/Home/LessonDetail";
@@ -17,9 +19,13 @@ import ManageCourse from "./screens/Lecturer/ManageCourse";
 import AddCourse from "./screens/Lecturer/AddCourse";
 import AddLesson from "./screens/Lecturer/AddLesson";
 import UserCourse from "./screens/User/UserCourse";
+import Statistics from "./screens/Lecturer/Statistics";
+import ChatDetail from "./screens/User/ChatDetail";
+import Chat from "./screens/User/Chat";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
+
 const CourseStack = () => (
   <Stack.Navigator>
     <Stack.Screen name="CourseHome" component={Home} options={{ title: "Khóa học" }} />
@@ -34,18 +40,38 @@ const LecturerStack = () => (
     <Stack.Screen name="ManageCourse" component={ManageCourse} options={{ title: "Chi tiết khóa học" }} />
     <Stack.Screen name="AddCourse" component={AddCourse} options={{ title: "Tạo khóa học" }} />
     <Stack.Screen name="AddLesson" component={AddLesson} options={{ title: "Thêm bài học" }} />
+    <Stack.Screen name="StudentProgress" component={StudentProgress} options={{ title: "Kết quả học tập" }} />
   </Stack.Navigator>
 );
 
-const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Login" component={Login} />
-    <Stack.Screen name="Register" component={Register} />
+const ChatStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen name="ChatContacts" component={Chat} options={{ title: "Danh bạ chat" }} />
+    <Stack.Screen
+      name="ChatDetail"
+      component={ChatDetail}
+      options={({ route }) => ({ title: route.params?.receiver?.username || "Phòng chat" })}
+    />
   </Stack.Navigator>
 );
 
 const TabNavigator = () => {
   const [user] = useContext(MyUserContext);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  useEffect(() => {
+    if (user) {
+      const q = query(
+        collection(db, "messages"),
+        where("receiverId", "==", user.id),
+        where("isRead", "==", false)
+      );
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setUnreadCount(snapshot.size);
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
 
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#2563eb" }}>
@@ -60,17 +86,40 @@ const TabNavigator = () => {
       />
 
       {user?.role === "LECTURER" && (
+        <>
+          <Tab.Screen
+            name="Manage"
+            component={LecturerStack}
+            options={{
+              title: "Giảng dạy",
+              headerShown: false,
+              tabBarIcon: ({ color }) => <Icon source="school" size={26} color={color} />
+            }}
+          />
+          <Tab.Screen
+            name="StatisticsTab"
+            component={Statistics}
+            options={{
+              title: "Thống kê",
+              headerShown: true,
+              tabBarIcon: ({ color }) => <Icon source="chart-bar" size={26} color={color} />,
+            }}
+          />
+        </>
+      )}
+
+      {user !== null && (
         <Tab.Screen
-          name="Manage"
-          component={LecturerStack}
+          name="Chat"
+          component={ChatStack}
           options={{
-            title: "Giảng dạy",
+            title: "Tin nhắn",
             headerShown: false,
-            tabBarIcon: ({ color }) => <Icon source="school" size={26} color={color} />
+            tabBarIcon: ({ color }) => <Icon source="chat-processing-outline" size={26} color={color} />,
+            tabBarBadge: unreadCount > 0 ? unreadCount : null,
           }}
         />
       )}
-
       {user === null ? (
         <>
           <Tab.Screen
@@ -78,7 +127,7 @@ const TabNavigator = () => {
             component={Login}
             options={{
               title: "Đăng nhập",
-              tabBarIcon: () => <Icon color="blue" source="login" size={26} />,
+              tabBarIcon: ({ color }) => <Icon color={color} source="login" size={26} />,
             }}
           />
           <Tab.Screen
@@ -86,9 +135,7 @@ const TabNavigator = () => {
             component={Register}
             options={{
               title: "Đăng ký",
-              tabBarIcon: () => (
-                <Icon color="blue" source="account-plus" size={26} />
-              ),
+              tabBarIcon: ({ color }) => <Icon color={color} source="account-plus" size={26} />,
             }}
           />
         </>
@@ -99,21 +146,19 @@ const TabNavigator = () => {
             component={User}
             options={{
               title: "Cá nhân",
-              tabBarIcon: () => (
-                <Icon color="blue" source="account" size={26} />
-              ),
+              tabBarIcon: ({ color }) => <Icon color={color} source="account" size={26} />,
             }}
           />
-          <Tab.Screen
-            name="UserCourse"
-            component={UserCourse}
-            options={{
-              title: "Khóa học của tôi",
-              tabBarIcon: () => (
-                <Icon color="blue" source="account" size={26} />
-              ),
-            }}
-          />
+          {user?.role === "STUDENT" && (
+            <Tab.Screen
+              name="UserCourse"
+              component={UserCourse}
+              options={{
+                title: "Khóa học của tôi",
+                tabBarIcon: ({ color }) => <Icon color={color} source="book-open-variant" size={26} />,
+              }}
+            />
+          )}
         </>
       )}
     </Tab.Navigator>
