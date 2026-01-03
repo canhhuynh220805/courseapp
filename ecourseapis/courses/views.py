@@ -1,6 +1,6 @@
 
 from django.db.models import DecimalField, Count, Q, Sum
-from django.db.models.functions import Coalesce, TruncYear, TruncMonth
+from django.db.models.functions import Coalesce, TruncYear, TruncMonth, TruncQuarter
 from django.http import HttpResponse
 
 from django.template import loader
@@ -282,15 +282,32 @@ class StatView(viewsets.ViewSet):
 
         if user.role == User.Role.LECTURER:
             payments = payments.filter(enrollment__course__lecturer=user)
-        trunc_func = TruncYear('created_date') if period == 'year' else TruncMonth('created_date')
+
+        if period == 'year':
+            trunc_func = TruncYear('created_date')
+        elif period == 'quarter':
+            trunc_func = TruncQuarter('created_date')
+        else:
+            trunc_func = TruncMonth('created_date')
 
         stats = payments.annotate(period_date=trunc_func).values('period_date').annotate(
             total_revenue=Sum('amount')).order_by('period_date')
 
-        data = [{
-            'period': s['period_date'].strftime('%Y' if period == 'year' else '%m-%Y'),
-            'total_revenue': s['total_revenue']
-        } for s in stats]
+        data = []
+        for s in stats:
+            p_date = s['period_date']
+            if period == 'year':
+                label = p_date.strftime('%Y')
+            elif period == 'quarter':
+                quarter = (p_date.month - 1) // 3 + 1
+                label = f"Q{quarter}-{p_date.year}"
+            else:
+                label = p_date.strftime('%m-%Y')
+
+            data.append({
+                'period': label,
+                'total_revenue': s['total_revenue']
+            })
         return Response(data, status=status.HTTP_200_OK)
 
     @action(methods=['get'], detail=False, url_path='general-stats')

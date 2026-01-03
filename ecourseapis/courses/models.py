@@ -1,10 +1,40 @@
 from cloudinary.models import CloudinaryField
+import requests
+import isodate
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from ckeditor.fields import RichTextField
+from django.conf import settings
+from django.db.models import Sum
+from django.db.models.signals import post_save, post_delete
+from django.dispatch import receiver
 
 
 # Create your models here.
+
+def get_yt_info(url):
+    if not url:
+        return 0
+    try:
+        video_id = None
+        if "v=" in url:
+            video_id = url.split("v=")[1].split("&")[0]
+        elif "youtu.be/" in url:
+            video_id = url.split("youtu.be/")[1].split("?")[0]
+        if not video_id:
+            return 0
+        api_key = getattr(settings, 'YOUTUBE_API_KEY', "AIzaSyDK0qVKb_otHQzUkz7IZ4K3FpS42IZSaM8")
+        url = f"https://www.googleapis.com/youtube/v3/videos?id={video_id}&part=contentDetails&key={api_key}"
+        res = requests.get(url).json()
+
+        if "items" in res and len(res["items"]) > 0:
+            iso_duration = res["items"][0]["contentDetails"]["duration"]
+            duration_delta = isodate.parse_duration(iso_duration)
+            return int(duration_delta.total_seconds() / 60)
+
+    except Exception as e:
+        print(f"Error fetching YT duration: {e}")
+    return 0
 
 class User(AbstractUser):
     class Role(models.TextChoices):
@@ -56,9 +86,21 @@ class Lesson(BaseModel):
     def __str__(self):
         return self.subject
 
+    def save(self, *args, **kwargs):
+        if self.video:
+            self.duration = get_yt_info(self.video)
+        super().save(*args,**kwargs)
+
     class Meta:
         unique_together = ('subject', 'course')
 
+@receiver([post_save, post_delete], sender=Lesson)
+def update_course_duration(sender, instance, **kwargs):
+    course = instance.course
+    total_duration = Lesson.objects.filter(course=course, active=True).aggregate(Sum('duration'))['duration__sum'] or 0
+    if course.duration != total_duration:
+        course.duration = total_duration
+        course.save()
 
 class Tag(BaseModel):
     name = models.CharField(max_length=100, unique=True)

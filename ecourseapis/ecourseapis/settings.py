@@ -68,25 +68,25 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'courseapp$coursedb',
-        'USER': 'courseapp',
-        'PASSWORD': 'admin@123',
-        'HOST': 'courseapp.mysql.pythonanywhere-services.com'
-    }
-}
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'coursedb',
-#         'USER': 'root',
-#         'PASSWORD': '123456',
-#         'HOST': ''  # mặc định localhost
+#         'NAME': 'courseapp$coursedb',
+#         'USER': 'courseapp',
+#         'PASSWORD': 'admin@123',
+#         'HOST': 'courseapp.mysql.pythonanywhere-services.com'
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'coursedb',
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'HOST': ''  # mặc định localhost
+    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -132,3 +132,4 @@ cloudinary.config(
     api_secret="zfwveRcXlclSOKM7mqSU2j0421c",
     api_proxy="http://proxy.server:3128"
 )
+YOUTUBE_API_KEY = 'AIzaSyDK0qVKb_otHQzUkz7IZ4K3FpS42IZSaM8'

@@ -8,7 +8,7 @@ const PRIMARY_BLUE = '#2563eb';
 
 const AddLesson = ({ route, navigation }) => {
     const { courseId, courseName, lesson: existingLesson } = route.params;
-    const [lesson, setLesson] = useState({ subject: '', content: '', duration: '', video: '' });
+    const [lesson, setLesson] = useState({ subject: '', content: '', video: '' });
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -16,7 +16,6 @@ const AddLesson = ({ route, navigation }) => {
             setLesson({
                 subject: existingLesson.subject ?? '',
                 content: existingLesson.content ?? '',
-                duration: existingLesson.duration !== undefined && existingLesson.duration !== null ? String(existingLesson.duration) : '0',
                 video: existingLesson.video ?? ''
             });
         }
@@ -30,7 +29,7 @@ const AddLesson = ({ route, navigation }) => {
         setLoading(true);
         try {
             const token = await AsyncStorage.getItem("token");
-            const payload = { ...lesson, course: courseId, duration: parseInt(lesson.duration) || 0 };
+            const payload = { ...lesson, course: courseId };
 
             if (existingLesson) {
                 await authApis(token).patch(endpoints['lesson-details'](existingLesson.id), payload);
@@ -51,7 +50,6 @@ const AddLesson = ({ route, navigation }) => {
             <View style={styles.form}>
                 <TextInput label="Tiêu đề bài học" value={lesson.subject} mode="outlined" onChangeText={t => setLesson({ ...lesson, subject: t })} style={styles.input} />
                 <TextInput label="Link YouTube" value={lesson.video} mode="outlined" placeholder="https://..." onChangeText={t => setLesson({ ...lesson, video: t })} style={styles.input} />
-                <TextInput label="Thời lượng (phút)" value={lesson.duration} mode="outlined" keyboardType="numeric" onChangeText={t => setLesson({ ...lesson, duration: t })} style={styles.input} />
                 <TextInput label="Nội dung" value={lesson.content} mode="outlined" multiline numberOfLines={8} onChangeText={t => setLesson({ ...lesson, content: t })} style={styles.input} />
                 <Button mode="contained" onPress={handleSaveLesson} loading={loading} buttonColor={PRIMARY_BLUE}>Lưu</Button>
             </View>
