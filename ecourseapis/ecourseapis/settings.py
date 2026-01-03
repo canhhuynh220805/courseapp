@@ -132,3 +132,12 @@ cloudinary.config(
     api_secret="zfwveRcXlclSOKM7mqSU2j0421c",
     api_proxy="http://proxy.server:3128"
 )
+
+MOMO_CONFIG = {
+    'endpoint': 'https://test-payment.momo.vn/v2/gateway/api/create',
+    'partner_code': 'MOMO',
+    'access_key': 'F8BBA842ECF85',
+    'secret_key': 'K951B6PE1waDMi640xX08PD3vg6EkVlz',
+    'redirect_url': 'http://loadbalancerweb-1026951821.us-east-1.elb.amazonaws.com/billing/return',
+    'ipn_url': 'http://loadbalancerweb-1026951821.us-east-1.elb.amazonaws.com/payments/ipn'
+}
