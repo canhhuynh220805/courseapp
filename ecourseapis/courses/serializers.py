@@ -13,21 +13,47 @@ class ImageSerializer(serializers.ModelSerializer):
         data = super().to_representation(instance)
 
         # data['image'] = instance.image.url
-        if hasattr(instance, 'image') and instance.image:
-            if isinstance(instance.image, str):
-                data['image'] = instance.image
-            elif hasattr(instance.image, 'url'):
-                data['image'] = instance.image.url
-
+        image = getattr(instance, 'image', None)
+        if image:
+            if isinstance(image, str):
+                data['image'] = image
+            elif hasattr(image, 'url'):
+                data['image'] = image.url
         return data
 
+class UserSerializer(serializers.ModelSerializer):
+    avatar = serializers.CharField(required=False, allow_null=True)
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'role', 'is_lecturer_verified']
+        extra_kwargs = {
+            'password': {
+                'write_only': True,
+            }
+        }
+
+    def create(self, validated_data):
+        user = User(**validated_data)
+        user.set_password(validated_data['password'])
+        user.role = User.Role.STUDENT
+        user.save()
+        return user
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.avatar:
+            data['avatar'] = instance.avatar
+        else:
+            data['avatar'] = ''
+        return data
 
 class CoursesSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
     is_free = serializers.SerializerMethodField()
+    lecturer = UserSerializer(read_only=True)
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration']
 
 
     def is_registered(self, course):
@@ -48,32 +74,6 @@ class CoursesSerializer(ImageSerializer):
         return obj.price == 0 or obj.price is None
 
 
-class UserSerializer(ImageSerializer):
-    avatar = serializers.CharField(required=False, allow_null=True)
-    class Meta:
-        model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'role', 'is_lecturer_verified']
-        extra_kwargs = {
-            'password': {
-                'write_only': True,
-            }
-        }
-
-    def create(self, validated_data):
-        user = User(**validated_data)
-        user.set_password(validated_data['password'])
-        user.role = User.Role.STUDENT
-        user.save()
-        return user
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-#         data['avatar'] = instance.avatar.url if instance.avatar else ''
-
-        data['avatar'] = instance.avatar if instance.avatar else ''
-        return data
-
-
 class EnrollmentSerializer(serializers.ModelSerializer):
     course = CoursesSerializer()
     class Meta:
@@ -82,9 +82,10 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     image = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = Lesson
-        fields = ['id', 'subject', 'content', 'course', 'tags', 'image']
+        fields = ['id', 'subject', 'content', 'course', 'tags', 'image', 'video', 'duration']
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if instance.image:

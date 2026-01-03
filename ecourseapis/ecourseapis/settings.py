@@ -71,10 +71,10 @@ AUTH_USER_MODEL = 'courses.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'coursedb',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': ''  # mặc định localhost
+        'NAME': 'courseapp$coursedb',
+        'USER': 'courseapp',
+        'PASSWORD': 'admin@123',
+        'HOST': 'courseapp.mysql.pythonanywhere-services.com'
     }
 }
 

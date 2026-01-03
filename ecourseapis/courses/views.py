@@ -1,5 +1,5 @@
 
-from django.db.models import Count, Q, Sum
+from django.db.models import DecimalField, Count, Q, Sum
 from django.db.models.functions import Coalesce, TruncYear, TruncMonth
 from django.http import HttpResponse
 
@@ -183,7 +183,7 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView):
 
         return Response([])
 
-class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.DestroyAPIView):
+class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.DestroyAPIView, generics.UpdateAPIView):
     queryset = Lesson.objects.filter(active=True)
     serializer_class = serializers.LessonDetailsSerializer
     def get_permissions(self):
@@ -191,7 +191,7 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIV
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
-        if self.action == 'destroy':
+        if self.action in ['update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
@@ -394,7 +394,7 @@ class StatView(viewsets.ViewSet):
 
         queryset = queryset.annotate(
             student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)),
-            total_revenue=Coalesce(Sum('enrollments__payments__amount'), 0)).order_by('-total_revenue')
+            total_revenue=Coalesce(Sum('enrollments__payments__amount'), 0, output_field=DecimalField())).order_by('-total_revenue')
 
         serializer = CourseRevenueSerializer(queryset, many=True, context={'request': request})
 

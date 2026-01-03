@@ -47,7 +47,7 @@ class Course(BaseModel):
 class Lesson(BaseModel):
     subject = models.CharField(max_length=255)
     content = RichTextField()
-    course = models.ForeignKey(Course, on_delete=models.RESTRICT)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE)
     tags = models.ManyToManyField('Tag', blank = True)
     # video = CloudinaryField('video', resource_type='video', null=True, blank=True)
     duration = models.IntegerField(default=0, help_text="Thời lượng bài học")
