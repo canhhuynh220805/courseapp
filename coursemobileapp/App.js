@@ -1,10 +1,12 @@
-import React, { useContext, useReducer } from "react";
+import React, { useContext, useEffect, useReducer } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Icon } from "react-native-paper";
 import { MyUserContext } from "./utils/contexts/MyContext";
 import MyUserReducer from "./utils/reducers/MyUserReducer";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "./utils/firebase";
 import Home from "./screens/Home/Home";
 import Lesson from "./screens/Home/Lesson";
 import LessonDetail from "./screens/Home/LessonDetail";
@@ -45,12 +47,31 @@ const LecturerStack = () => (
 const ChatStack = () => (
   <Stack.Navigator>
     <Stack.Screen name="ChatContacts" component={Chat} options={{ title: "Danh bạ chat" }} />
-    <Stack.Screen name="ChatRoom" component={ChatDetail} options={{ title: "Phòng chat" }} />
+    <Stack.Screen
+      name="ChatDetail"
+      component={ChatDetail}
+      options={({ route }) => ({ title: route.params?.receiver?.username || "Phòng chat" })}
+    />
   </Stack.Navigator>
 );
 
 const TabNavigator = () => {
   const [user] = useContext(MyUserContext);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+
+  useEffect(() => {
+    if (user) {
+      const q = query(
+        collection(db, "messages"),
+        where("receiverId", "==", user.id),
+        where("isRead", "==", false)
+      );
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setUnreadCount(snapshot.size);
+      });
+      return () => unsubscribe();
+    }
+  }, [user]);
 
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#2563eb" }}>
@@ -86,6 +107,7 @@ const TabNavigator = () => {
           />
         </>
       )}
+
       {user !== null && (
         <Tab.Screen
           name="Chat"
@@ -94,6 +116,7 @@ const TabNavigator = () => {
             title: "Tin nhắn",
             headerShown: false,
             tabBarIcon: ({ color }) => <Icon source="chat-processing-outline" size={26} color={color} />,
+            tabBarBadge: unreadCount > 0 ? unreadCount : null,
           }}
         />
       )}

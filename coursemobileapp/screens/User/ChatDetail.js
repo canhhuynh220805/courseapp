@@ -4,6 +4,7 @@ import { TextInput, IconButton, Text, Card, ActivityIndicator } from 'react-nati
 import { db } from '../../utils/firebase';
 import { collection, addDoc, query, where, orderBy, onSnapshot } from "firebase/firestore";
 import { MyUserContext } from "../../utils/contexts/MyContext";
+import { doc, updateDoc } from "firebase/firestore";
 
 const ChatDetail = ({ route }) => {
     const { receiver } = route.params;
@@ -22,10 +23,15 @@ const ChatDetail = ({ route }) => {
         );
 
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            const fetchedMsgs = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }));
+            const fetchedMsgs = snapshot.docs.map(document => {
+                const data = document.data();
+
+                if (data.receiverId === user.id && data.isRead === false) {
+                    updateDoc(doc(db, "messages", document.id), { isRead: true });
+                }
+
+                return { id: document.id, ...data };
+            });
             setMessages(fetchedMsgs);
             setLoading(false);
         });
@@ -40,7 +46,9 @@ const ChatDetail = ({ route }) => {
                     chatRoomId: chatRoomId,
                     senderId: user.id,
                     senderName: user.username,
+                    receiverId: receiver.id,
                     content: msg,
+                    isRead: false,
                     createdAt: new Date().getTime(),
                 });
                 setMsg('');
