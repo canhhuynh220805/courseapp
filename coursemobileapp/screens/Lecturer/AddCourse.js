@@ -115,7 +115,6 @@ const AddCourse = ({ route, navigation }) => {
         </ScrollView>
     );
 };
-// ... Styles giữ nguyên
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     header: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },

@@ -12,6 +12,8 @@ export const endpoints = {
   "current-user": "/users/current-user/",
   "course-stats": "/stats/course-stats/",
   "general-stats": "/stats/general-stats/",
+  "revenue-stats": "/stats/revenue-stats/",
+  "chat-contacts": "/users/chat-contacts/",
   "course-students": (courseId) => `/courses/${courseId}/students/`,
   "add-course": "/courses/",
   "course-details": (courseId) => `/courses/${courseId}/`,
@@ -19,6 +21,7 @@ export const endpoints = {
   "lesson-detail": (lessonId) => `/lessons/${lessonId}/`,
   "enroll-course": (courseId) => `/courses/${courseId}/enroll/`,
   "my-courses": "/courses/my-course/",
+}
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_CLIENT_SECRET;
