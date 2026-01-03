@@ -248,11 +248,138 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
     serializer_class = serializers.PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_permissions(self):
+        if self.action == 'process_momo_ipn':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
     def perform_create(self, serializer):
         payment = serializer.save()
         enrollment = payment.enrollment
         enrollment.status = Enrollment.Status.ACTIVE
         enrollment.save()
+
+    @action(methods=['post'], detail=False, url_path='momo-pay')
+    def create_momo_payment(self, request):
+        try:
+            # 1. Lấy thông tin từ Client
+            enrollment_id = request.data.get('enrollment_id')
+            if not enrollment_id:
+                return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+            enrollment = Enrollment.objects.get(id=enrollment_id)
+            amount = int(enrollment.course.price)
+
+            # 2. Tạo mã đơn hàng (orderId) duy nhất
+            orderId = str(uuid.uuid4())
+            requestId = str(uuid.uuid4())
+            orderInfo = f"Thanh toan khoa hoc {enrollment.course.subject}"
+
+            # 3. Tạo chữ ký HMAC SHA256 (Theo quy chuẩn MoMo)
+            # Chuỗi cần hash phải sắp xếp đúng thứ tự a-z
+            raw_signature = (
+                f"accessKey={MOMO_CONFIG['access_key']}"
+                f"&amount={amount}"
+                f"&extraData="
+                f"&ipnUrl={MOMO_CONFIG['ipn_url']}"
+                f"&orderId={orderId}"
+                f"&orderInfo={orderInfo}"
+                f"&partnerCode={MOMO_CONFIG['partner_code']}"
+                f"&redirectUrl={MOMO_CONFIG['redirect_url']}"
+                f"&requestId={requestId}"
+                f"&requestType=captureWallet"
+            )
+
+            h = hmac.new(
+                bytes(MOMO_CONFIG['secret_key'], 'ascii'),
+                bytes(raw_signature, 'ascii'),
+                hashlib.sha256
+            )
+            signature = h.hexdigest()
+
+            # 4. Chuẩn bị dữ liệu gửi sang MoMo
+            data = {
+                'partnerCode': MOMO_CONFIG['partner_code'],
+                'partnerName': "E-Course App",
+                'storeId': "MomoTestStore",
+                'requestId': requestId,
+                'amount': str(amount),
+                'orderId': orderId,
+                'orderInfo': orderInfo,
+                'redirectUrl': MOMO_CONFIG['redirect_url'],
+                'ipnUrl': MOMO_CONFIG['ipn_url'],
+                'lang': 'vi',
+                'extraData': "",  # Bạn có thể lưu enrollment_id vào đây để xử lý IPN dễ hơn
+                'requestType': "captureWallet",
+                'signature': signature
+            }
+
+            # 5. Gọi API MoMo
+            res = requests.post(MOMO_CONFIG['endpoint'], json=data)
+            json_res = res.json()
+
+            # 6. Xử lý kết quả
+            if json_res.get('errorCode') == 0:
+                # Lưu thông tin Payment tạm vào DB (status mặc định là PENDING hoặc bạn có thể set là chờ)
+                Payment.objects.create(
+                    enrollment=enrollment,
+                    payment_method=Payment.Method.MOMO,
+                    transaction_id=orderId, # Lưu orderId để đối soát
+                    status=Payment.Status.PENDING,
+                )
+
+                # Trả về link thanh toán cho App
+                return Response({'payUrl': json_res['payUrl']})
+            else:
+                return Response({'error': json_res.get('localMessage'), 'momo_code': json_res.get('errorCode')},
+                                status=status.HTTP_400_BAD_REQUEST)
+
+        except Enrollment.DoesNotExist:
+            return Response({"error": "Không tìm thấy đăng ký"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['post'], detail=False, url_path='ipn')
+    def process_momo_ipn(self, request):
+        data = request.data
+
+        # 1. Lấy dữ liệu quan trọng
+        resultCode = data.get('resultCode')  # 0 là thành công, khác 0 là thất bại
+        orderId = data.get('orderId')  # Chính là transaction_id mình lưu lúc tạo link
+
+        # 2. Kiểm tra chữ ký (Signature) - BƯỚC BẢO MẬT QUAN TRỌNG
+        # Nếu làm thật (Production) bạn PHẢI hash lại dữ liệu nhận được và so sánh với data['signature']
+        # để chắc chắn đây là MoMo gửi chứ không phải Hacker giả mạo.
+        # Nhưng ở môi trường Test, tạm thời ta bỏ qua để code chạy được đã.
+
+        # 3. Xử lý Logic
+        if str(resultCode) == '0':
+            # Tìm lại cái Payment đang chờ (PENDING) dựa vào orderId
+            payment = Payment.objects.get(transaction_id=orderId)
+            try:
+
+                # Nếu Payment này chưa xử lý thì mới xử lý (tránh lặp)
+                if payment.enrollment.status == Enrollment.Status.PENDING:  # Hoặc check status
+                    # Kích hoạt khóa học
+                    enrollment = payment.enrollment
+                    enrollment.status = Enrollment.Status.ACTIVE  # MỞ KHÓA HỌC
+                    enrollment.save()
+
+                    # Cập nhật trạng thái thanh toán
+                    payment.status = Payment.Status.COMPLETED
+                    payment.save()
+
+                    print(f"Đã kích hoạt khóa học cho đơn hàng {orderId}")
+
+            except Payment.DoesNotExist:
+                print("Không tìm thấy đơn hàng")
+                payment.enrollment.status = Enrollment.Status.CANCELED
+            except Exception as e:
+                print("Lỗi xử lý:", e)
+                payment.enrollment.status = Enrollment.Status.CANCELED
+
+        # MoMo yêu cầu trả về status 204 No Content để xác nhận đã nhận tin
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]

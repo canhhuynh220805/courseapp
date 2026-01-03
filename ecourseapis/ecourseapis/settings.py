@@ -1,3 +1,4 @@
+
 from pathlib import Path
 import os
 
@@ -68,25 +69,25 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'courseapp$coursedb',
-#         'USER': 'courseapp',
-#         'PASSWORD': 'admin@123',
-#         'HOST': 'courseapp.mysql.pythonanywhere-services.com'
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'coursedb',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': ''  # mặc định localhost
+        'NAME': 'courseapp$coursedb',
+        'USER': 'courseapp',
+        'PASSWORD': 'admin@123',
+        'HOST': 'courseapp.mysql.pythonanywhere-services.com'
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'coursedb',
+#         'USER': 'root',
+#         'PASSWORD': '123456',
+#         'HOST': ''  # mặc định localhost
+#     }
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -117,6 +118,8 @@ REST_FRAMEWORK = {
     )
 }
 
+YOUTUBE_API_KEY = 'AIzaSyDK0qVKb_otHQzUkz7IZ4K3FpS42IZSaM8'
+
 # OAuth2 Provider Keys
 CLIENT_ID = "XNmumHqNiJeZgL1nK9wV9JjLOQhP4mOQQCkwlA26"
 CLIENT_SECRET = "h5ywYK6zytwayHxLoxOPgHzvWuJlxptGXbNYxIreYYcVNaQ9UjZPsI2RoPVpBe5Q5468HTJ4pve5cr0Yl6UsXCRtRb6R6e2TG6tUIOFKXFEL3mTtXjFVG14326kY5Anm"
@@ -132,4 +135,12 @@ cloudinary.config(
     api_secret="zfwveRcXlclSOKM7mqSU2j0421c",
     api_proxy="http://proxy.server:3128"
 )
-YOUTUBE_API_KEY = 'AIzaSyDK0qVKb_otHQzUkz7IZ4K3FpS42IZSaM8'
+
+MOMO_CONFIG = {
+    'endpoint': 'https://test-payment.momo.vn/v2/gateway/api/create',
+    'partner_code': 'MOMO',
+    'access_key': 'F8BBA842ECF85',
+    'secret_key': 'K951B6PE1waDMi640xX08PD3vg6EkVlz',
+    'redirect_url': 'http://loadbalancerweb-1026951821.us-east-1.elb.amazonaws.com/billing/return',
+    'ipn_url': 'http://loadbalancerweb-1026951821.us-east-1.elb.amazonaws.com/payments/ipn'
+}

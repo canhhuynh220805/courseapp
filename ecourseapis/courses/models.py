@@ -142,9 +142,14 @@ class Payment(BaseModel):
         ZALOPAY = 'ZALOPAY', 'ZaloPay'
         PAYPAL = 'PAYPAL', 'PayPal'
 
+    class Status(models.TextChoices):
+        PENDING = "1"
+        COMPLETED = "2"
+
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_method = models.CharField(choices=Method.choices, max_length=20, default=Method.MOMO)
+    status = models.CharField(choices=Status.choices, max_length=20, default=Status.PENDING)
     transaction_id = models.CharField(max_length=100, null=True, blank=True)#mã giao dịch để đối soát
 
     def __str__(self):
