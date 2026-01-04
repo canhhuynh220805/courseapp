@@ -144,10 +144,28 @@ class CourseView(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(lecturer=self.request.user)
 
-class UserView(viewsets.ViewSet, generics.CreateAPIView):
+class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
     # parser_classes = [parsers.MultiPartParser]
+    pagination_class = paginators.UserPaginator
+
+    def get_queryset(self):
+        queries = self.queryset
+
+        role = self.request.query_params.get('role')
+        if role:
+            queries = queries.filter(role=role)
+
+        q = self.request.query_params.get('q')
+        if q:
+            queries = queries.filter(Q(username__icontains=q)|Q(first_name__icontains=q)|Q(last_name__icontains=q))
+        return queries
+
+    def get_permissions(self):
+        if self.action == 'list':
+            return [permissions.IsAdminUser()]
+        return [permissions.AllowAny()]
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):

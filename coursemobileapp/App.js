@@ -22,6 +22,10 @@ import UserCourse from "./screens/User/UserCourse";
 import Statistics from "./screens/Lecturer/Statistics";
 import ChatDetail from "./screens/User/ChatDetail";
 import Chat from "./screens/User/Chat";
+import AdminHome from "./screens/Admin/AdminHome";
+import LecturerManagement from "./screens/Admin/LecturerManegement";
+import StudentManagement from "./screens/Admin/StudentManagement";
+
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -55,6 +59,15 @@ const ChatStack = () => (
   </Stack.Navigator>
 );
 
+const AdminStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen name="AdminHome" component={AdminHome} options={{ title: "Admin Dashboard" }} />
+    <Stack.Screen name="StudentManagement" component={StudentManagement} options={{ title: "Quản lý Học viên" }} />
+    <Stack.Screen name="LecturerManagement" component={LecturerManagement} options={{ title: "Quản lý Giảng viên" }} />
+    <Stack.Screen name="Statistics" component={Statistics} options={{ title: "Thống kê hệ thống" }} />
+  </Stack.Navigator>
+);
+
 const TabNavigator = () => {
   const [user] = useContext(MyUserContext);
   const [unreadCount, setUnreadCount] = React.useState(0);
@@ -84,7 +97,17 @@ const TabNavigator = () => {
           tabBarIcon: ({ color }) => <Icon color={color} source="home" size={26} />,
         }}
       />
-
+      {user?.role === "ADMIN" && (
+        <Tab.Screen
+          name="AdminManage"
+          component={AdminStack}
+          options={{
+            title: "Quản trị",
+            headerShown: false,
+            tabBarIcon: ({ color }) => <Icon source="shield-check" size={26} color={color} />
+          }}
+        />
+      )}
       {user?.role === "LECTURER" && (
         <>
           <Tab.Screen
