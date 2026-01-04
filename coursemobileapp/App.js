@@ -65,6 +65,8 @@ const AdminStack = () => (
     <Stack.Screen name="StudentManagement" component={StudentManagement} options={{ title: "Quản lý Học viên" }} />
     <Stack.Screen name="LecturerManagement" component={LecturerManagement} options={{ title: "Quản lý Giảng viên" }} />
     <Stack.Screen name="Statistics" component={Statistics} options={{ title: "Thống kê hệ thống" }} />
+    <Stack.Screen name="Chat" component={Chat} options={{ title: 'Tin nhắn' }} />
+    <Stack.Screen name="ChatDetail" component={ChatDetail} options={{ title: 'Trò chuyện' }} />
   </Stack.Navigator>
 );
 
@@ -88,7 +90,7 @@ const TabNavigator = () => {
 
   return (
     <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#2563eb" }}>
-      <Tab.Screen
+      {user?.role != "ADMIN" && (<Tab.Screen
         name="Main"
         component={CourseStack}
         options={{
@@ -96,7 +98,7 @@ const TabNavigator = () => {
           headerShown: false,
           tabBarIcon: ({ color }) => <Icon color={color} source="home" size={26} />,
         }}
-      />
+      />)}
       {user?.role === "ADMIN" && (
         <Tab.Screen
           name="AdminManage"

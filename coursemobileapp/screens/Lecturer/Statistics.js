@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import {
     Button,
@@ -9,7 +9,8 @@ import {
     Caption,
     ActivityIndicator,
     SegmentedButtons,
-    DataTable
+    DataTable,
+    Searchbar
 } from 'react-native-paper';
 import { BarChart } from "react-native-chart-kit";
 import { authApis, endpoints } from '../../utils/Apis';
@@ -18,6 +19,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const PRIMARY_COLOR = '#2563eb';
 const { width } = Dimensions.get("window");
+const PAGE_SIZE = 10;
 
 const Statistics = () => {
     const [period, setPeriod] = useState('month');
@@ -26,19 +28,25 @@ const Statistics = () => {
     const [summary, setSummary] = useState({ total_revenue: 0, total_students: 0 });
     const [loading, setLoading] = useState(true);
 
+    const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(0);
+    const [totalItems, setTotalItems] = useState(0);
+
     const loadData = async () => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
-
             const [resRev, resCourse, resGeneral] = await Promise.all([
                 authApis(token).get(`${endpoints['revenue-stats']}?period=${period}`),
-                authApis(token).get(endpoints['course-stats']),
+                authApis(token).get(`${endpoints['course-stats']}?q=${searchQuery}&page=${page + 1}`),
                 authApis(token).get(endpoints['general-stats'])
             ]);
 
             setRevenueData(resRev.data);
-            setCourseStats(resCourse.data);
+
+            setCourseStats(resCourse.data.results || []);
+            setTotalItems(resCourse.data.count || 0);
+
             setSummary(resGeneral.data);
         } catch (ex) {
             console.error("Lỗi tải thống kê:", ex);
@@ -46,12 +54,16 @@ const Statistics = () => {
             setLoading(false);
         }
     };
-
     useFocusEffect(
         useCallback(() => {
             loadData();
-        }, [period])
+        }, [period, page])
     );
+
+    const handleSearch = () => {
+        setPage(0);
+        loadData();
+    };
 
     const chartConfig = {
         backgroundColor: "#fff",
@@ -89,125 +101,109 @@ const Statistics = () => {
                 </Card>
             </View>
 
-            {loading ? (
-                <ActivityIndicator color={PRIMARY_COLOR} style={{ marginTop: 40 }} />
-            ) : (
-                <View style={{ paddingBottom: 30 }}>
-                    <SegmentedButtons
-                        value={period}
-                        onValueChange={setPeriod}
-                        buttons={[
-                            { value: 'month', label: 'Tháng' },
-                            { value: 'quarter', label: 'Quý' },
-                            { value: 'year', label: 'Năm' },
-                        ]}
-                        style={styles.segment}
-                    />
-                    <Card style={styles.chartCard} mode="elevated">
-                        <Card.Content>
-                            <Title style={styles.subTitle}>Biểu đồ tăng trưởng</Title>
-                            {revenueData.length > 0 ? (
-                                <BarChart
-                                    data={{
-                                        labels: revenueData.map(d => d.period),
-                                        datasets: [{ data: revenueData.map(d => d.total_revenue) }]
-                                    }}
-                                    width={width - 64}
-                                    height={220}
-                                    chartConfig={chartConfig}
-                                    style={styles.chart}
-                                    fromZero
-                                    showValuesOnTopOfBars
-                                />
-                            ) : (
-                                <Paragraph style={styles.emptyText}>Chưa có dữ liệu doanh thu</Paragraph>
-                            )}
-                        </Card.Content>
-                    </Card>
+            <SegmentedButtons
+                value={period}
+                onValueChange={setPeriod}
+                buttons={[
+                    { value: 'month', label: 'Tháng' },
+                    { value: 'quarter', label: 'Quý' },
+                    { value: 'year', label: 'Năm' },
+                ]}
+                style={styles.segment}
+            />
 
-                    <Title style={[styles.subTitle, { marginTop: 25 }]}>Từng khóa học</Title>
-                    <Card style={styles.tableCard} mode="outlined">
-                        <DataTable>
-                            <DataTable.Header>
-                                <DataTable.Title>Khóa học</DataTable.Title>
-                                <DataTable.Title numeric>Học viên</DataTable.Title>
-                                <DataTable.Title numeric>Doanh thu</DataTable.Title>
-                            </DataTable.Header>
+            <Card style={styles.chartCard} mode="elevated">
+                <Card.Content>
+                    <Title style={styles.subTitle}>Biểu đồ tăng trưởng</Title>
+                    {revenueData.length > 0 ? (
+                        <BarChart
+                            data={{
+                                labels: revenueData.map(d => d.period),
+                                datasets: [{ data: revenueData.map(d => d.total_revenue) }]
+                            }}
+                            width={width - 64}
+                            height={220}
+                            chartConfig={chartConfig}
+                            style={styles.chart}
+                            fromZero
+                            showValuesOnTopOfBars
+                        />
+                    ) : (
+                        <Paragraph style={styles.emptyText}>Chưa có dữ liệu doanh thu</Paragraph>
+                    )}
+                </Card.Content>
+            </Card>
 
-                            {courseStats.map((item) => (
-                                <DataTable.Row key={item.id}>
-                                    <DataTable.Cell>
-                                        <Text numberOfLines={1} style={{ fontSize: 12 }}>{item.subject}</Text>
-                                    </DataTable.Cell>
-                                    <DataTable.Cell numeric>{item.student_count}</DataTable.Cell>
-                                    <DataTable.Cell numeric>
-                                        <Text style={{ color: PRIMARY_COLOR, fontWeight: '500' }}>
-                                            {item.total_revenue.toLocaleString()}
-                                        </Text>
-                                    </DataTable.Cell>
-                                </DataTable.Row>
-                            ))}
-                        </DataTable>
-                    </Card>
-                </View>
-            )}
+            <Title style={[styles.subTitle, { marginTop: 25 }]}>Chi tiết từng khóa học</Title>
+
+            <Searchbar
+                placeholder="Tìm tên khóa học..."
+                onChangeText={setSearchQuery}
+                value={searchQuery}
+                onSubmitEditing={handleSearch}
+                style={styles.searchbar}
+                elevation={1}
+            />
+
+            <Card style={styles.tableCard} mode="outlined">
+                {loading ? (
+                    <ActivityIndicator color={PRIMARY_COLOR} style={{ margin: 20 }} />
+                ) : (
+                    <DataTable>
+                        <DataTable.Header>
+                            <DataTable.Title>Khóa học</DataTable.Title>
+                            <DataTable.Title numeric>Học viên</DataTable.Title>
+                            <DataTable.Title numeric>Doanh thu</DataTable.Title>
+                        </DataTable.Header>
+
+                        {courseStats.length > 0 ? courseStats.map((item) => (
+                            <DataTable.Row key={item.id}>
+                                <DataTable.Cell>
+                                    <Text numberOfLines={1} style={{ fontSize: 12 }}>{item.subject}</Text>
+                                </DataTable.Cell>
+                                <DataTable.Cell numeric>{item.student_count}</DataTable.Cell>
+                                <DataTable.Cell numeric>
+                                    <Text style={{ color: PRIMARY_COLOR, fontWeight: '500' }}>
+                                        {item.total_revenue.toLocaleString()}
+                                    </Text>
+                                </DataTable.Cell>
+                            </DataTable.Row>
+                        )) : (
+                            <DataTable.Row>
+                                <DataTable.Cell style={{ justifyContent: 'center' }}>
+                                    <Text>Không tìm thấy kết quả</Text>
+                                </DataTable.Cell>
+                            </DataTable.Row>
+                        )}
+
+                        <DataTable.Pagination
+                            page={page}
+                            numberOfPages={Math.ceil(totalItems / PAGE_SIZE)}
+                            onPageChange={(p) => setPage(p)}
+                            label={`${page * PAGE_SIZE + 1}-${Math.min((page + 1) * PAGE_SIZE, totalItems)} của ${totalItems}`}
+                            showFastPaginationControls
+                        />
+                    </DataTable>
+                )}
+            </Card>
+            <View style={{ height: 40 }} />
         </ScrollView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 16,
-        backgroundColor: '#fff'
-    },
-    summaryGrid: {
-        flexDirection: 'row',
-        gap: 10,
-        marginBottom: 20
-    },
-    flex1: {
-        flex: 1
-    },
-    headerAction: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: 20,
-        alignItems: 'center'
-    },
-    title: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        color: '#111827'
-    },
-    subTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        color: '#374151'
-    },
-    segment: {
-        marginBottom: 20
-    },
-    chartCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        paddingVertical: 10
-    },
-    chart: {
-        marginVertical: 8,
-        borderRadius: 16
-    },
-    tableCard: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        overflow: 'hidden'
-    },
-    emptyText: {
-        textAlign: 'center',
-        padding: 20,
-        color: '#9ca3af'
-    }
+    container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
+    summaryGrid: { flexDirection: 'row', gap: 10, marginBottom: 15 },
+    flex1: { flex: 1, backgroundColor: '#fff' },
+    headerAction: { marginBottom: 15 },
+    title: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
+    subTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#374151' },
+    segment: { marginBottom: 20, backgroundColor: '#fff' },
+    chartCard: { backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
+    chart: { marginVertical: 8, borderRadius: 16 },
+    tableCard: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
+    searchbar: { marginBottom: 10, backgroundColor: '#fff', borderRadius: 8 },
+    emptyText: { textAlign: 'center', padding: 20, color: '#9ca3af' }
 });
 
 export default Statistics;
