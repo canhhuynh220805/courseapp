@@ -48,17 +48,17 @@ const CourseStack = () => (
     <Stack.Screen
       name="CourseHome"
       component={Home}
-      options={{title: "Khóa học"}}
+      options={{ title: "Khóa học" }}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{title: "Bài học"}}
+      options={{ title: "Bài học" }}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{title: "Chi tiết bài học"}}
+      options={{ title: "Chi tiết bài học" }}
     />
   </Stack.Navigator>
 );
@@ -68,17 +68,17 @@ const UserCourseStack = () => (
     <Stack.Screen
       name="UserCourseList"
       component={UserCourse}
-      options={{title: "Khóa học của tôi"}}
+      options={{ title: "Khóa học của tôi" }}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{title: "Bài học"}}
+      options={{ title: "Bài học" }}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{title: "Chi tiết bài học"}}
+      options={{ title: "Chi tiết bài học" }}
     />
   </Stack.Navigator>
 );
@@ -272,6 +272,17 @@ const TabNavigator = () => {
               ),
             }}
           />
+
+          {user?.role === "STUDENT" && user?.role !== "ADMIN" && (
+            <Tab.Screen
+              name="UserCourse"
+              component={UserCourse}
+              options={{
+                title: "Khóa học của tôi",
+                tabBarIcon: ({ color }) => <Icon color={color} source="book-open-variant" size={26} />,
+              }}
+            />
+          )}
         </>
       ) : (
         <>

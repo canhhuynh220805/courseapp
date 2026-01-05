@@ -3,8 +3,7 @@ import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import { List, Avatar, Title, Searchbar, Text, Divider } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const PRIMARY_COLOR = '#2563eb';
+import styles, { PRIMARY_COLOR } from './styles';
 
 const LecturerManagement = () => {
     const [lecturers, setLecturers] = useState([]);
@@ -52,11 +51,5 @@ const LecturerManagement = () => {
         </View>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    header: { padding: 15, backgroundColor: '#f8fafc' },
-    searchbar: { elevation: 0, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 10 }
-});
 
 export default LecturerManagement;

@@ -3,9 +3,7 @@ import { View, ScrollView, Alert, StyleSheet } from 'react-native';
 import { TextInput, Button, Title, Caption } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const PRIMARY_BLUE = '#2563eb';
-
+import styles, { PRIMARY_COLOR } from './styles';
 const AddLesson = ({ route, navigation }) => {
     const { courseId, courseName, lesson: existingLesson } = route.params;
     const [lesson, setLesson] = useState({ subject: '', content: '', video: '' });
@@ -51,14 +49,9 @@ const AddLesson = ({ route, navigation }) => {
                 <TextInput label="Tiêu đề bài học" value={lesson.subject} mode="outlined" onChangeText={t => setLesson({ ...lesson, subject: t })} style={styles.input} />
                 <TextInput label="Link YouTube" value={lesson.video} mode="outlined" placeholder="https://..." onChangeText={t => setLesson({ ...lesson, video: t })} style={styles.input} />
                 <TextInput label="Nội dung" value={lesson.content} mode="outlined" multiline numberOfLines={8} onChangeText={t => setLesson({ ...lesson, content: t })} style={styles.input} />
-                <Button mode="contained" onPress={handleSaveLesson} loading={loading} buttonColor={PRIMARY_BLUE}>Lưu</Button>
+                <Button mode="contained" onPress={handleSaveLesson} loading={loading} buttonColor={PRIMARY_COLOR}>Lưu</Button>
             </View>
         </ScrollView>
     );
 };
-const styles = StyleSheet.create({
-    header: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-    form: { padding: 20 },
-    input: { marginBottom: 15, backgroundColor: '#fff' }
-});
 export default AddLesson;

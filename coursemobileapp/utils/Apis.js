@@ -27,7 +27,7 @@ export const endpoints = {
   "zalo-payment": "/payments/zalo-pay/",
   comments: (lessonId) => `/lessons/${lessonId}/comments/`,
   "add-comment": (lessonId) => `/lessons/${lessonId}/add-comment/`,
-};
+}
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_CLIENT_SECRET;
@@ -45,4 +45,4 @@ export default axios.create({
   baseURL: BASE_URL,
 });
 
-export {CLIENT_ID, CLIENT_SECRET};
+export { CLIENT_ID, CLIENT_SECRET };

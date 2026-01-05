@@ -16,11 +16,9 @@ import { BarChart } from "react-native-chart-kit";
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-
-const PRIMARY_COLOR = '#2563eb';
-const { width } = Dimensions.get("window");
+import styles, { PRIMARY_COLOR } from './styles';
+export const { width } = Dimensions.get("window");
 const PAGE_SIZE = 10;
-
 const Statistics = () => {
     const [period, setPeriod] = useState('month');
     const [revenueData, setRevenueData] = useState([]);
@@ -190,20 +188,5 @@ const Statistics = () => {
         </ScrollView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16, backgroundColor: '#f9fafb' },
-    summaryGrid: { flexDirection: 'row', gap: 10, marginBottom: 15 },
-    flex1: { flex: 1, backgroundColor: '#fff' },
-    headerAction: { marginBottom: 15 },
-    title: { fontSize: 24, fontWeight: 'bold', color: '#111827' },
-    subTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#374151' },
-    segment: { marginBottom: 20, backgroundColor: '#fff' },
-    chartCard: { backgroundColor: '#fff', borderRadius: 12, elevation: 2 },
-    chart: { marginVertical: 8, borderRadius: 16 },
-    tableCard: { backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', marginBottom: 20 },
-    searchbar: { marginBottom: 10, backgroundColor: '#fff', borderRadius: 8 },
-    emptyText: { textAlign: 'center', padding: 20, color: '#9ca3af' }
-});
 
 export default Statistics;

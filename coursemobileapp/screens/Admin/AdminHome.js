@@ -6,8 +6,7 @@ import { Card, Text, Button, Title, List } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-
-const PRIMARY_COLOR = '#2563eb';
+import styles, { PRIMARY_COLOR } from './styles';
 
 const AdminHome = ({ navigation }) => {
     const [summary, setSummary] = useState({ total_courses: 0, total_students: 0, total_lecturers: 0 });
@@ -83,25 +82,5 @@ const AdminHome = ({ navigation }) => {
         </ScrollView>
     );
 };
-
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f8fafc' },
-    header: { padding: 20, alignItems: 'center' },
-    title: { fontWeight: 'bold', color: PRIMARY_COLOR, fontSize: 22 },
-    statsRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-around',
-        padding: 10,
-        backgroundColor: '#fff',
-        marginHorizontal: 15,
-        borderRadius: 12,
-        elevation: 3
-    },
-    statBox: { alignItems: 'center' },
-    statNumber: { fontSize: 20, fontWeight: 'bold', color: '#1e293b' },
-    statLabel: { fontSize: 12, color: '#64748b' },
-    menu: { padding: 20, marginTop: 10 },
-    button: { marginBottom: 15, borderRadius: 8, paddingVertical: 4 }
-});
 
 export default AdminHome;
