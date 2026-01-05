@@ -69,25 +69,25 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'courseapp$coursedb',
-        'USER': 'courseapp',
-        'PASSWORD': 'admin@123',
-        'HOST': 'courseapp.mysql.pythonanywhere-services.com'
-    }
-}
-
 # DATABASES = {
 #     'default': {
 #         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'coursedb',
-#         'USER': 'root',
-#         'PASSWORD': '123456',
-#         'HOST': ''  # mặc định localhost
+#         'NAME': 'courseapp$coursedb',
+#         'USER': 'courseapp',
+#         'PASSWORD': 'admin@123',
+#         'HOST': 'courseapp.mysql.pythonanywhere-services.com'
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'coursedb',
+        'USER': 'root',
+        'PASSWORD': '123456',
+        'HOST': ''  # mặc định localhost
+    }
+}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -143,4 +143,12 @@ MOMO_CONFIG = {
     'secret_key': 'K951B6PE1waDMi640xX08PD3vg6EkVlz',
     'redirect_url': 'exp://oid5eyu-anonymous-8081.exp.direct/--/payment-result',
     'ipn_url': 'https://courseapp.pythonanywhere.com/payments/ipn/'
+}
+
+ZALO_CONFIG = {
+    "app_id": 2553,
+    "key1": "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL",
+    "key2": "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz",
+    "endpoint": "https://sb-openapi.zalopay.vn/v2/create",
+    "callback_url": "https://courseapp.pythonanywhere.com/payments/zalo-pay",
 }

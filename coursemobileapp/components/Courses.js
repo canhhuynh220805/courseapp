@@ -57,7 +57,6 @@ const Courses = ({ cate }) => {
       console.info(url);
 
       let res = await Apis.get(url);
-      setEnrolledIds([]);
       if (res.data.next === null) setPage(0);
 
       if (page === 1) setCourses(res.data.results);
@@ -104,7 +103,7 @@ const Courses = ({ cate }) => {
     let timer = setTimeout(() => {
       if (page > 0) loadCourses();
     }, 500);
-    checkIsEnrolled();
+
     return () => clearTimeout(timer);
   }, [q, page, cate, priceRange]);
 
@@ -242,6 +241,7 @@ const Courses = ({ cate }) => {
                     : item.price == 0
                       ? "Miễn phí"
                       : `${item.price} VNĐ`}
+                  {item.is_free ? "Miễn phí" : `${item.price} VNĐ`}
                 </Text>
               </View>
             </View>

@@ -203,6 +203,31 @@ function LessonDetail({ route, navigation }) {
                         <Text style={styles.registerButtonText}>ĐĂNG KÝ HỌC NGAY</Text>
                       </TouchableOpacity>
                     </View>
+                  )}
+                  <View style={styles.registerSection}>
+                    <Text style={styles.registerHint}>
+                      Bạn cần đăng ký khóa học để xem nội dung này
+                    </Text>
+
+                    <TouchableOpacity
+                      style={styles.registerButton}
+                      activeOpacity={0.8}
+                      onPress={() =>
+                        user === null
+                          ? nav.navigate("Auth", {next: "Lesson"})
+                          : registerCourse()
+                      }
+                    >
+                      <Ionicons
+                        name="log-in-outline"
+                        size={24}
+                        color="#FFF"
+                        style={{marginRight: 8}}
+                      />
+                      <Text style={styles.registerButtonText}>
+                        ĐĂNG KÝ HỌC NGAY
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={styles.videoPlayerContainer}>
