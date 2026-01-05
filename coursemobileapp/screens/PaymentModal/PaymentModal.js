@@ -1,25 +1,87 @@
-import React, {useState} from "react";
-import {Modal, View, Text, TouchableOpacity, Image} from "react-native";
+import React, {useContext, useState} from "react";
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
+import * as Linking from "expo-linking";
 import {Ionicons} from "@expo/vector-icons";
 import styles from "./styles";
+import Apis, {authApis, endpoints} from "../../utils/Apis";
+import {MyUserContext} from "../../utils/contexts/MyContext";
+import {useNavigation} from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import {MoMoStrategy, PayPalStrategy, ZaloPayStrategy} from "./PaymentStrategy";
 
 function PaymentModal({visible, onClose, course}) {
   const [selectedPayment, setSelectedPayment] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [user] = useContext(MyUserContext);
+  const nav = useNavigation();
+  const PAYMENT_STRATEGIES = {
+    momo: MoMoStrategy,
+    zalopay: ZaloPayStrategy, // Gán tạm vào bảo trì
+    paypal: PayPalStrategy, // Gán tạm vào bảo trì
+  };
   const paymentMethods = [
     {id: "momo", name: "MoMo", icon: "wallet"},
     {id: "zalopay", name: "ZaloPay", icon: "card"},
     {id: "paypal", name: "PayPal", icon: "logo-paypal"},
   ];
 
+  const handlePayment = async (PaymentStrategy) => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem("token");
+      if (!token) return;
+      let resEnroll = await authApis(token).post(
+        endpoints["enroll-course"](course.id)
+      );
+      if (resEnroll.data.status === "PENDING") {
+        if (PaymentStrategy && typeof PaymentStrategy.pay === "function") {
+          await PaymentStrategy.pay(
+            authApis,
+            endpoints,
+            token,
+            resEnroll.data.id
+          );
+        } else {
+          console.warn("Không tìm thấy chiến lược thanh toán phù hợp");
+        }
+      } else {
+        Alert.alert("Thông báo", "Bạn đã sở hữu khóa học này rồi!");
+      }
+    } catch (ex) {
+      if (ex.response) {
+        console.error(
+          "❌ LỖI TỪ SERVER:",
+          JSON.stringify(ex.response.data, null, 2)
+        );
+      } else {
+        console.error("❌ LỖI KHÁC:", ex);
+      }
+    } finally {
+      if (!selectedPayment) setLoading(false);
+    }
+  };
+
   const handleConfirm = () => {
     if (selectedPayment) {
-      console.log("Payment confirmed:", {course, method: selectedPayment});
-      onClose();
-      setSelectedPayment(null);
+      setLoading(true);
+      const strategy = PAYMENT_STRATEGIES[selectedPayment];
+      handlePayment(strategy);
     }
   };
 
   const handleCancel = () => {
+    if (loading) {
+      Alert.alert("Thông báo", "Giao dịch đang xử lý, không thể hủy lúc này.");
+      return;
+    }
     onClose();
     setSelectedPayment(null);
   };
@@ -122,26 +184,48 @@ function PaymentModal({visible, onClose, course}) {
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={handleCancel}
+              disabled={loading}
             >
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.confirmButton,
-                !selectedPayment && styles.confirmButtonDisabled,
-              ]}
-              onPress={handleConfirm}
-              disabled={!selectedPayment}
-            >
-              <Text style={styles.confirmButtonText}>Pay Now</Text>
-              <Ionicons
-                name="arrow-forward"
-                size={20}
-                color="#FFF"
-                style={{marginLeft: 8}}
-              />
-            </TouchableOpacity>
+            {user === null ? (
+              <TouchableOpacity
+                style={[
+                  styles.confirmButton,
+                  (!selectedPayment || loading) && styles.confirmButtonDisabled,
+                ]}
+                onPress={() => nav.navigate("Login")}
+              >
+                <Text style={[styles.confirmButtonText, {textAlign: "center"}]}>
+                  Đăng nhập để thanh toán
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={[
+                  styles.confirmButton,
+                  (!selectedPayment || loading) && styles.confirmButtonDisabled,
+                ]}
+                onPress={handleConfirm}
+                disabled={!selectedPayment || loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#FFF" />
+                ) : (
+                  <>
+                    <Text style={styles.confirmButtonText}>
+                      Thanh toán ngay
+                    </Text>
+                    <Ionicons
+                      name="arrow-forward"
+                      size={20}
+                      color="#FFF"
+                      style={{marginLeft: 8}}
+                    />
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

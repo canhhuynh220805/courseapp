@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, {useContext, useState} from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -9,7 +9,6 @@ import {
   Alert,
 } from "react-native";
 import MyStyles from "../../styles/MyStyles";
-import {useContext, useState} from "react";
 import {useNavigation} from "@react-navigation/native";
 import {Button, HelperText, TextInput} from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -19,13 +18,13 @@ import Apis, {
   CLIENT_ID,
   CLIENT_SECRET,
   endpoints,
-}  from "../../utils/Apis"; //
-import { MyUserContext } from "../../utils/contexts/MyContext"; //
+} from "../../utils/Apis"; //
+import {MyUserContext} from "../../utils/contexts/MyContext"; //
 import LoginStyle from "./LoginStyle"; //
 
 const PRIMARY_COLOR = "#2563eb";
 
-const Login = ({ route }) => {
+const Login = ({route}) => {
   const [user, setUser] = useState({
     username: "",
     password: "",
@@ -69,7 +68,7 @@ const Login = ({ route }) => {
           endpoints["login"],
           `grant_type=password&username=${user.username}&password=${user.password}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
           {
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
           }
         );
         console.info(res.data);
@@ -89,7 +88,6 @@ const Login = ({ route }) => {
           if (next) nav.navigate(next);
         }, 500);
       } catch (ex) {
-        console.error("Login Error:", ex);
         Alert.alert(
           "Lỗi đăng nhập",
           "Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại!"
@@ -106,7 +104,9 @@ const Login = ({ route }) => {
       style={LoginStyle.container}
     >
       <View style={LoginStyle.header}>
-        <Text style={[LoginStyle.title, { color: PRIMARY_COLOR }]}>ĐĂNG NHẬP</Text>
+        <Text style={[LoginStyle.title, {color: PRIMARY_COLOR}]}>
+          ĐĂNG NHẬP
+        </Text>
         <Text style={LoginStyle.subtitle}>Vui lòng đăng nhập để tiếp tục</Text>
       </View>
 
@@ -115,7 +115,7 @@ const Login = ({ route }) => {
         contentContainerStyle={LoginStyle.scrollContent}
       >
         <View style={LoginStyle.content}>
-          <HelperText type="error" visible={err} style={{ marginBottom: 10 }}>
+          <HelperText type="error" visible={err} style={{marginBottom: 10}}>
             Vui lòng nhập đầy đủ thông tin tài khoản!
           </HelperText>
 
@@ -127,7 +127,6 @@ const Login = ({ route }) => {
                 activeOutlineColor="#2563eb"
                 key={i.field}
                 style={{backgroundColor: "#f9fafb"}}
-
                 value={user[i.field]}
                 onChangeText={(t) => setUser({...user, [i.field]: t})}
                 label={i.title}
@@ -160,7 +159,7 @@ const Login = ({ route }) => {
           <View style={LoginStyle.signupContainer}>
             <Text style={LoginStyle.signupText}>Chưa có tài khoản? </Text>
             <TouchableOpacity onPress={() => nav.navigate("Register")}>
-              <Text style={[LoginStyle.signupLink, { color: PRIMARY_COLOR }]}>
+              <Text style={[LoginStyle.signupLink, {color: PRIMARY_COLOR}]}>
                 Đăng ký ngay
               </Text>
             </TouchableOpacity>

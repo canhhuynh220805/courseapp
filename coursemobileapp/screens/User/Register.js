@@ -1,4 +1,3 @@
-
 import {
   Alert,
   Image,
@@ -139,7 +138,7 @@ const Register = () => {
           nav.navigate("Login");
         }
       } catch (ex) {
-        console.error(ex);
+        Alert.alert("Lỗi đăng ký", "Mật khẩu không đúng. Vui lòng thử lại!");
       } finally {
         setLoading(false);
       }

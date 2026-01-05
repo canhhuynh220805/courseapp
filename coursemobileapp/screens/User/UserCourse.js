@@ -1,24 +1,20 @@
 import {useEffect, useState} from "react";
 import {Image, ScrollView, Text, TextInput, View} from "react-native";
-import Apis, {endpoints} from "../../utils/Apis";
+import Apis, {authApis, endpoints} from "../../utils/Apis";
 import UserCourseStyle from "./UserCourseStyle";
 import {TouchableOpacity} from "react-native";
 import {Ionicons} from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {useNavigation} from "@react-navigation/native";
 function UserCourse() {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(false);
-
+  const nav = useNavigation();
   const loadEnrolledCourses = async () => {
     try {
       setLoading(true);
       let token = await AsyncStorage.getItem("token");
-      let res = await Apis.get(endpoints["my-courses"], {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      console.info(res.data);
+      let res = await authApis(token).get(endpoints["my-courses"]);
       setEnrolledCourses(res.data);
     } catch (ex) {
       console.error(ex);
@@ -105,7 +101,12 @@ function UserCourse() {
                 </View>
 
                 {/* Continue Button */}
-                <TouchableOpacity style={UserCourseStyle.continueButton}>
+                <TouchableOpacity
+                  style={UserCourseStyle.continueButton}
+                  onPress={() =>
+                    nav.navigate("Lesson", {courseId: item.course.id})
+                  }
+                >
                   <Text style={UserCourseStyle.continueButtonText}>
                     Continue Learning
                   </Text>

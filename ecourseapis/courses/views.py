@@ -12,6 +12,7 @@ from courses import perms, serializers, paginators
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
     CategorySerializer, CourseRevenueSerializer, StudentEnrollmentSerializer, CommentSerializer
+from ecourseapis.settings import MOMO_CONFIG
 
 
 # POST http://domain/o/token/
@@ -94,7 +95,7 @@ class CourseView(viewsets.ModelViewSet):
     @action(methods=['get'], url_path='my-course', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_my_course(self, request):
         user = request.user
-        enrollments = Enrollment.objects.filter(user=user)
+        enrollments = Enrollment.objects.filter(user=user, status=Enrollment.Status.ACTIVE)
         return Response(EnrollmentSerializer(enrollments, many=True).data)
 
     @action(methods=['get'], url_path='progress', detail=True, permission_classes=[permissions.IsAuthenticated])
