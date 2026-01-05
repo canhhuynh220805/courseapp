@@ -1,13 +1,13 @@
 
 from django.db.models import DecimalField, Count, Q, Sum
-from django.db.models.functions import Coalesce, TruncYear, TruncMonth
+from django.db.models.functions import Coalesce, TruncYear, TruncMonth, TruncQuarter
 from django.http import HttpResponse
-
+import json, hmac, hashlib, uuid, requests
 from django.template import loader
 from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
-
+from ecourseapis.settings import MOMO_CONFIG
 from courses import perms, serializers, paginators
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
@@ -145,10 +145,24 @@ class CourseView(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(lecturer=self.request.user)
 
-class UserView(viewsets.ViewSet, generics.CreateAPIView):
+class UserView(viewsets.ViewSet, generics.CreateAPIView,  generics.ListAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
     # parser_classes = [parsers.MultiPartParser]
+    pagination_class = paginators.UserPaginator
+
+    def get_queryset(self):
+        queries = self.queryset
+
+        role = self.request.query_params.get('role')
+        if role:
+            queries = queries.filter(role=role)
+
+        q = self.request.query_params.get('q')
+        if q:
+            queries = queries.filter(Q(username__icontains=q)|Q(first_name__icontains=q)|Q(last_name__icontains=q))
+        return queries
+
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
@@ -293,7 +307,7 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
             h = hmac.new(
                 bytes(MOMO_CONFIG['secret_key'], 'ascii'),
-                bytes(raw_signature, 'ascii'),
+                bytes(raw_signature, 'utf-8'),
                 hashlib.sha256
             )
             signature = h.hexdigest()
@@ -318,14 +332,15 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
             # 5. Gọi API MoMo
             res = requests.post(MOMO_CONFIG['endpoint'], json=data)
             json_res = res.json()
-
+            print("MOMO RESPONSE:", json_res)
             # 6. Xử lý kết quả
-            if json_res.get('errorCode') == 0:
+            if str(json_res.get('resultCode')) == '0':
                 # Lưu thông tin Payment tạm vào DB (status mặc định là PENDING hoặc bạn có thể set là chờ)
                 Payment.objects.create(
                     enrollment=enrollment,
                     payment_method=Payment.Method.MOMO,
                     transaction_id=orderId, # Lưu orderId để đối soát
+                    amount=amount,
                     status=Payment.Status.PENDING,
                 )
 
@@ -340,10 +355,10 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(methods=['post'], detail=False, url_path='ipn')
+    @action(methods=['post'], detail=False, url_path='ipn', permission_classes=[permissions.AllowAny], authentication_classes=[])
     def process_momo_ipn(self, request):
         data = request.data
-
+        print("LOG IPN: Đã nhận được request!", data)
         # 1. Lấy dữ liệu quan trọng
         resultCode = data.get('resultCode')  # 0 là thành công, khác 0 là thất bại
         orderId = data.get('orderId')  # Chính là transaction_id mình lưu lúc tạo link
@@ -352,15 +367,17 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         # Nếu làm thật (Production) bạn PHẢI hash lại dữ liệu nhận được và so sánh với data['signature']
         # để chắc chắn đây là MoMo gửi chứ không phải Hacker giả mạo.
         # Nhưng ở môi trường Test, tạm thời ta bỏ qua để code chạy được đã.
-
+        check = (str(resultCode) == '0')
+        print(check)
         # 3. Xử lý Logic
-        if str(resultCode) == '0':
+        if check:
             # Tìm lại cái Payment đang chờ (PENDING) dựa vào orderId
-            payment = Payment.objects.get(transaction_id=orderId)
             try:
-
+                payment = Payment.objects.get(transaction_id=orderId)
                 # Nếu Payment này chưa xử lý thì mới xử lý (tránh lặp)
-                if payment.enrollment.status == Enrollment.Status.PENDING:  # Hoặc check status
+                check2 = payment.status == Payment.Status.PENDING
+                print(check2)
+                if check2:  # Hoặc check status
                     # Kích hoạt khóa học
                     enrollment = payment.enrollment
                     enrollment.status = Enrollment.Status.ACTIVE  # MỞ KHÓA HỌC
@@ -371,13 +388,13 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
                     payment.save()
 
                     print(f"Đã kích hoạt khóa học cho đơn hàng {orderId}")
+                else:
+                    print("Lỗi ............................")
 
             except Payment.DoesNotExist:
                 print("Không tìm thấy đơn hàng")
-                payment.enrollment.status = Enrollment.Status.CANCELED
             except Exception as e:
                 print("Lỗi xử lý:", e)
-                payment.enrollment.status = Enrollment.Status.CANCELED
 
         # MoMo yêu cầu trả về status 204 No Content để xác nhận đã nhận tin
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -410,15 +427,32 @@ class StatView(viewsets.ViewSet):
 
         if user.role == User.Role.LECTURER:
             payments = payments.filter(enrollment__course__lecturer=user)
-        trunc_func = TruncYear('created_date') if period == 'year' else TruncMonth('created_date')
+
+        if period == 'year':
+            trunc_func = TruncYear('created_date')
+        elif period == 'quarter':
+            trunc_func = TruncQuarter('created_date')
+        else:
+            trunc_func = TruncMonth('created_date')
 
         stats = payments.annotate(period_date=trunc_func).values('period_date').annotate(
             total_revenue=Sum('amount')).order_by('period_date')
 
-        data = [{
-            'period': s['period_date'].strftime('%Y' if period == 'year' else '%m-%Y'),
-            'total_revenue': s['total_revenue']
-        } for s in stats]
+        data = []
+        for s in stats:
+            p_date = s['period_date']
+            if period == 'year':
+                label = p_date.strftime('%Y')
+            elif period == 'quarter':
+                quarter = (p_date.month - 1) // 3 + 1
+                label = f"Q{quarter}-{p_date.year}"
+            else:
+                label = p_date.strftime('%m-%Y')
+
+            data.append({
+                'period': label,
+                'total_revenue': s['total_revenue']
+            })
         return Response(data, status=status.HTTP_200_OK)
 
     @action(methods=['get'], detail=False, url_path='general-stats')
@@ -452,6 +486,7 @@ class StatView(viewsets.ViewSet):
 
 class CommentView(viewsets.ViewSet, generics.UpdateAPIView, generics.DestroyAPIView):
     queryset = Comment.objects.filter(active = True)
-    permission_classes = [perms.IsOwnerAuthenticated]
+    permission_classes = [perms.CommentOwner]
     serializer_class = serializers.CommentSerializer
+    pagination_class = paginators.CommentPaginator
 

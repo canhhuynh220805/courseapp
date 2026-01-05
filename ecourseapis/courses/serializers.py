@@ -1,3 +1,5 @@
+import re
+
 from rest_framework import serializers
 
 from courses.models import Course, User, Enrollment, Lesson, Payment, Category, Comment, Like
@@ -55,6 +57,10 @@ class CoursesSerializer(ImageSerializer):
         model = Course
         fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration']
 
+    def validate_price(self, value):
+        if value < 0:
+            raise serializers.ValidationError("Học phí không được là số âm.")
+        return value
 
     def is_registered(self, course):
         request = self.context.get('request')
@@ -95,6 +101,13 @@ class LessonSerializer(serializers.ModelSerializer):
                 data['image'] = instance.image.url
         return data
 
+    def validate_video(self, value):
+        if value:
+            youtube_regex = r'^(https?://)?(www\.)?(youtube\.com|youtu\.?be)/.+$'
+            if not re.match(youtube_regex, value):
+                raise serializers.ValidationError("Link video không đúng định dạng YouTube.")
+        return value
+
 class PaymentSerializer(serializers.ModelSerializer):
     enrollment = EnrollmentSerializer()
     class Meta:
@@ -125,11 +138,21 @@ class StudentEnrollmentSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'progress', 'status', 'created_date']
 
 class CommentSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        data['user'] = UserSerializer(instance.user).data
+
+        return data
 
     class Meta:
         model = Comment
-        fields = ['id', 'content', 'created_date', 'updated_date', 'user']
+        fields = ['id', 'content', 'created_date', 'user', 'lesson']
+        extra_kwargs = {
+            'lesson': {
+                'write_only': "True"
+            }
+        }
 
 class LessonDetailsSerializer(LessonSerializer):
     liked = serializers.SerializerMethodField()

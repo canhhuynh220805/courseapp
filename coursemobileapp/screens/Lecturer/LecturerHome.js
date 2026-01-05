@@ -56,13 +56,16 @@ const LecturerHome = ({ navigation }) => {
     return (
         <View style={styles.container}>
             <View style={styles.headerAction}>
-                <Button
-                    mode="contained"
-                    buttonColor={PRIMARY_COLOR}
-                    onPress={() => navigation.navigate("AddCourse")}
-                >
-                    + Tạo khóa học
-                </Button>
+                <Title style={styles.title}>Bảng điều khiển</Title>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <Button
+                        mode="contained"
+                        buttonColor={PRIMARY_COLOR}
+                        onPress={() => navigation.navigate("AddCourse")}
+                    >
+                        + Tạo
+                    </Button>
+                </View>
             </View>
 
             {loading ? <ActivityIndicator color={PRIMARY_COLOR} style={{ marginTop: 20 }} /> : (

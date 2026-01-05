@@ -18,9 +18,9 @@ import Apis, {
   CLIENT_ID,
   CLIENT_SECRET,
   endpoints,
-} from "../../utils/Apis"; //
-import {MyUserContext} from "../../utils/contexts/MyContext"; //
-import LoginStyle from "./LoginStyle"; //
+} from "../../utils/Apis";
+import {MyUserContext} from "../../utils/contexts/MyContext";
+import LoginStyle from "./LoginStyle";
 
 const PRIMARY_COLOR = "#2563eb";
 
