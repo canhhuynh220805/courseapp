@@ -5,15 +5,32 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {authApis, endpoints} from "../../utils/Apis";
 import {useFocusEffect} from "@react-navigation/native";
 import {Alert} from "react-native";
+import {jwtDecode} from "jwt-decode";
 
 const Home = () => {
   const [cate, setCate] = useState();
+  const isTokenValid = (token) => {
+    if (!token) return false;
+    try {
+      const decoded = jwtDecode(token);
+      if (decoded.exp < Date.now() / 1000) {
+        return false;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  };
   const checkPaymentStatus = async () => {
     const pendingEnrollId = await AsyncStorage.getItem("current_payment_id");
     if (pendingEnrollId) {
       console.log("Tìm thấy giao dịch treo, đang kiểm tra...", pendingEnrollId);
       try {
         let token = await AsyncStorage.getItem("token");
+        if (!isTokenValid(token)) {
+          await AsyncStorage.removeItem("token");
+          return;
+        }
         let res = await authApis(token).get(endpoints["my-courses"]);
         let isSuccess = res.data.find(
           (c) => String(c.id) === String(pendingEnrollId)

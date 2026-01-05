@@ -27,8 +27,26 @@ export const MoMoStrategy = {
 export const ZaloPayStrategy = {
   async pay(authApis, endpoints, token, enrollmentId) {
     console.info("--> Đang xử lý thanh toán ZaloPay...");
-    // Logic của ZaloPay có thể khác: Redirect webview chẳng hạn
-    // ...
+    let resEnroll = await authApis(token).post(endpoints["zalo-payment"], {
+      enrollment_id: enrollmentId,
+    });
+    if (resEnroll.data.return_code === 1) {
+      const payUrl = resEnroll.data.order_url;
+      const appTransId = resEnroll.data.app_trans_id; // Lưu cái này để check
+
+      // 4. Lưu lại ID giao dịch để lát quay lại app thì kiểm tra
+      await AsyncStorage.setItem("current_payment_id", String(enrollmentId));
+
+      // 5. Mở ZaloPay (Web hoặc App)
+      const supported = await Linking.canOpenURL(payUrl);
+      if (supported) {
+        await Linking.openURL(payUrl);
+      } else {
+        Alert.alert("Lỗi", "Không thể mở liên kết thanh toán");
+      }
+    } else {
+      Alert.alert("Thất bại", "Tạo đơn hàng lỗi: " + res.data.return_message);
+    }
   },
 };
 

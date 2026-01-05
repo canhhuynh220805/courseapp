@@ -30,7 +30,10 @@ const User = () => {
       <View style={UserStyle.profileCard}>
         {/* Phần Avatar & Thông tin */}
         <View style={UserStyle.avatarContainer}>
-          <Image source={{uri: user.avatar}} style={UserStyle.avatar} />
+          <Image
+            source={{uri: user.avatar || "https://i.pravatar.cc/300"}}
+            style={UserStyle.avatar}
+          />
         </View>
         <Text style={UserStyle.userName}>
           WELCOME! {user.first_name} {user.last_name}

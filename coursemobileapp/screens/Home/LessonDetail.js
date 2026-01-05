@@ -215,7 +215,7 @@ function LessonDetail({route, navigation}) {
                       activeOpacity={0.8}
                       onPress={() =>
                         user === null
-                          ? nav.navigate("Login", {next: "LessonDetail"})
+                          ? nav.navigate("Auth", {next: "Lesson"})
                           : registerCourse()
                       }
                     >
@@ -270,7 +270,9 @@ function LessonDetail({route, navigation}) {
               <View style={styles.commentSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="chatbubbles" size={24} color="#3b82f6" />
-                  <Text style={styles.sectionTitle}>Comments 10</Text>
+                  <Text style={styles.sectionTitle}>
+                    Comments ({comments.length})
+                  </Text>
                 </View>
 
                 {/* Add Comment Input */}

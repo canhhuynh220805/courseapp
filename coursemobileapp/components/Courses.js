@@ -57,7 +57,6 @@ const Courses = ({cate}) => {
       console.info(url);
 
       let res = await Apis.get(url);
-      setEnrolledIds([]);
       if (res.data.next === null) setPage(0);
 
       if (page === 1) setCourses(res.data.results);
@@ -83,24 +82,11 @@ const Courses = ({cate}) => {
     setPriceRange([0, 100000000]);
   };
 
-  const checkIsEnrolled = async (courseId) => {
-    try {
-      setEnrolledIds([]);
-      let token = await AsyncStorage.getItem("token");
-      if (!token) return;
-      let res = await authApis(token).get(endpoints["my-courses"]);
-      const ids = res.data.map((c) => c.course.id);
-      setEnrolledIds(ids);
-    } catch (ex) {
-      console.error(ex);
-    }
-  };
-
   useEffect(() => {
     let timer = setTimeout(() => {
       if (page > 0) loadCourses();
     }, 500);
-    checkIsEnrolled();
+
     return () => clearTimeout(timer);
   }, [q, page, cate, priceRange]);
 
@@ -233,11 +219,7 @@ const Courses = ({cate}) => {
                   )}
                 </View>
                 <Text style={styles.coursePrice}>
-                  {enrolledIds.includes(item.id)
-                    ? "Đã đăng ký"
-                    : item.price == 0
-                    ? "Miễn phí"
-                    : `${item.price} VNĐ`}
+                  {item.is_free ? "Miễn phí" : `${item.price} VNĐ`}
                 </Text>
               </View>
             </View>
