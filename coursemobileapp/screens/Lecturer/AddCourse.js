@@ -6,8 +6,7 @@ import axios from 'axios';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
-
-const PRIMARY_BLUE = '#2563eb';
+import styles, { PRIMARY_COLOR } from './styles';
 
 const AddCourse = ({ route, navigation }) => {
     const courseEditId = route.params?.courseEdit?.id;
@@ -132,18 +131,9 @@ const AddCourse = ({ route, navigation }) => {
                 <TouchableOpacity onPress={pickImage} style={styles.imageDrop}>
                     {image?.uri ? <Image source={{ uri: image.uri }} style={styles.previewImage} key={image.uri} /> : <Text>+ Chọn ảnh</Text>}
                 </TouchableOpacity>
-                <Button mode="contained" onPress={handleSave} loading={loading} buttonColor={PRIMARY_BLUE}>{courseEditId ? "Cập nhật" : "Tạo mới"}</Button>
+                <Button mode="contained" onPress={handleSave} loading={loading} buttonColor={PRIMARY_COLOR}>{courseEditId ? "Cập nhật" : "Tạo mới"}</Button>
             </View>
         </ScrollView>
     );
 };
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    header: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
-    form: { padding: 20 },
-    input: { marginBottom: 15, backgroundColor: '#fff' },
-    pickerContainer: { borderWidth: 1, borderColor: '#ccc', borderRadius: 5, marginBottom: 15 },
-    imageDrop: { height: 180, borderRadius: 10, borderStyle: 'dashed', borderWidth: 1, borderColor: PRIMARY_BLUE, justifyContent: 'center', alignItems: 'center', marginVertical: 10 },
-    previewImage: { width: '100%', height: '100%', borderRadius: 10 }
-});
 export default AddCourse;

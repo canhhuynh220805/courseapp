@@ -37,17 +37,17 @@ const CourseStack = () => (
     <Stack.Screen
       name="CourseHome"
       component={Home}
-      options={{title: "Khóa học"}}
+      options={{ title: "Khóa học" }}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{title: "Bài học"}}
+      options={{ title: "Bài học" }}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{title: "Chi tiết bài học"}}
+      options={{ title: "Chi tiết bài học" }}
     />
   </Stack.Navigator>
 );
@@ -58,17 +58,17 @@ const UserCourseStack = () => (
     <Stack.Screen
       name="UserCourseList"
       component={UserCourse}
-      options={{title: "Khóa học của tôi"}}
+      options={{ title: "Khóa học của tôi" }}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{title: "Bài học"}}
+      options={{ title: "Bài học" }}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{title: "Chi tiết bài học"}}
+      options={{ title: "Chi tiết bài học" }}
     />
   </Stack.Navigator>
 );
@@ -131,7 +131,7 @@ const TabNavigator = () => {
         options={{
           title: "Trang chủ",
           headerShown: false,
-          tabBarIcon: ({color}) => (
+          tabBarIcon: ({ color }) => (
             <Icon color={color} source="home" size={26} />
           ),
         }}
@@ -211,19 +211,8 @@ const TabNavigator = () => {
               tabBarIcon: () => <Icon source="account" size={26} />,
             }}
           />
-          <Tab.Screen
-            name="UserCourse"
-            component={UserCourseStack}
-            options={{
-              title: "Khóa học của tôi",
-              headerShown: false,
-              tabBarIcon: () => (
-                <Icon color="blue" source="book-open-variant" size={26} />
-              ),
 
-            }}
-          />
-          {user?.role === "STUDENT" && (
+          {user?.role === "STUDENT" && user?.role !== "ADMIN" && (
             <Tab.Screen
               name="UserCourse"
               component={UserCourse}

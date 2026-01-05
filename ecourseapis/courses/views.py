@@ -37,6 +37,11 @@ class CourseView(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queries = self.queryset
+        user = self.request.user
+        if user.is_authenticated and user.role == User.Role.LECTURER:
+            queries = Course.objects.filter(lecturer=user)
+        else:
+            queries = Course.objects.filter(active=True)
 
         q = self.request.query_params.get("q")
         if q:

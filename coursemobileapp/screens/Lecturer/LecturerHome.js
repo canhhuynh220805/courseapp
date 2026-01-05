@@ -5,9 +5,7 @@ import { Button, Card, Text, Title, Paragraph, Caption, ActivityIndicator } from
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
-
-const PRIMARY_COLOR = '#2563eb';
-
+import styles, { PRIMARY_COLOR } from './styles';
 const LecturerHome = ({ navigation }) => {
     const [stats, setStats] = useState([]);
     const [summary, setSummary] = useState({ total_revenue: 0, total_students: 0 });
@@ -94,14 +92,5 @@ const LecturerHome = ({ navigation }) => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: { flex: 1, padding: 16, backgroundColor: '#fff' },
-    summaryGrid: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-    flex1: { flex: 1 },
-    headerAction: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, alignItems: 'center' },
-    title: { fontSize: 22, fontWeight: 'bold', color: '#111827' },
-    courseCard: { marginBottom: 20, backgroundColor: '#fff' },
-    courseImg: { height: 160 }
-});
 
 export default LecturerHome;

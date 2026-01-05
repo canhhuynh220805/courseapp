@@ -3,8 +3,7 @@ import { View, FlatList, StyleSheet, Alert, ActivityIndicator } from 'react-nati
 import { List, Avatar, Button, Divider, Title, Searchbar, Text } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const PRIMARY_COLOR = '#2563eb';
+import styles, { PRIMARY_COLOR } from './styles';
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([]);
@@ -15,7 +14,6 @@ const StudentManagement = () => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
-            // Gửi tham số role=STUDENT để backend chỉ trả về học viên
             const res = await authApis(token).get(`${endpoints['users']}?role=STUDENT&q=${query}`);
             setStudents(res.data.results || res.data);
         } catch (ex) {
@@ -78,11 +76,5 @@ const StudentManagement = () => {
     );
 };
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#fff' },
-    header: { padding: 15, backgroundColor: '#f8fafc' },
-    searchbar: { elevation: 0, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 10, backgroundColor: '#fff' },
-    empty: { textAlign: 'center', marginTop: 50, color: 'gray' }
-});
 
 export default StudentManagement;
