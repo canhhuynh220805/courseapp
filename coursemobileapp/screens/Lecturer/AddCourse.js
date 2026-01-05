@@ -67,10 +67,23 @@ const AddCourse = ({ route, navigation }) => {
     };
 
     const handleSave = async () => {
-        if (!course.subject?.trim() || course.price === '' || !course.description?.trim()) {
+        const { subject, price, description } = course;
+        if (!subject?.trim() || price === '' || !description?.trim()) {
             Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin!");
             return;
         }
+
+        if (subject.length > 255) {
+            Alert.alert("Lỗi", "Tên khóa học không được quá 255 ký tự.");
+            return;
+        }
+
+        const priceNum = parseFloat(price);
+        if (isNaN(priceNum) || priceNum < 0) {
+            Alert.alert("Lỗi", "Học phí phải là số nguyên dương hoặc bằng 0.");
+            return;
+        }
+
         setLoading(true);
         try {
             let imageUrl = image?.uri || "";
@@ -79,7 +92,7 @@ const AddCourse = ({ route, navigation }) => {
             }
 
             const token = await AsyncStorage.getItem("token");
-            const payload = { ...course, image: imageUrl };
+            const payload = { ...course, price: priceNum, image: imageUrl };
 
             if (courseEditId) {
                 await authApis(token).patch(endpoints['course-details'](courseEditId), payload);
@@ -89,7 +102,16 @@ const AddCourse = ({ route, navigation }) => {
                 Alert.alert("Thành công", "Đã tạo khóa học mới!");
             }
             navigation.goBack();
-        } catch (ex) { Alert.alert("Lỗi", "Không thể lưu."); } finally { setLoading(false); }
+        } catch (ex) {
+            let errorMsg = "Không thể lưu khóa học.";
+            if (ex.response && ex.response.data) {
+                const serverErrors = ex.response.data;
+                errorMsg = Object.keys(serverErrors).map(key => `${key}: ${serverErrors[key].join(", ")}`).join("\n");
+            }
+            Alert.alert("Lỗi hệ thống", errorMsg);
+        } finally {
+            setLoading(false);
+        }
     };
 
     if (loading && !categories.length) return <ActivityIndicator style={{ flex: 1 }} />;

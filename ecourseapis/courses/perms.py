@@ -12,7 +12,6 @@ class IsLecturerVerified(BasePermission):
             and request.user.is_lecturer_verified
         )
 
-
 class IsCourseOwnerOrAdmin(BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.user.role == User.Role.ADMIN:

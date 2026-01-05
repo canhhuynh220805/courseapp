@@ -145,7 +145,7 @@ class CourseView(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(lecturer=self.request.user)
 
-class UserView(viewsets.ViewSet, generics.CreateAPIView,  generics.ListAPIView):
+class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = UserSerializer
     # parser_classes = [parsers.MultiPartParser]
@@ -163,6 +163,10 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView,  generics.ListAPIView):
             queries = queries.filter(Q(username__icontains=q)|Q(first_name__icontains=q)|Q(last_name__icontains=q))
         return queries
 
+    def get_permissions(self):
+        if self.action == 'list':
+            return [permissions.IsAdminUser()]
+        return [permissions.AllowAny()]
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False,permission_classes=[permissions.IsAuthenticated])
     def get_current_user(self, request):
@@ -195,6 +199,10 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView,  generics.ListAPIView):
             students = User.objects.filter(enrollments__course__lecturer=user,
                                            enrollments__status=Enrollment.Status.ACTIVE).distinct()
             return Response(serializers.UserSerializer(students, many=True).data)
+
+        elif user.role == User.Role.ADMIN:
+            lecturers = User.objects.filter(role=User.Role.LECTURER, is_active=True)
+            return Response(serializers.UserSerializer(lecturers, many=True).data)
 
         return Response([])
 
@@ -410,12 +418,22 @@ class StatView(viewsets.ViewSet):
         else:
             queryset = Course.objects.filter(lecturer=user)
 
+        q = request.query_params.get('q')
+        if q:
+            queryset = queryset.filter(subject__icontains=q)
+
         queryset = queryset.annotate(
             student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)),
-            total_revenue=Coalesce(Sum('enrollments__payments__amount'), 0, output_field=DecimalField())).order_by('-total_revenue')
+            total_revenue=Coalesce(Sum('enrollments__payments__amount'), 0, output_field=DecimalField())
+        ).order_by('-total_revenue')
+
+        paginator = paginators.CoursePaginator()
+        page = paginator.paginate_queryset(queryset, request)
+        if page is not None:
+            serializer = CourseRevenueSerializer(page, many=True, context={'request': request})
+            return paginator.get_paginated_response(serializer.data)
 
         serializer = CourseRevenueSerializer(queryset, many=True, context={'request': request})
-
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['get'], detail=False, url_path='revenue-stats')
@@ -465,6 +483,7 @@ class StatView(viewsets.ViewSet):
 
         total_students = 0
         total_revenue = 0
+        total_lecturers = 0
 
         if user.role == User.Role.LECTURER:
             course_qs = course_qs.filter(lecturer=user)
@@ -474,6 +493,7 @@ class StatView(viewsets.ViewSet):
 
         elif user.role == User.Role.ADMIN:
             total_students = User.objects.filter(role=User.Role.STUDENT, is_active=True).count()
+            total_lecturers = User.objects.filter(role=User.Role.LECTURER, is_active=True).count()
             total_revenue = payment_qs.aggregate(sum=Sum('amount'))['sum'] or 0
 
         total_courses = course_qs.count()
@@ -481,6 +501,7 @@ class StatView(viewsets.ViewSet):
         return Response({
             "total_courses": total_courses,
             "total_students": total_students,
+            "total_lecturers": total_lecturers,
             "total_revenue": total_revenue
         }, status=status.HTTP_200_OK)
 

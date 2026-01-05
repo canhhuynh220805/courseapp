@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { FlatList, View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Avatar, ProgressBar, Text, Divider, Title, Caption } from 'react-native-paper';
+import { Avatar, ProgressBar, Text, Divider, Title, Caption, Searchbar } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -10,12 +10,20 @@ const StudentProgress = ({ route }) => {
     const { courseId, courseName } = route.params;
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
+    // Thêm state cho từ khóa tìm kiếm
+    const [searchQuery, setSearchQuery] = useState('');
 
-    const loadStudents = async () => {
+    const loadStudents = async (q = '') => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
-            let res = await authApis(token).get(endpoints['course-students'](courseId));
+            // Gọi API với tham số tìm kiếm q nếu có
+            let url = endpoints['course-students'](courseId);
+            if (q) {
+                url = `${url}?q=${q}`;
+            }
+
+            let res = await authApis(token).get(url);
             setStudents(res.data);
         } catch (ex) {
             console.error("Lỗi tải tiến độ sinh viên:", ex);
@@ -24,18 +32,38 @@ const StudentProgress = ({ route }) => {
         }
     };
 
-    useEffect(() => { loadStudents(); }, [courseId]);
+    // Tải lại danh sách khi vào màn hình hoặc khi courseId thay đổi
+    useEffect(() => {
+        loadStudents();
+    }, [courseId]);
+
+    // Hàm xử lý tìm kiếm khi người dùng nhập hoặc nhấn nút tìm kiếm
+    const onChangeSearch = query => setSearchQuery(query);
+    const onSearch = () => loadStudents(searchQuery);
 
     const renderHeader = () => (
-        <View style={styles.headerContainer}>
-            <Title style={styles.headerTitle}>Tiến độ học tập</Title>
-            <Caption style={styles.headerSubtitle}>{courseName || "Chi tiết khóa học"}</Caption>
+        <View>
+            <View style={styles.headerContainer}>
+                <Title style={styles.headerTitle}>Tiến độ học tập</Title>
+                <Caption style={styles.headerSubtitle}>{courseName || "Chi tiết khóa học"}</Caption>
+            </View>
+            {/* Thêm thanh tìm kiếm vào Header */}
+            <View style={{ paddingHorizontal: 16, paddingBottom: 10, backgroundColor: '#f9fafb' }}>
+                <Searchbar
+                    placeholder="Tìm tên học viên..."
+                    onChangeText={onChangeSearch}
+                    value={searchQuery}
+                    onIconPress={onSearch}
+                    onSubmitEditing={onSearch}
+                    style={{ elevation: 0, borderWidth: 1, borderColor: '#e5e7eb' }}
+                />
+            </View>
         </View>
     );
 
     return (
         <View style={styles.container}>
-            {loading ? (
+            {loading && students.length === 0 ? (
                 <View style={styles.centered}>
                     <ActivityIndicator color={PRIMARY_COLOR} size="large" />
                 </View>
@@ -46,7 +74,9 @@ const StudentProgress = ({ route }) => {
                     keyExtractor={item => item.id.toString()}
                     ItemSeparatorComponent={() => <Divider style={styles.divider} />}
                     ListEmptyComponent={
-                        <Text style={styles.emptyText}>Chưa có sinh viên đăng ký khóa học này.</Text>
+                        <Text style={styles.emptyText}>
+                            {searchQuery ? "Không tìm thấy học viên phù hợp." : "Chưa có sinh viên đăng ký khóa học này."}
+                        </Text>
                     }
                     renderItem={({ item }) => (
                         <View style={styles.studentItem}>
@@ -73,6 +103,9 @@ const StudentProgress = ({ route }) => {
                         </View>
                     )}
                     contentContainerStyle={styles.listContent}
+                    // Thêm tính năng kéo để làm mới
+                    refreshing={loading}
+                    onRefresh={() => loadStudents(searchQuery)}
                 />
             )}
         </View>
@@ -81,7 +114,7 @@ const StudentProgress = ({ route }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
-    headerContainer: { padding: 20, backgroundColor: '#f9fafb', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    headerContainer: { padding: 20, backgroundColor: '#f9fafb' },
     headerTitle: { fontSize: 22, fontWeight: '700' },
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     listContent: { paddingBottom: 30 },
