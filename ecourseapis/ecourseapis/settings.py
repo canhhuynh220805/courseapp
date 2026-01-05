@@ -69,25 +69,25 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'courseapp$coursedb',
-#         'USER': 'courseapp',
-#         'PASSWORD': 'admin@123',
-#         'HOST': 'courseapp.mysql.pythonanywhere-services.com'
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'coursedb',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': ''  # mặc định localhost
+        'NAME': 'courseapp$coursedb',
+        'USER': 'courseapp',
+        'PASSWORD': 'admin@123',
+        'HOST': 'courseapp.mysql.pythonanywhere-services.com'
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'coursedb',
+#         'USER': 'root',
+#         'PASSWORD': '123456',
+#         'HOST': ''  # mặc định localhost
+#     }
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -141,6 +141,6 @@ MOMO_CONFIG = {
     'partner_code': 'MOMO',
     'access_key': 'F8BBA842ECF85',
     'secret_key': 'K951B6PE1waDMi640xX08PD3vg6EkVlz',
-    'redirect_url': 'http://loadbalancerweb-1026951821.us-east-1.elb.amazonaws.com/billing/return',
-    'ipn_url': 'http://loadbalancerweb-1026951821.us-east-1.elb.amazonaws.com/payments/ipn'
+    'redirect_url': 'exp://oid5eyu-anonymous-8081.exp.direct/--/payment-result',
+    'ipn_url': 'https://courseapp.pythonanywhere.com/payments/ipn/'
 }

@@ -6,3 +6,6 @@ class CoursePaginator(PageNumberPagination):
 
 class UserPaginator(PageNumberPagination):
     page_size = 10
+
+class CommentPaginator(PageNumberPagination):
+    page_size = 10
