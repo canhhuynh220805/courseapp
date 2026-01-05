@@ -1,3 +1,4 @@
+
 import React, { useContext, useEffect, useReducer } from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -23,14 +24,48 @@ import Statistics from "./screens/Lecturer/Statistics";
 import ChatDetail from "./screens/User/ChatDetail";
 import Chat from "./screens/User/Chat";
 
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const CourseStack = () => (
   <Stack.Navigator>
-    <Stack.Screen name="CourseHome" component={Home} options={{ title: "Khóa học" }} />
-    <Stack.Screen name="Lesson" component={Lesson} options={{ title: "Bài học" }} />
-    <Stack.Screen name="LessonDetail" component={LessonDetail} options={{ title: "Chi tiết bài học" }} />
+    <Stack.Screen
+      name="CourseHome"
+      component={Home}
+      options={{title: "Khóa học"}}
+    />
+    <Stack.Screen
+      name="Lesson"
+      component={Lesson}
+      options={{title: "Bài học"}}
+    />
+    <Stack.Screen
+      name="LessonDetail"
+      component={LessonDetail}
+      options={{title: "Chi tiết bài học"}}
+    />
+  </Stack.Navigator>
+);
+
+
+const UserCourseStack = () => (
+  <Stack.Navigator>
+    <Stack.Screen
+      name="UserCourseList"
+      component={UserCourse}
+      options={{title: "Khóa học của tôi"}}
+    />
+    <Stack.Screen
+      name="Lesson"
+      component={Lesson}
+      options={{title: "Bài học"}}
+    />
+    <Stack.Screen
+      name="LessonDetail"
+      component={LessonDetail}
+      options={{title: "Chi tiết bài học"}}
+    />
   </Stack.Navigator>
 );
 
@@ -74,14 +109,16 @@ const TabNavigator = () => {
   }, [user]);
 
   return (
-    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#2563eb" }}>
+    <Tab.Navigator screenOptions={{tabBarActiveTintColor: "#2563eb"}}>
       <Tab.Screen
         name="Main"
         component={CourseStack}
         options={{
           title: "Trang chủ",
           headerShown: false,
-          tabBarIcon: ({ color }) => <Icon color={color} source="home" size={26} />,
+          tabBarIcon: ({color}) => (
+            <Icon color={color} source="home" size={26} />
+          ),
         }}
       />
 
@@ -146,7 +183,19 @@ const TabNavigator = () => {
             component={User}
             options={{
               title: "Cá nhân",
-              tabBarIcon: ({ color }) => <Icon color={color} source="account" size={26} />,
+              tabBarIcon: () => <Icon source="account" size={26} />,
+            }}
+          />
+          <Tab.Screen
+            name="UserCourse"
+            component={UserCourseStack}
+            options={{
+              title: "Khóa học của tôi",
+              headerShown: false,
+              tabBarIcon: () => (
+                <Icon color="blue" source="book-open-variant" size={26} />
+              ),
+
             }}
           />
           {user?.role === "STUDENT" && (

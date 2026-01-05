@@ -1,19 +1,21 @@
-import {useEffect, useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 import {
   ActivityIndicator,
   Image,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import {FlatList} from "react-native";
-import Apis, {endpoints} from "../utils/Apis";
+import Apis, {authApis, endpoints} from "../utils/Apis";
 import {List, Searchbar} from "react-native-paper";
-import {useNavigation} from "@react-navigation/native";
-import styles from "../screens/Home/styles";
+import {useFocusEffect, useNavigation} from "@react-navigation/native";
+import styles, {COLORS} from "../screens/Home/styles";
 import {Ionicons} from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import PaymentModal from "../screens/PaymentModal/PaymentModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Courses = ({cate}) => {
   const [courses, setCourses] = useState([]);
@@ -24,6 +26,7 @@ const Courses = ({cate}) => {
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
+  const [enrolledIds, setEnrolledIds] = useState([]);
   const nav = useNavigation();
 
   const handleRegisterCourse = (course) => {
@@ -33,7 +36,6 @@ const Courses = ({cate}) => {
   const loadCourses = async () => {
     try {
       setLoading(true);
-
       let url = `${endpoints["courses"]}?page=${page}`;
 
       if (q) {
@@ -44,10 +46,18 @@ const Courses = ({cate}) => {
         url = `${url}&category_id=${cate}`;
       }
 
+      if (priceRange[0] > 0) {
+        url = `${url}&min_price=${priceRange[0]}`;
+      }
+
+      if (priceRange[1] > 0) {
+        url = `${url}&max_price=${priceRange[1]}`;
+      }
+
       console.info(url);
 
       let res = await Apis.get(url);
-
+      setEnrolledIds([]);
       if (res.data.next === null) setPage(0);
 
       if (page === 1) setCourses(res.data.results);
@@ -59,18 +69,44 @@ const Courses = ({cate}) => {
     }
   };
 
+  const handleChangeMin = (text) => {
+    const numericValue = text.replace(/[^0-9]/g, "");
+    setPriceRange([numericValue ? parseInt(numericValue) : 0, priceRange[1]]);
+  };
+
+  const handleChangeMax = (text) => {
+    const numericValue = text.replace(/[^0-9]/g, "");
+    setPriceRange([priceRange[0], numericValue ? parseInt(numericValue) : 0]);
+  };
+
+  const handleReset = () => {
+    setPriceRange([0, 100000000]);
+  };
+
+  const checkIsEnrolled = async (courseId) => {
+    try {
+      setEnrolledIds([]);
+      let token = await AsyncStorage.getItem("token");
+      if (!token) return;
+      let res = await authApis(token).get(endpoints["my-courses"]);
+      const ids = res.data.map((c) => c.course.id);
+      setEnrolledIds(ids);
+    } catch (ex) {
+      console.error(ex);
+    }
+  };
+
   useEffect(() => {
     let timer = setTimeout(() => {
       if (page > 0) loadCourses();
     }, 500);
-
+    checkIsEnrolled();
     return () => clearTimeout(timer);
-  }, [q, page, cate]);
+  }, [q, page, cate, priceRange]);
 
   useEffect(() => {
     setPage(1);
-  }, [q, cate]);
-
+  }, [q, cate, priceRange]);
   const loadMore = () => {
     if (page > 0 && !loading) setPage(page + 1);
   };
@@ -97,23 +133,49 @@ const Courses = ({cate}) => {
       </View>
       {showPriceFilter && (
         <View style={styles.priceFilterContainer}>
-          <Text style={styles.priceFilterLabel}>
-            Price Range: ${priceRange[0]} - ${priceRange[1]}
-          </Text>
-          <View style={styles.sliderContainer}>
-            <Text style={styles.sliderValue}>$0</Text>
-            <Slider
-              style={[styles.slider, {width: 100}]}
-              minimumValue={0}
-              maximumValue={100000000}
-              value={priceRange[1]}
-              onValueChange={(value) => setPriceRange([0, Math.round(value)])}
-              minimumTrackTintColor="#3b82f6"
-              maximumTrackTintColor="#e5e7eb"
-              thumbTintColor="#3b82f6"
-            />
-            <Text style={styles.sliderValue}>$100000000</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.priceFilterLabel}>Khoảng giá (VNĐ)</Text>
+            <TouchableOpacity onPress={handleReset}>
+              <Text style={styles.resetText}>Đặt lại</Text>
+            </TouchableOpacity>
           </View>
+
+          <View style={styles.row}>
+            {/* Ô INPUT MIN */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.subLabel}>Từ</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={String(priceRange[0])}
+                onChangeText={handleChangeMin}
+                placeholder="0"
+                placeholderTextColor={COLORS.textLight}
+              />
+            </View>
+
+            {/* Dấu gạch ngang ở giữa */}
+            <Text style={styles.dash}>-</Text>
+
+            {/* Ô INPUT MAX */}
+            <View style={styles.inputWrapper}>
+              <Text style={styles.subLabel}>Đến</Text>
+              <TextInput
+                style={styles.input}
+                keyboardType="numeric"
+                value={String(priceRange[1])}
+                onChangeText={handleChangeMax}
+                placeholder="Max"
+                placeholderTextColor={COLORS.textLight}
+              />
+            </View>
+          </View>
+
+          {/* Dòng hiển thị kết quả format */}
+          <Text style={styles.previewText}>
+            {priceRange[0].toLocaleString("vi-VN")} đ —{" "}
+            {priceRange[1].toLocaleString("vi-VN")} đ
+          </Text>
         </View>
       )}
       <FlatList
@@ -137,7 +199,7 @@ const Courses = ({cate}) => {
             style={styles.courseCard}
             // onPress={() => nav.navigate("Lesson", {courseId: item.id})}
             onPress={() =>
-              item.is_free
+              item.is_free || enrolledIds.includes(item.id)
                 ? nav.navigate("Lesson", {courseId: item.id})
                 : handleRegisterCourse(item)
             }
@@ -171,7 +233,11 @@ const Courses = ({cate}) => {
                   )}
                 </View>
                 <Text style={styles.coursePrice}>
-                  {item.price == 0 ? "Miễn phí" : `${item.price} VNĐ`}
+                  {enrolledIds.includes(item.id)
+                    ? "Đã đăng ký"
+                    : item.price == 0
+                    ? "Miễn phí"
+                    : `${item.price} VNĐ`}
                 </Text>
               </View>
             </View>
