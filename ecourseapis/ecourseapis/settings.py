@@ -144,3 +144,11 @@ MOMO_CONFIG = {
     'redirect_url': 'exp://oid5eyu-anonymous-8081.exp.direct/--/payment-result',
     'ipn_url': 'https://courseapp.pythonanywhere.com/payments/ipn/'
 }
+
+ZALO_CONFIG = {
+    "app_id": 2553,
+    "key1": "PcY4iZIKFCIdgZvA6ueMcMHHUbRLYjPL",
+    "key2": "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz",
+    "endpoint": "https://sb-openapi.zalopay.vn/v2/create",
+    "callback_url": "https://courseapp.pythonanywhere.com/payments/zalo-pay",
+}

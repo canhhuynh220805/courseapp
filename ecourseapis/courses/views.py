@@ -7,12 +7,13 @@ from django.template import loader
 from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
-from ecourseapis.settings import MOMO_CONFIG
+from ecourseapis.settings import MOMO_CONFIG, ZALO_CONFIG
 from courses import perms, serializers, paginators
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
     CategorySerializer, CourseRevenueSerializer, StudentEnrollmentSerializer, CommentSerializer
-from ecourseapis.settings import MOMO_CONFIG
+import time
+from datetime import datetime, timedelta
 
 
 # POST http://domain/o/token/
@@ -37,7 +38,11 @@ class CourseView(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queries = self.queryset
-
+        user = self.request.user
+        if user.is_authenticated and user.role == User.Role.LECTURER:
+            queries = Course.objects.filter(lecturer=user)
+        else:
+            queries = Course.objects.filter(active=True)
         q = self.request.query_params.get("q")
         if q:
             queries = queries.filter(Q(subject__icontains=q) | Q(lecturer__username__icontains=q))
@@ -406,6 +411,114 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
         # MoMo yêu cầu trả về status 204 No Content để xác nhận đã nhận tin
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+    @action(methods=['post'], detail=False, url_path="zalo-pay")
+    def create_zalo_payment(self, request):
+        try:
+            enrollment_id = request.data.get('enrollment_id')
+            if not enrollment_id:
+                return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+            enrollment = Enrollment.objects.get(id=enrollment_id)
+            transID = int(round(time.time() * 1000))
+            app_trans_id = f"{datetime.now().strftime('%y%m%d')}_{transID}"
+            payment = Payment.objects.create(
+                enrollment=enrollment,
+                amount=enrollment.course.price,
+                payment_method= Payment.Method.ZALOPAY,
+                status=Payment.Status.PENDING,  # Đang chờ thanh toán
+                transaction_id=app_trans_id  # <--- QUAN TRỌNG: Lưu mã này lại
+            )
+
+            embed_data = json.dumps(
+                {"redirecturl": "exp://oid5eyu-anonymous-8081.exp.direct",
+                 "enrollment_id": enrollment.id,
+                 "payment_id": payment.id})  # Redirect về app sau khi thanh toán
+            amount = int(enrollment.course.price)
+            enrollment_data = [{
+                "id": enrollment.course.id,
+                "name": enrollment.course.subject,
+                "price": int(enrollment.course.price)
+            }]
+            enrollment_json_string = json.dumps(enrollment_data)
+            order = {
+                "app_id": ZALO_CONFIG["app_id"],
+                "app_trans_id": app_trans_id,
+                "app_user": "user_test",
+                "app_time": int(round(time.time() * 1000)),
+                "embed_data": embed_data,
+                "item": enrollment_json_string,
+                "amount": amount,
+                "description": f"Thanh toan khoa hoc {enrollment.course.subject}",
+                "bank_code": "",
+                "callback_url": ZALO_CONFIG["callback_url"]  # URL để Zalo gọi lại báo kết quả
+            }
+
+            data = "{}|{}|{}|{}|{}|{}|{}".format(
+                order["app_id"], order["app_trans_id"], order["app_user"],
+                order["amount"], order["app_time"], order["embed_data"], order["item"]
+            )
+
+            order["mac"] = hmac.new(
+                ZALO_CONFIG["key1"].encode(), data.encode(), hashlib.sha256
+            ).hexdigest()
+
+            # 3. Gửi sang ZaloPay
+            response = requests.post(ZALO_CONFIG["endpoint"], json=order)
+            return Response(response.json())
+        except Exception as e:
+            print(f"Lỗi tạo đơn Zalo: {str(e)}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['post'], detail=False, url_path='ipn', permission_classes=[permissions.AllowAny],
+            authentication_classes=[])
+    def process_zalo_ipn(self, request):
+        result = {}
+        try:
+            data = request.data.get("data")
+            req_mac = request.data.get("mac")
+            key2 = ZALO_CONFIG["key2"]  # Dùng Key2
+
+            # 2. Tính toán lại MAC để kiểm tra
+            mac = hmac.new(
+                key2.encode(), data.encode(), hashlib.sha256
+            ).hexdigest()
+
+            # 3. So sánh
+            if req_mac != mac:
+                # Chữ ký không khớp -> Giả mạo
+                result["return_code"] = -1
+                result["return_message"] = "Mac not equal"
+            else:
+                # Chữ ký khớp -> Thanh toán thành công -> Update DB
+                data_json = json.loads(data)
+                app_trans_id = data_json['app_trans_id']
+                print(f"Thanh toán thành công đơn: {app_trans_id}")
+                embed_data_json = json.loads(data_json["embed_data"])
+                orderId = embed_data_json.get("enrollment_id")
+                # TODO: Update trạng thái đơn hàng trong Database của tại đây
+                payment = Payment.objects.get(transaction_id=app_trans_id)
+                if payment.status == Payment.Status.PENDING:  # Hoặc check status
+                    # Kích hoạt khóa học
+                    enrollment = payment.enrollment
+                    enrollment.status = Enrollment.Status.ACTIVE  # MỞ KHÓA HỌC
+                    enrollment.save()
+                    # Cập nhật trạng thái thanh toán
+                    payment.status = Payment.Status.COMPLETED
+                    payment.save()
+                    print(f"Đã kích hoạt khóa học cho đơn hàng {orderId}")
+                else:
+                    print("Lỗi ............................")
+
+                result["return_code"] = 1
+                result["return_message"] = "success"
+
+        except Exception as e:
+            result["return_code"] = 0
+            result["return_message"] = str(e)
+
+        return Response(result)
 
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]
