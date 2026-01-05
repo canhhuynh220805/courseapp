@@ -140,7 +140,7 @@ class Payment(BaseModel):
     class Method(models.TextChoices):
         MOMO = 'MOMO', 'MoMo'
         ZALOPAY = 'ZALOPAY', 'ZaloPay'
-        PAYPAL = 'PAYPAL', 'PayPal'
+        VNPAY = 'VNPAY', 'VNPay'
 
     class Status(models.TextChoices):
         PENDING = "1"

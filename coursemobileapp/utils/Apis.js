@@ -9,7 +9,7 @@ export const endpoints = {
   lessons: (courseId) => `/courses/${courseId}/lessons/`,
   login: "/o/token/",
   register: "/users/",
-  "users": "/users/",
+  users: "/users/",
   "current-user": "/users/current-user/",
   "course-stats": "/stats/course-stats/",
   "general-stats": "/stats/general-stats/",
@@ -23,8 +23,8 @@ export const endpoints = {
   "enroll-course": (courseId) => `/courses/${courseId}/enroll/`,
   "my-courses": "/courses/my-course/",
   "grant-lecturer": (userId) => `/users/${userId}/grant-lecturer/`,
-}
   "momo-payment": "/payments/momo-pay/",
+  "zalo-payment": "/payments/zalo-pay/",
   comments: (lessonId) => `/lessons/${lessonId}/comments/`,
   "add-comment": (lessonId) => `/lessons/${lessonId}/add-comment/`,
 };
