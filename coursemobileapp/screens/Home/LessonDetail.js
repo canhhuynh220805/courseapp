@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native";
-import YoutubePlayer from "react-native-youtube-iframe"; // Import thư viện
+import YoutubePlayer from "react-native-youtube-iframe";
 import styles from "./styles";
 import Apis, { authApis, endpoints } from "../../utils/Apis";
 import { MyUserContext } from "../../utils/contexts/MyContext";
@@ -108,6 +108,7 @@ function LessonDetail({ route, navigation }) {
   };
 
   const addComment = async () => {
+    if (!content.trim()) return;
     try {
       let token = await AsyncStorage.getItem("token");
       let res = await authApis(token).post(endpoints["add-comment"](lessonId), {
@@ -143,7 +144,6 @@ function LessonDetail({ route, navigation }) {
         >
           <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
             <View style={styles.contentContainer}>
-              {/* Tiêu đề bài học */}
               <View style={styles.titleSection}>
                 <View style={styles.titleRow}>
                   <View style={styles.titleContent}>
@@ -167,8 +167,6 @@ function LessonDetail({ route, navigation }) {
                   </View>
                 </View>
               </View>
-
-              {/* Phần Video */}
               <View style={styles.videoSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="play-circle" size={24} color="#3b82f6" />
@@ -176,8 +174,7 @@ function LessonDetail({ route, navigation }) {
                 </View>
 
                 {user === null || !isEnrolled ? (
-                  /* Chưa đăng ký: Hiện placeholder và nút đăng ký */
-                  <View>
+                  <>
                     <View style={styles.videoPlayer}>
                       <View style={styles.videoPlaceholder}>
                         <Ionicons name="lock-closed" size={40} color="#ffffff" />
@@ -203,32 +200,7 @@ function LessonDetail({ route, navigation }) {
                         <Text style={styles.registerButtonText}>ĐĂNG KÝ HỌC NGAY</Text>
                       </TouchableOpacity>
                     </View>
-                  )}
-                  <View style={styles.registerSection}>
-                    <Text style={styles.registerHint}>
-                      Bạn cần đăng ký khóa học để xem nội dung này
-                    </Text>
-
-                    <TouchableOpacity
-                      style={styles.registerButton}
-                      activeOpacity={0.8}
-                      onPress={() =>
-                        user === null
-                          ? nav.navigate("Auth", {next: "Lesson"})
-                          : registerCourse()
-                      }
-                    >
-                      <Ionicons
-                        name="log-in-outline"
-                        size={24}
-                        color="#FFF"
-                        style={{marginRight: 8}}
-                      />
-                      <Text style={styles.registerButtonText}>
-                        ĐĂNG KÝ HỌC NGAY
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+                  </>
                 ) : (
                   <View style={styles.videoPlayerContainer}>
                     {lesson.video ? (
@@ -248,7 +220,6 @@ function LessonDetail({ route, navigation }) {
                 )}
               </View>
 
-              {/* Phần Bình luận */}
               <View style={styles.commentSection}>
                 <View style={styles.sectionHeader}>
                   <Ionicons name="chatbubbles" size={24} color="#3b82f6" />
