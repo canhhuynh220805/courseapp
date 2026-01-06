@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { List, Avatar, Button, Divider, Title, Searchbar, Text } from 'react-native-paper';
+import { View, FlatList, Alert, ActivityIndicator, Keyboard } from 'react-native';
+import { Title, Searchbar, Divider, Text, Button } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles, { PRIMARY_COLOR } from './styles';
+import UserManagementItem from '../../components/UserManagementItem';
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([]);
@@ -21,7 +22,7 @@ const StudentManagement = () => {
         } finally { setLoading(false); }
     };
 
-    const handleUpgrade = async (userId, username) => {
+    const handleUpgrade = (userId, username) => {
         Alert.alert("Xác nhận", `Nâng cấp ${username} thành Giảng viên?`, [
             { text: "Hủy", style: "cancel" },
             {
@@ -30,7 +31,7 @@ const StudentManagement = () => {
                         const token = await AsyncStorage.getItem("token");
                         await authApis(token).patch(endpoints['grant-lecturer'](userId));
                         Alert.alert("Thành công", "Đã nâng cấp tài khoản.");
-                        loadStudents(q); // Tải lại danh sách
+                        loadStudents(q);
                     } catch (ex) { Alert.alert("Lỗi", "Thao tác thất bại."); }
                 }
             }
@@ -39,42 +40,62 @@ const StudentManagement = () => {
 
     useEffect(() => { loadStudents(); }, []);
 
+    const onSearch = () => {
+        Keyboard.dismiss();
+        loadStudents(q);
+    };
+
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Title style={{ color: PRIMARY_COLOR }}>Quản lý Học viên</Title>
+        <View style={[styles.container, { flex: 1, backgroundColor: '#fff' }]}>
+            <View style={{ padding: 16 }}>
+                <Title style={{ color: PRIMARY_COLOR, fontWeight: 'bold', marginBottom: 10 }}>
+                    Quản lý Học viên
+                </Title>
                 <Searchbar
                     placeholder="Tìm tên học viên..."
                     value={q}
                     onChangeText={setQ}
-                    onSubmitEditing={() => loadStudents(q)}
-                    onIconPress={() => loadStudents(q)}
-                    style={styles.searchbar}
+                    onSubmitEditing={onSearch}
+                    onIconPress={onSearch}
+                    style={{ elevation: 1, backgroundColor: '#f9fafb' }}
                 />
             </View>
-            {loading ? <ActivityIndicator color={PRIMARY_COLOR} style={{ marginTop: 20 }} /> : (
+
+            {loading ? (
+                <ActivityIndicator color={PRIMARY_COLOR} size="large" style={{ marginTop: 50 }} />
+            ) : (
                 <FlatList
                     data={students}
                     keyExtractor={item => item.id.toString()}
-                    ItemSeparatorComponent={Divider}
-                    ListEmptyComponent={<Text style={styles.empty}>Không có học viên nào.</Text>}
+                    ItemSeparatorComponent={() => <Divider />}
                     renderItem={({ item }) => (
-                        <List.Item
-                            title={item.username}
-                            description={item.email || "Chưa có email"}
-                            left={p => <Avatar.Text {...p} size={40} label={item.username[0].toUpperCase()} style={{ backgroundColor: '#dbeafe' }} color={PRIMARY_COLOR} />}
-                            right={() => (
-                                <Button mode="contained" buttonColor={PRIMARY_COLOR} onPress={() => handleUpgrade(item.id, item.username)} style={{ alignSelf: 'center' }}>
+                        <UserManagementItem
+                            user={item}
+                            primaryColor={PRIMARY_COLOR}
+                            rightAction={
+                                <Button
+                                    mode="contained"
+                                    buttonColor={PRIMARY_COLOR}
+                                    onPress={() => handleUpgrade(item.id, item.username)}
+                                    labelStyle={{ fontSize: 12 }}
+                                    style={{ borderRadius: 8 }}
+                                >
                                     Nâng cấp
                                 </Button>
-                            )}
+                            }
                         />
                     )}
+                    ListEmptyComponent={
+                        <Text style={{ textAlign: 'center', marginTop: 50, color: '#94a3b8' }}>
+                            Không có học viên nào.
+                        </Text>
+                    }
+                    onRefresh={loadStudents}
+                    refreshing={loading}
                 />
             )}
         </View>
     );
 };
-
 
 export default StudentManagement;
