@@ -155,5 +155,5 @@ ZALO_CONFIG = {
 
 VNPAY_CONFIG = {
     "vnp_ReturnUrl": "https://courseapp.pythonanywhere.com/payments/payment-return/",
-    "vnpHashSecret": "QTRJRCDOYCALXDJMKAOBKNAAVDUSXWMI"
+    "vnpHashSecret": "1NWO2X8ITPSC7AY3OAVZ789EOHEXL1HK"
 }

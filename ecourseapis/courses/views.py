@@ -215,13 +215,12 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
         return Response([])
 
 
-class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.DestroyAPIView,
-                 generics.UpdateAPIView):
+class LessonView(viewsets.ModelViewSet):
     queryset = Lesson.objects.filter(active=True)
     serializer_class = serializers.LessonDetailsSerializer
 
     def get_permissions(self):
-        if self.action in ['retrieve', 'get_comments']:
+        if self.action in ['list','retrieve', 'get_comments']:
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
@@ -257,6 +256,14 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIV
     @action(methods=['get'], detail=True, url_path='comments')
     def get_comments(self, request, pk=None):
         comments = self.get_object().comment_set.select_related('user').filter(active=True).order_by('-created_date')
+        paginator = paginators.CommentPaginator()
+
+        page = paginator.paginate_queryset(comments, request)
+
+        if page is not None:
+            serializer = serializers.CommentSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
         return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
 
     @action(methods=['post'], detail=True, url_path='add-comment')
@@ -548,13 +555,14 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
             vnp_Params = {
                 "vnp_Version": "2.1.0",
                 "vnp_Command": "pay",
-                "vnp_TmnCode": "24J85OAO",  # Mã Website Sandbox
+                "vnp_TmnCode": "FRJ8RVSE",  # Mã Website Sandbox
                 "vnp_Amount": amount * 100,  # VNPAY yêu cầu nhân 100
                 "vnp_CurrCode": "VND",
                 "vnp_TxnRef": orderId,
                 "vnp_OrderInfo": f"Thanh toan khoa hoc {enrollment.course.subject}",
                 "vnp_OrderType": "other",
                 "vnp_Locale": "vn",
+                "vnp_IpnUrl": "https://courseapp.pythonanywhere.com/payments/ipn/",
                 "vnp_ReturnUrl": VNPAY_CONFIG["vnp_ReturnUrl"],
                 # Link redirect sau khi xong (quan trọng nếu làm Web, App thì ít quan trọng hơn)
                 "vnp_IpAddr": ip_addr,
@@ -656,65 +664,67 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         else:
             return Response({"RspCode": "97", "Message": "Invalid Checksum"})
 
-    def payment_return_vnpay(request):
-        # 1. Lấy mã phản hồi từ VNPay
-        vnp_ResponseCode = request.GET.get('vnp_ResponseCode')
 
-        # 2. Cấu hình Deep Link về App
-        # Thêm tham số ?status=... để App biết kết quả
-        base_app_scheme = "exp://oid5eyu-anonymous-8081.exp.direct"
+def payment_return_vnpay(request):
+    # 1. Lấy mã phản hồi từ VNPay
+    vnp_ResponseCode = request.GET.get('vnp_ResponseCode')
 
-        if vnp_ResponseCode == '00':
-            # --- TRƯỜNG HỢP THÀNH CÔNG ---
-            status = "success"
-            message = "Giao dịch thành công!"
-            color = "#4CAF50"  # Màu xanh
-            icon = "✅"
-        else:
-            # --- TRƯỜNG HỢP THẤT BẠI / HỦY ---
-            status = "failed"
-            message = "Giao dịch thất bại hoặc đã bị hủy."
-            color = "#F44336"  # Màu đỏ
-            icon = "❌"
+    # 2. Cấu hình Deep Link về App
+    # Thêm tham số ?status=... để App biết kết quả
+    base_app_scheme = "exp://oid5eyu-anonymous-8081.exp.direct"
 
-        # Ghép chuỗi Deep Link: exp://...?status=failed
-        app_link = f"{base_app_scheme}?status={status}"
+    if vnp_ResponseCode == '00':
+        # --- TRƯỜNG HỢP THÀNH CÔNG ---
+        status = "success"
+        message = "Giao dịch thành công!"
+        color = "#4CAF50"  # Màu xanh
+        icon = "✅"
+    else:
+        # --- TRƯỜNG HỢP THẤT BẠI / HỦY ---
+        status = "failed"
+        message = "Giao dịch thất bại hoặc đã bị hủy."
+        color = "#F44336"  # Màu đỏ
+        icon = "❌"
 
-        # 3. Trả về HTML hiển thị thông báo tương ứng
-        html_content = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Kết quả thanh toán</title>
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <style>
-                body {{ font-family: sans-serif; text-align: center; padding-top: 50px; color: #333; }}
-                .icon {{ font-size: 60px; margin-bottom: 20px; display: block; }}
-                .msg {{ font-size: 18px; font-weight: bold; color: {color}; }}
-                .btn {{ 
-                    display: inline-block; margin-top: 20px; padding: 10px 20px; 
-                    background-color: {color}; color: white; text-decoration: none; 
-                    border-radius: 5px; font-weight: bold;
-                }}
-            </style>
-        </head>
-        <body>
-            <span class="icon">{icon}</span>
-            <h3 class="msg">{message}</h3>
-            <p>Đang quay trở lại ứng dụng...</p>
+    # Ghép chuỗi Deep Link: exp://...?status=failed
+    app_link = f"{base_app_scheme}?status={status}"
 
-            <script type="text/javascript">
-                // Tự động mở App sau 1.5 giây
-                setTimeout(function() {{
-                    window.location.href = "{app_link}";
-                }}, 1500);
-            </script>
+    # 3. Trả về HTML hiển thị thông báo tương ứng
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Kết quả thanh toán</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{ font-family: sans-serif; text-align: center; padding-top: 50px; color: #333; }}
+            .icon {{ font-size: 60px; margin-bottom: 20px; display: block; }}
+            .msg {{ font-size: 18px; font-weight: bold; color: {color}; }}
+            .btn {{
+                display: inline-block; margin-top: 20px; padding: 10px 20px;
+                background-color: {color}; color: white; text-decoration: none;
+                border-radius: 5px; font-weight: bold;
+            }}
+        </style>
+    </head>
+    <body>
+        <span class="icon">{icon}</span>
+        <h3 class="msg">{message}</h3>
+        <p>Đang quay trở lại ứng dụng...</p>
 
-            <a href="{app_link}" class="btn">Quay lại ứng dụng ngay</a>
-        </body>
-        </html>
-        """
-        return HttpResponse(html_content)
+        <script type="text/javascript">
+            // Tự động mở App sau 1.5 giây
+            setTimeout(function() {{
+                window.location.href = "{app_link}";
+            }}, 1500);
+        </script>
+
+        <a href="{app_link}" class="btn">Quay lại ứng dụng ngay</a>
+    </body>
+    </html>
+    """
+    return HttpResponse(html_content)
+
 
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]
