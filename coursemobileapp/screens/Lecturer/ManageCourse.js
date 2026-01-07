@@ -3,7 +3,7 @@ import { View, Alert, FlatList } from 'react-native';
 import { Text, Divider, List, FAB, ActivityIndicator, IconButton, Button as PaperButton } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import styles, { PRIMARY_COLOR } from './styles'; // Sử dụng file style chung
+import styles, { PRIMARY_COLOR } from './styles';
 
 const ManageCourse = ({ route, navigation }) => {
     const { course } = route.params;
@@ -16,13 +16,13 @@ const ManageCourse = ({ route, navigation }) => {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
 
-            // Gọi đồng thời thông tin sinh viên và bài học
+
             const [resS, resL] = await Promise.all([
                 authApis(token).get(endpoints['course-students'](course.id)),
                 authApis(token).get(endpoints['lessons'](course.id))
             ]);
 
-            // QUAN TRỌNG: Kiểm tra cấu trúc phân trang (.results)
+
             const lessonData = resL.data.results || resL.data;
             const studentData = resS.data.results || resS.data;
 
@@ -36,7 +36,7 @@ const ManageCourse = ({ route, navigation }) => {
         }
     };
 
-    // Tự động load lại khi quay lại màn hình này
+
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
             loadDetail();

@@ -204,9 +204,11 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
             return Response(serializers.UserSerializer(lecturers, many=True).data)
 
         elif user.role == User.Role.LECTURER:
-            students = User.objects.filter(enrollments__course__lecturer=user,
-                                           enrollments__status=Enrollment.Status.ACTIVE).distinct()
-            return Response(serializers.UserSerializer(students, many=True).data)
+            students_query = Q(enrollments__course__lecturer=user, enrollments__status=Enrollment.Status.ACTIVE)
+            admins_query = Q(role=User.Role.ADMIN, is_active=True)
+
+            contacts = User.objects.filter(students_query | admins_query).distinct()
+            return Response(serializers.UserSerializer(contacts, many=True).data)
 
         elif user.role == User.Role.ADMIN:
             lecturers = User.objects.filter(role=User.Role.LECTURER, is_active=True)

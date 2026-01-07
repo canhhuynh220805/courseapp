@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import { List, Avatar, Title, Searchbar, Text, Divider } from 'react-native-paper';
+import { View, FlatList, ActivityIndicator, Keyboard } from 'react-native';
+import { Title, Searchbar, Divider } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles, { PRIMARY_COLOR } from './styles';
+import UserManagementItem from '../../components/UserManagementItem';
 
 const LecturerManagement = () => {
     const [lecturers, setLecturers] = useState([]);
@@ -15,37 +16,65 @@ const LecturerManagement = () => {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
             const res = await authApis(token).get(`${endpoints['users']}?role=LECTURER&q=${query}`);
-            setLecturers(res.data.results || res.data);
-        } catch (ex) { console.error(ex); }
-        finally { setLoading(false); }
+
+            const data = res.data.results || res.data;
+            setLecturers(data);
+        } catch (ex) {
+            console.error("Lỗi tải giảng viên:", ex);
+        } finally {
+            setLoading(false);
+        }
     };
 
-    useEffect(() => { loadLecturers(); }, []);
+    useEffect(() => {
+        loadLecturers();
+    }, []);
+
+    const onSearch = () => {
+        Keyboard.dismiss();
+        loadLecturers(q);
+    };
 
     return (
-        <View style={styles.container}>
-            <View style={styles.header}>
-                <Title style={{ color: PRIMARY_COLOR }}>Danh sách Giảng viên</Title>
+        <View style={[styles.container, { flex: 1, backgroundColor: '#fff' }]}>
+            <View style={[styles.header, { padding: 16 }]}>
+                <Title style={{ color: PRIMARY_COLOR, marginBottom: 10, fontWeight: 'bold' }}>
+                    Quản lý Giảng viên
+                </Title>
                 <Searchbar
                     placeholder="Tìm giảng viên..."
                     value={q}
                     onChangeText={setQ}
-                    onSubmitEditing={() => loadLecturers(q)}
-                    style={styles.searchbar}
+                    onSubmitEditing={onSearch}
+                    onIconPress={onSearch}
+                    style={[styles.searchbar, { elevation: 1, backgroundColor: '#f9fafb' }]}
                 />
             </View>
-            {loading ? <ActivityIndicator color={PRIMARY_COLOR} style={{ marginTop: 20 }} /> : (
+
+            {loading ? (
+                <ActivityIndicator color={PRIMARY_COLOR} size="large" style={{ marginTop: 50 }} />
+            ) : (
                 <FlatList
                     data={lecturers}
                     keyExtractor={item => item.id.toString()}
-                    ItemSeparatorComponent={Divider}
+                    ItemSeparatorComponent={() => <Divider />}
                     renderItem={({ item }) => (
-                        <List.Item
-                            title={item.username}
-                            description="Giảng viên chính thức"
-                            left={p => <Avatar.Icon {...p} size={40} icon="school" style={{ backgroundColor: '#e0e7ff' }} color={PRIMARY_COLOR} />}
+                        <UserManagementItem
+                            user={item}
+                            primaryColor={PRIMARY_COLOR}
+                            icon="school"
                         />
                     )}
+                    contentContainerStyle={{ paddingBottom: 20 }}
+                    ListEmptyComponent={
+                        <View style={{ alignItems: 'center', marginTop: 50 }}>
+                            <Title style={{ color: '#94a3b8', fontSize: 16 }}>
+                                Không tìm thấy giảng viên nào.
+                            </Title>
+                        </View>
+                    }
+                    onRefresh={loadLecturers}
+                    refreshing={loading}
                 />
             )}
         </View>
