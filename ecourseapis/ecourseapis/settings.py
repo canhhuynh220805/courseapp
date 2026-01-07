@@ -152,3 +152,8 @@ ZALO_CONFIG = {
     "endpoint": "https://sb-openapi.zalopay.vn/v2/create",
     "callback_url": "https://courseapp.pythonanywhere.com/payments/zalo-pay",
 }
+
+VNPAY_CONFIG = {
+    "vnp_ReturnUrl": "https://courseapp.pythonanywhere.com/payments/payment-return/",
+    "vnpHashSecret": "1NWO2X8ITPSC7AY3OAVZ789EOHEXL1HK"
+}
