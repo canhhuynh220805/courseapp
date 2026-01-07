@@ -17,5 +17,6 @@ router.register('stats', views.StatView, basename='stats')
 # router.register('comments', views.CommentViewSet)
 
 urlpatterns = [
-    path('', include(router.urls))
+    path('', include(router.urls)),
+    path('payment-return/', views.PaymentViewSet.payment_return_vnpay, name='payment_return_vnpay'),
 ]

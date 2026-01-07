@@ -25,9 +25,11 @@ export const endpoints = {
   "grant-lecturer": (userId) => `/users/${userId}/grant-lecturer/`,
   "momo-payment": "/payments/momo-pay/",
   "zalo-payment": "/payments/zalo-pay/",
+  "vnpay-payment": "/payments/vnpay-payment/",
   comments: (lessonId) => `/lessons/${lessonId}/comments/`,
   "add-comment": (lessonId) => `/lessons/${lessonId}/add-comment/`,
-}
+  "mark-lesson-complete": (lessonId) => `/lessons/${lessonId}/complete/`,
+};
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
 const CLIENT_SECRET = process.env.EXPO_PUBLIC_CLIENT_SECRET;
@@ -45,4 +47,4 @@ export default axios.create({
   baseURL: BASE_URL,
 });
 
-export { CLIENT_ID, CLIENT_SECRET };
+export {CLIENT_ID, CLIENT_SECRET};

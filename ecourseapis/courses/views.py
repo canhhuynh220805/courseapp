@@ -2,11 +2,12 @@ from django.db.models import DecimalField, Count, Q, Sum
 from django.db.models.functions import Coalesce, TruncYear, TruncMonth, TruncQuarter
 from django.http import HttpResponse
 import json, hmac, hashlib, uuid, requests
+import urllib.parse
 from django.template import loader
 from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
-from ecourseapis.settings import MOMO_CONFIG, ZALO_CONFIG
+from ecourseapis.settings import MOMO_CONFIG, ZALO_CONFIG, VNPAY_CONFIG
 from courses import perms, serializers, paginators
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
@@ -520,6 +521,200 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
             result["return_message"] = str(e)
 
         return Response(result)
+
+    @action(methods=['post'], detail=False, url_path="vnpay-payment")
+    def create_vnpay_payment(self, request):
+        try:
+            # 1. Lấy Enrollment & Giá tiền
+            enrollment_id = request.data.get('enrollment_id')
+            enrollment = Enrollment.objects.get(id=enrollment_id)
+            amount = int(enrollment.course.price)
+
+            # 2. Tạo Payment Record (PENDING)
+            transID = int(round(time.time() * 1000))
+            orderId = f"{datetime.now().strftime('%y%m%d')}_{transID}"  # Mã đơn hàng
+
+            Payment.objects.create(
+                enrollment=enrollment,
+                amount=amount,
+                payment_method=Payment.Method.VNPAY,
+                status=Payment.Status.PENDING,
+                transaction_id=orderId
+            )
+
+            # 3. Cấu hình tham số gửi VNPay
+            ip_addr = request.META.get('REMOTE_ADDR', '127.0.0.1')
+
+            vnp_Params = {
+                "vnp_Version": "2.1.0",
+                "vnp_Command": "pay",
+                "vnp_TmnCode": "24J85OAO",  # Mã Website Sandbox
+                "vnp_Amount": amount * 100,  # VNPAY yêu cầu nhân 100
+                "vnp_CurrCode": "VND",
+                "vnp_TxnRef": orderId,
+                "vnp_OrderInfo": f"Thanh toan khoa hoc {enrollment.course.subject}",
+                "vnp_OrderType": "other",
+                "vnp_Locale": "vn",
+                "vnp_ReturnUrl": VNPAY_CONFIG["vnp_ReturnUrl"],
+                # Link redirect sau khi xong (quan trọng nếu làm Web, App thì ít quan trọng hơn)
+                "vnp_IpAddr": ip_addr,
+                "vnp_CreateDate": datetime.now().strftime('%Y%m%d%H%M%S'),
+            }
+
+            # 4. Sắp xếp tham số & Tạo Checksum (QUAN TRỌNG NHẤT)
+            inputData = sorted(vnp_Params.items())
+            queryString = ""
+            seq = 0
+            for key, val in inputData:
+                if seq == 1:
+                    queryString = queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
+                else:
+                    seq = 1
+                    queryString = key + "=" + urllib.parse.quote_plus(str(val))
+
+            # Tạo chữ ký bảo mật HMAC-SHA512
+            vnp_HashSecret = VNPAY_CONFIG["vnpHashSecret"] # Key Sandbox
+            hashValue = hmac.new(
+                vnp_HashSecret.encode('utf-8'),
+                queryString.encode('utf-8'),
+                hashlib.sha512
+            ).hexdigest()
+
+            # 5. Ghép chuỗi URL cuối cùng
+            payment_url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html" + "?" + queryString + "&vnp_SecureHash=" + hashValue
+
+            return Response({"payment_url": payment_url})
+
+        except Exception as e:
+            print(f"Lỗi tạo VNPay: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['get'], detail=False, url_path='ipn', permission_classes=[permissions.AllowAny],
+            authentication_classes=[])
+    def process_vnpay_ipn(self, request):
+        # Lấy toàn bộ tham số VNPay gửi về
+        inputData = request.GET.dict()
+
+        if not inputData:
+            return Response({"RspCode": "99", "Message": "Invalid request"})
+
+        # Lấy SecureHash ra để verify
+        vnp_SecureHash = inputData.get('vnp_SecureHash')
+
+        # Xóa các key hash để tính toán lại
+        if 'vnp_SecureHash' in inputData:
+            inputData.pop('vnp_SecureHash')
+        if 'vnp_SecureHashType' in inputData:
+            inputData.pop('vnp_SecureHashType')
+
+        # Sắp xếp lại tham số (Giống hệt lúc tạo)
+        sorted_inputData = sorted(inputData.items())
+        queryString = ""
+        seq = 0
+        for key, val in sorted_inputData:
+            if seq == 1:
+                queryString = queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
+            else:
+                seq = 1
+                queryString = key + "=" + urllib.parse.quote_plus(str(val))
+
+        # Tính lại Hash
+        vnp_HashSecret = VNPAY_CONFIG["vnpHashSecret"]
+        hashValue = hmac.new(
+            vnp_HashSecret.encode('utf-8'),
+            queryString.encode('utf-8'),
+            hashlib.sha512
+        ).hexdigest()
+
+        # So sánh Hash
+        if hashValue == vnp_SecureHash:
+            # Check trạng thái giao dịch (00 là thành công)
+            if inputData.get('vnp_ResponseCode') == "00":
+                txnRef = inputData.get('vnp_TxnRef')
+
+                print(f"VNPay Success: {txnRef}")
+
+                # CẬP NHẬT DATABASE
+                try:
+                    # Tìm Payment theo transaction_id đã lưu lúc tạo
+                    payment = Payment.objects.get(transaction_id=txnRef)
+
+                    if payment.status == Payment.Status.PENDING:
+                        payment.status = Payment.Status.COMPLETED
+                        payment.save()
+
+                        # Kích hoạt khóa học
+                        enrollment = payment.enrollment
+                        enrollment.status = Enrollment.Status.ACTIVE
+                        enrollment.save()
+
+                    return Response({"RspCode": "00", "Message": "Confirm Success"})
+                except Payment.DoesNotExist:
+                    return Response({"RspCode": "01", "Message": "Order not found"})
+            else:
+                return Response({"RspCode": "00", "Message": "Payment failed/Cancelled"})
+        else:
+            return Response({"RspCode": "97", "Message": "Invalid Checksum"})
+
+    def payment_return_vnpay(request):
+        # 1. Lấy mã phản hồi từ VNPay
+        vnp_ResponseCode = request.GET.get('vnp_ResponseCode')
+
+        # 2. Cấu hình Deep Link về App
+        # Thêm tham số ?status=... để App biết kết quả
+        base_app_scheme = "exp://oid5eyu-anonymous-8081.exp.direct"
+
+        if vnp_ResponseCode == '00':
+            # --- TRƯỜNG HỢP THÀNH CÔNG ---
+            status = "success"
+            message = "Giao dịch thành công!"
+            color = "#4CAF50"  # Màu xanh
+            icon = "✅"
+        else:
+            # --- TRƯỜNG HỢP THẤT BẠI / HỦY ---
+            status = "failed"
+            message = "Giao dịch thất bại hoặc đã bị hủy."
+            color = "#F44336"  # Màu đỏ
+            icon = "❌"
+
+        # Ghép chuỗi Deep Link: exp://...?status=failed
+        app_link = f"{base_app_scheme}?status={status}"
+
+        # 3. Trả về HTML hiển thị thông báo tương ứng
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Kết quả thanh toán</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <style>
+                body {{ font-family: sans-serif; text-align: center; padding-top: 50px; color: #333; }}
+                .icon {{ font-size: 60px; margin-bottom: 20px; display: block; }}
+                .msg {{ font-size: 18px; font-weight: bold; color: {color}; }}
+                .btn {{ 
+                    display: inline-block; margin-top: 20px; padding: 10px 20px; 
+                    background-color: {color}; color: white; text-decoration: none; 
+                    border-radius: 5px; font-weight: bold;
+                }}
+            </style>
+        </head>
+        <body>
+            <span class="icon">{icon}</span>
+            <h3 class="msg">{message}</h3>
+            <p>Đang quay trở lại ứng dụng...</p>
+
+            <script type="text/javascript">
+                // Tự động mở App sau 1.5 giây
+                setTimeout(function() {{
+                    window.location.href = "{app_link}";
+                }}, 1500);
+            </script>
+
+            <a href="{app_link}" class="btn">Quay lại ứng dụng ngay</a>
+        </body>
+        </html>
+        """
+        return HttpResponse(html_content)
 
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]

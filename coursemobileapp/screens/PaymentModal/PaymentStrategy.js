@@ -1,18 +1,20 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Linking from "expo-linking";
+import {Alert} from "react-native";
 export const MoMoStrategy = {
   async pay(authApis, endpoints, token, enrollmentId) {
     console.info("--> Đang xử lý thanh toán MoMo...");
     let resEnroll = await authApis(token).post(endpoints["momo-payment"], {
       enrollment_id: enrollmentId,
     });
-    if (resEnroll.data.status == "PENDING") {
-      let enrollId = resEnroll.data.id;
+    console.log(resEnroll.data);
+    if (resEnroll.data) {
+      // let enrollId = resEnroll.data.id;
       let resMOMO = await authApis(token).post(endpoints["momo-payment"], {
-        enrollment_id: enrollId,
+        enrollment_id: enrollmentId,
       });
       if (resMOMO.data.payUrl) {
-        await AsyncStorage.setItem("current_payment_id", String(enrollId));
+        await AsyncStorage.setItem("current_payment_id", String(enrollmentId));
         Linking.openURL(resMOMO.data.payUrl);
       } else {
         Alert.alert("Thành công", "Bạn đã vào học được rồi!");
@@ -51,9 +53,35 @@ export const ZaloPayStrategy = {
 };
 
 // 3. Chiến lược khóa học Miễn phí (Nếu giá tiền = 0)
-export const PayPalStrategy = {
+export const VNPayStrategy = {
   async pay(authApis, endpoints, token, enrollmentId) {
-    console.info("--> Đang xử lý thanh toán PayPal...");
+    try {
+      console.info("--> Đang xử lý thanh toán VNPay...");
+      let resEnroll = await authApis(token).post(endpoints["vnpay-payment"], {
+        enrollment_id: enrollmentId,
+      });
+      if (resEnroll.data && resEnroll.data.payment_url) {
+        const payUrl = resEnroll.data.payment_url;
+        console.log("VNPay URL:", payUrl);
+
+        // 3. Lưu ID để lát quay lại App kiểm tra (QUAN TRỌNG)
+        // Key này phải khớp với key bạn dùng trong hàm checkPaymentStatus
+        await AsyncStorage.setItem("current_payment_id", String(enrollmentId));
+
+        // 4. Mở trình duyệt web để thanh toán
+        const supported = await Linking.canOpenURL(payUrl);
+        if (supported) {
+          await Linking.openURL(payUrl);
+        } else {
+          Alert.alert("Lỗi", "Thiết bị không hỗ trợ mở liên kết này.");
+        }
+      } else {
+        Alert.alert("Lỗi", "Không lấy được đường dẫn thanh toán.");
+      }
+    } catch (error) {
+      console.error("Lỗi VNPay Strategy:", error);
+      Alert.alert("Lỗi", "Có lỗi xảy ra khi kết nối tới cổng thanh toán.");
+    }
   },
 };
 
