@@ -1,27 +1,26 @@
 import React, { useEffect, useState } from 'react';
-import { View, Alert, FlatList } from 'react-native';
+import { View, FlatList } from 'react-native';
 import { Text, Divider, List, FAB, ActivityIndicator, IconButton, Button as PaperButton } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles, { PRIMARY_COLOR } from './styles';
+import { useAlert } from '../../utils/contexts/AlertContext';
 
 const ManageCourse = ({ route, navigation }) => {
     const { course } = route.params;
     const [studentsCount, setStudentsCount] = useState(0);
     const [lessons, setLessons] = useState([]);
     const [loading, setLoading] = useState(true);
+    const showAlert = useAlert();
 
     const loadDetail = async () => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
-
-
             const [resS, resL] = await Promise.all([
                 authApis(token).get(endpoints['course-students'](course.id)),
                 authApis(token).get(endpoints['lessons'](course.id))
             ]);
-
 
             const lessonData = resL.data.results || resL.data;
             const studentData = resS.data.results || resS.data;
@@ -30,12 +29,11 @@ const ManageCourse = ({ route, navigation }) => {
             setStudentsCount(studentData.length || 0);
         } catch (ex) {
             console.error("Lỗi tải dữ liệu:", ex);
-            Alert.alert("Lỗi", "Không thể nạp danh sách bài học.");
+            showAlert("Lỗi", "Không thể nạp danh sách bài học.", "error");
         } finally {
             setLoading(false);
         }
     };
-
 
     useEffect(() => {
         const unsubscribe = navigation.addListener('focus', () => {
@@ -43,6 +41,43 @@ const ManageCourse = ({ route, navigation }) => {
         });
         return unsubscribe;
     }, [navigation]);
+
+    const handleDeleteCourse = () => {
+        showAlert(
+            "Xác nhận xóa",
+            "Bạn có chắc muốn xóa khóa học này không? Mọi dữ liệu liên quan sẽ bị mất.",
+            "error",
+            async () => {
+                try {
+                    const token = await AsyncStorage.getItem("token");
+                    await authApis(token).delete(endpoints['course-details'](course.id));
+                    showAlert("Thành công", "Đã xóa khóa học.", "success", () => {
+                        navigation.navigate("LecturerHome");
+                    });
+                } catch (e) {
+                    showAlert("Lỗi", "Không thể xóa khóa học này.", "error");
+                }
+            }
+        );
+    };
+
+    const handleDeleteLesson = (lessonId, lessonSubject) => {
+        showAlert(
+            "Xác nhận xóa",
+            `Bạn có muốn xóa bài học "${lessonSubject}" không?`,
+            "error",
+            async () => {
+                try {
+                    const token = await AsyncStorage.getItem("token");
+                    await authApis(token).delete(endpoints['lesson-detail'](lessonId));
+                    showAlert("Thành công", "Đã xóa bài học.", "success");
+                    loadDetail();
+                } catch (e) {
+                    showAlert("Lỗi", "Xóa bài học thất bại.", "error");
+                }
+            }
+        );
+    };
 
     const renderHeader = () => (
         <View style={{ padding: 20 }}>
@@ -56,16 +91,13 @@ const ManageCourse = ({ route, navigation }) => {
                         textColor={PRIMARY_COLOR}
                         onPress={() => navigation.navigate("AddCourse", { courseEdit: course })}
                     > Sửa </PaperButton>
-                    <PaperButton icon="delete" mode="text" compact textColor="red"
-                        onPress={() => Alert.alert("Xóa khóa học", "Bạn chắc chứ?", [
-                            { text: "Hủy" }, {
-                                text: "Xóa", onPress: async () => {
-                                    const token = await AsyncStorage.getItem("token");
-                                    await authApis(token).delete(endpoints['course-details'](course.id));
-                                    navigation.navigate("LecturerHome");
-                                }
-                            }
-                        ])}> Xóa </PaperButton>
+                    <PaperButton
+                        icon="delete"
+                        mode="text"
+                        compact
+                        textColor="red"
+                        onPress={handleDeleteCourse}
+                    > Xóa </PaperButton>
                 </View>
             </View>
             <Divider style={{ marginVertical: 15 }} />
@@ -101,11 +133,11 @@ const ManageCourse = ({ route, navigation }) => {
                             right={p => (
                                 <View style={{ flexDirection: 'row' }}>
                                     <IconButton icon="pencil-outline" onPress={() => navigation.navigate("AddLesson", { courseId: course.id, lesson: item })} />
-                                    <IconButton icon="delete-outline" iconColor="red" onPress={async () => {
-                                        const token = await AsyncStorage.getItem("token");
-                                        await authApis(token).delete(endpoints['lesson-detail'](item.id));
-                                        loadDetail();
-                                    }} />
+                                    <IconButton
+                                        icon="delete-outline"
+                                        iconColor="red"
+                                        onPress={() => handleDeleteLesson(item.id, item.subject)}
+                                    />
                                 </View>
                             )}
                             style={styles.listItem}

@@ -69,7 +69,14 @@ class Course(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=0, default=0)
     lecturer = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name='courses')
     tags = models.ManyToManyField('Tag')
-    duration = models.IntegerField(default=0)
+    duration = models.IntegerField(default=0, help_text="Tổng thời lượng khóa học")
+
+    def save(self, *args, **kwargs):
+        if self.id:
+            total_video_mins = Lesson.objects.filter(course=self, active=True).aggregate(models.Sum('duration'))['duration__sum'] or 0
+            total_workload_mins = total_video_mins * 1.5
+            self.duration = int(total_workload_mins // 60)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.subject
@@ -94,13 +101,16 @@ class Lesson(BaseModel):
     class Meta:
         unique_together = ('subject', 'course')
 
+
 @receiver([post_save, post_delete], sender=Lesson)
 def update_course_duration(sender, instance, **kwargs):
     course = instance.course
-    total_duration = Lesson.objects.filter(course=course, active=True).aggregate(Sum('duration'))['duration__sum'] or 0
-    if course.duration != total_duration:
-        course.duration = total_duration
-        course.save()
+    total_video_mins = Lesson.objects.filter(course=course, active=True).aggregate(Sum('duration'))['duration__sum'] or 0
+
+    total_hours = int((total_video_mins * 1.5) // 60)
+    if course.duration != total_hours:
+        course.duration = total_hours
+        course.save(update_fields=['duration'])
 
 class Tag(BaseModel):
     name = models.CharField(max_length=100, unique=True)

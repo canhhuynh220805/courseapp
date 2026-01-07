@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, Alert, ActivityIndicator, Keyboard } from 'react-native';
+import { View, FlatList, ActivityIndicator, Keyboard } from 'react-native';
 import { Title, Searchbar, Divider, Text, Button } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles, { PRIMARY_COLOR } from './styles';
 import UserManagementItem from '../../components/UserManagementItem';
+import { useAlert } from '../../utils/contexts/AlertContext';
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(false);
     const [q, setQ] = useState('');
+    const showAlert = useAlert();
 
     const loadStudents = async (query = '') => {
         try {
@@ -18,27 +20,34 @@ const StudentManagement = () => {
             const res = await authApis(token).get(`${endpoints['users']}?role=STUDENT&q=${query}`);
             setStudents(res.data.results || res.data);
         } catch (ex) {
-            Alert.alert("Lỗi", "Không thể tải danh sách học viên.");
-        } finally { setLoading(false); }
+            showAlert("Lỗi", "Không thể tải danh sách học viên.", "error");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleUpgrade = (userId, username) => {
-        Alert.alert("Xác nhận", `Nâng cấp ${username} thành Giảng viên?`, [
-            { text: "Hủy", style: "cancel" },
-            {
-                text: "Đồng ý", onPress: async () => {
-                    try {
-                        const token = await AsyncStorage.getItem("token");
-                        await authApis(token).patch(endpoints['grant-lecturer'](userId));
-                        Alert.alert("Thành công", "Đã nâng cấp tài khoản.");
-                        loadStudents(q);
-                    } catch (ex) { Alert.alert("Lỗi", "Thao tác thất bại."); }
+        showAlert(
+            "Xác nhận nâng cấp",
+            `Bạn có chắc chắn muốn nâng cấp ${username} thành Giảng viên không?`,
+            "info",
+            async () => {
+                try {
+                    const token = await AsyncStorage.getItem("token");
+                    await authApis(token).patch(endpoints['grant-lecturer'](userId));
+
+                    showAlert("Thành công", `Đã nâng cấp quyền giảng viên cho ${username}.`, "success");
+                    loadStudents(q);
+                } catch (ex) {
+                    showAlert("Lỗi", "Thao tác thất bại, vui lòng thử lại sau.", "error");
                 }
             }
-        ]);
+        );
     };
 
-    useEffect(() => { loadStudents(); }, []);
+    useEffect(() => {
+        loadStudents();
+    }, []);
 
     const onSearch = () => {
         Keyboard.dismiss();
@@ -77,7 +86,7 @@ const StudentManagement = () => {
                                     mode="contained"
                                     buttonColor={PRIMARY_COLOR}
                                     onPress={() => handleUpgrade(item.id, item.username)}
-                                    labelStyle={{ fontSize: 12 }}
+                                    labelStyle={{ fontSize: 12, fontWeight: 'bold' }}
                                     style={{ borderRadius: 8 }}
                                 >
                                     Nâng cấp
@@ -87,10 +96,10 @@ const StudentManagement = () => {
                     )}
                     ListEmptyComponent={
                         <Text style={{ textAlign: 'center', marginTop: 50, color: '#94a3b8' }}>
-                            Không có học viên nào.
+                            Không tìm thấy học viên nào.
                         </Text>
                     }
-                    onRefresh={loadStudents}
+                    onRefresh={() => loadStudents(q)}
                     refreshing={loading}
                 />
             )}

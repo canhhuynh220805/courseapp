@@ -15,15 +15,11 @@ const LecturerHome = ({ navigation }) => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
-
-            // Gọi đồng thời 2 API: Thống kê chi tiết từng khóa và Thống kê tổng quan
             const [resStats, resGeneral] = await Promise.all([
                 authApis(token).get(endpoints['course-stats']),
                 authApis(token).get(endpoints['general-stats'])
             ]);
 
-            // QUAN TRỌNG: Backend sử dụng CoursePaginator nên dữ liệu nằm trong resStats.data.results
-            // Nếu không có results (trường hợp không phân trang), lấy trực tiếp resStats.data
             setStats(resStats.data.results || resStats.data);
 
             setSummary(resGeneral.data);
@@ -34,7 +30,6 @@ const LecturerHome = ({ navigation }) => {
         }
     };
 
-    // Tự động tải lại dữ liệu mỗi khi quay lại màn hình này
     useFocusEffect(useCallback(() => {
         loadData();
     }, []));
@@ -85,7 +80,6 @@ const LecturerHome = ({ navigation }) => {
                         <Card
                             style={styles.courseCard}
                             mode="elevated"
-                            // Khi nhấn vào Card, điều hướng sang ManageCourse và truyền dữ liệu khóa học
                             onPress={() => navigation.navigate("ManageCourse", { course: item })}
                         >
                             <Card.Cover source={{ uri: item.image }} style={styles.courseImg} />
