@@ -25,6 +25,9 @@ import Chat from "./screens/User/Chat";
 import AdminHome from "./screens/Admin/AdminHome";
 import LecturerManagement from "./screens/Admin/LecturerManegement";
 import StudentManagement from "./screens/Admin/StudentManagement";
+import { Provider as PaperProvider } from 'react-native-paper';
+import { AlertProvider } from "./utils/contexts/AlertContext";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -276,13 +279,36 @@ const TabNavigator = () => {
 
 const App = () => {
   const [user, dispatch] = useReducer(MyUserReducer, null);
+  const [isReady, setIsReady] = React.useState(false);
 
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const storedUser = await AsyncStorage.getItem("user");
+        if (token && storedUser) {
+          dispatch({ type: "login", payload: JSON.parse(storedUser) });
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsReady(true);
+      }
+    };
+    loadSession();
+  }, []);
+
+  if (!isReady) return null;
   return (
-    <MyUserContext.Provider value={[user, dispatch]}>
-      <NavigationContainer>
-        <TabNavigator />
-      </NavigationContainer>
-    </MyUserContext.Provider>
+    <PaperProvider>
+      <MyUserContext.Provider value={[user, dispatch]}>
+        <AlertProvider>
+          <NavigationContainer>
+            <TabNavigator />
+          </NavigationContainer>
+        </AlertProvider>
+      </MyUserContext.Provider>
+    </PaperProvider>
   );
 };
 

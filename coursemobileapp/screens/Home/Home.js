@@ -1,14 +1,16 @@
-import React, {useState} from "react";
+import React, { useState } from "react";
 import Categories from "../../components/Categories";
 import Courses from "../../components/Courses";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {authApis, endpoints} from "../../utils/Apis";
-import {useFocusEffect} from "@react-navigation/native";
-import {Alert} from "react-native";
-import {jwtDecode} from "jwt-decode";
-
+import { authApis, endpoints } from "../../utils/Apis";
+import { useFocusEffect } from "@react-navigation/native";
+import { Alert } from "react-native";
+import { jwtDecode } from "jwt-decode";
+import { Button } from "react-native-paper";
+import { useAlert } from "../../utils/contexts/AlertContext";
 const Home = () => {
   const [cate, setCate] = useState();
+  const showAlert = useAlert();
   const isTokenValid = (token) => {
     if (!token) return false;
     try {

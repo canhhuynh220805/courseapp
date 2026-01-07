@@ -7,6 +7,7 @@ import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import styles, { PRIMARY_COLOR } from './styles';
+import { useAlert } from '../../utils/contexts/AlertContext';
 
 const AddCourse = ({ route, navigation }) => {
     const courseEditId = route.params?.courseEdit?.id;
@@ -14,7 +15,7 @@ const AddCourse = ({ route, navigation }) => {
     const [loading, setLoading] = useState(false);
     const [course, setCourse] = useState({ subject: '', description: '', price: '', category: '' });
     const [image, setImage] = useState(null);
-
+    const showAlert = useAlert();
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
@@ -68,18 +69,18 @@ const AddCourse = ({ route, navigation }) => {
     const handleSave = async () => {
         const { subject, price, description } = course;
         if (!subject?.trim() || price === '' || !description?.trim()) {
-            Alert.alert("Lỗi", "Vui lòng nhập đầy đủ thông tin!");
+            showAlert("Lỗi", "Vui lòng nhập đầy đủ thông tin!", "error");
             return;
         }
 
         if (subject.length > 255) {
-            Alert.alert("Lỗi", "Tên khóa học không được quá 255 ký tự.");
+            showAlert("Lỗi", "Tên khóa học không được quá 255 ký tự.", "error");
             return;
         }
 
         const priceNum = parseFloat(price);
         if (isNaN(priceNum) || priceNum < 0) {
-            Alert.alert("Lỗi", "Học phí phải là số nguyên dương hoặc bằng 0.");
+            showAlert("Lỗi", "Học phí phải là số nguyên dương hoặc bằng 0.", "error");
             return;
         }
 
@@ -95,10 +96,10 @@ const AddCourse = ({ route, navigation }) => {
 
             if (courseEditId) {
                 await authApis(token).patch(endpoints['course-details'](courseEditId), payload);
-                Alert.alert("Thành công", "Đã cập nhật khóa học!");
+                showAlert("Thành công", "Đã cập nhật khóa học!", "success");
             } else {
                 await authApis(token).post(endpoints['courses'], payload);
-                Alert.alert("Thành công", "Đã tạo khóa học mới!");
+                showAlert("Thành công", "Đã tạo khóa học mới!", "success");
             }
             navigation.goBack();
         } catch (ex) {
@@ -107,7 +108,7 @@ const AddCourse = ({ route, navigation }) => {
                 const serverErrors = ex.response.data;
                 errorMsg = Object.keys(serverErrors).map(key => `${key}: ${serverErrors[key].join(", ")}`).join("\n");
             }
-            Alert.alert("Lỗi hệ thống", errorMsg);
+            showAlert("Lỗi hệ thống", errorMsg, "error");
         } finally {
             setLoading(false);
         }
