@@ -33,7 +33,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const AuthStack = () => (
-  <Stack.Navigator headerShown={false}>
+  <Stack.Navigator screenOptions={{headerShown: false}}>
     <Stack.Screen
       name="Login"
       component={Login}
@@ -51,17 +51,17 @@ const CourseStack = () => (
     <Stack.Screen
       name="CourseHome"
       component={Home}
-      options={{ title: "Khóa học" }}
+      options={{title: "Khóa học"}}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{ title: "Bài học" }}
+      options={{title: "Bài học"}}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{ title: "Chi tiết bài học" }}
+      options={{title: "Chi tiết bài học"}}
     />
   </Stack.Navigator>
 );
@@ -71,17 +71,17 @@ const UserCourseStack = () => (
     <Stack.Screen
       name="UserCourseList"
       component={UserCourse}
-      options={{ title: "Khóa học của tôi" }}
+      options={{title: "Khóa học của tôi"}}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{ title: "Bài học" }}
+      options={{title: "Bài học"}}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{ title: "Chi tiết bài học" }}
+      options={{title: "Chi tiết bài học"}}
     />
   </Stack.Navigator>
 );

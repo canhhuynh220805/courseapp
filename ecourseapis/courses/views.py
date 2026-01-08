@@ -2,11 +2,13 @@ from django.db.models import DecimalField, Count, Q, Sum
 from django.db.models.functions import Coalesce, TruncYear, TruncMonth, TruncQuarter
 from django.http import HttpResponse
 import json, hmac, hashlib, uuid, requests
+import urllib.parse
 from django.template import loader
+from rest_framework.views import APIView
 from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
-from ecourseapis.settings import MOMO_CONFIG, ZALO_CONFIG
+from ecourseapis.settings import MOMO_CONFIG, ZALO_CONFIG, VNPAY_CONFIG
 from courses import perms, serializers, paginators
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
@@ -225,13 +227,12 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
         return Response([])
 
 
-class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIView, generics.DestroyAPIView,
-                 generics.UpdateAPIView):
+class LessonView(viewsets.ModelViewSet):
     queryset = Lesson.objects.filter(active=True)
     serializer_class = serializers.LessonDetailsSerializer
 
     def get_permissions(self):
-        if self.action in ['retrieve', 'get_comments']:
+        if self.action in ['list','retrieve', 'get_comments']:
             return [permissions.AllowAny()]
         if self.action == 'create':
             return [permissions.IsAuthenticated(), perms.IsLecturerVerified()]
@@ -267,6 +268,14 @@ class LessonView(viewsets.ViewSet, generics.CreateAPIView, generics.RetrieveAPIV
     @action(methods=['get'], detail=True, url_path='comments')
     def get_comments(self, request, pk=None):
         comments = self.get_object().comment_set.select_related('user').filter(active=True).order_by('-created_date')
+        paginator = paginators.CommentPaginator()
+
+        page = paginator.paginate_queryset(comments, request)
+
+        if page is not None:
+            serializer = serializers.CommentSerializer(page, many=True)
+            return paginator.get_paginated_response(serializer.data)
+
         return Response(serializers.CommentSerializer(comments, many=True).data, status=status.HTTP_200_OK)
 
     @action(methods=['post'], detail=True, url_path='add-comment')
@@ -532,6 +541,347 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
         return Response(result)
 
+    @action(methods=['post'], detail=False, url_path='zalo-confirm', permission_classes=[permissions.AllowAny],
+            authentication_classes=[])
+    def zalo_confirm(self, request):
+        """
+        API này để Local Server gọi lên báo thanh toán thành công
+        """
+        enrollment_id = request.data.get('enrollment_id')
+
+        zp_trans_id = request.data.get('zp_trans_id') # Mã của Zalo
+        app_trans_id = request.data.get('app_trans_id') # Mã đơn hàng của mình
+
+        if not enrollment_id:
+            return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 1. Tìm Enrollment và kích hoạt
+            enrollment = Enrollment.objects.get(pk=enrollment_id)
+            enrollment.status = Enrollment.Status.ACTIVE # Active khóa học
+            enrollment.save()
+
+            # 2. (Tùy chọn) Tìm hoặc Tạo Payment Record để lưu lịch sử
+            # Nếu bạn muốn lưu lại là đã thanh toán bằng ZaloPay
+            Payment.objects.create(
+                enrollment=enrollment,
+                amount=enrollment.course.price, # Hoặc lấy từ request.data.get('amount')
+                payment_method=Payment.Method.ZALOPAY,
+                status=Payment.Status.COMPLETED,
+                transaction_id= zp_trans_id
+            )
+
+            return Response({"message": "Update thành công"}, status=status.HTTP_200_OK)
+
+        except Enrollment.DoesNotExist:
+            return Response({"error": "Không tìm thấy Enrollment"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(methods=['post'], detail=False, url_path="vnpay-payment")
+    def create_vnpay_payment(self, request):
+        try:
+            # 1. Lấy Enrollment & Giá tiền
+            enrollment_id = request.data.get('enrollment_id')
+            enrollment = Enrollment.objects.get(id=enrollment_id)
+            amount = int(enrollment.course.price)
+
+            # 2. Tạo Payment Record (PENDING)
+            transID = int(round(time.time() * 1000))
+            orderId = f"{datetime.now().strftime('%y%m%d')}_{transID}"  # Mã đơn hàng
+
+            Payment.objects.create(
+                enrollment=enrollment,
+                amount=amount,
+                payment_method=Payment.Method.VNPAY,
+                status=Payment.Status.PENDING,
+                transaction_id=orderId
+            )
+
+            # 3. Cấu hình tham số gửi VNPay
+            ip_addr = request.META.get('REMOTE_ADDR', '127.0.0.1')
+
+            vnp_Params = {
+                "vnp_Version": "2.1.0",
+                "vnp_Command": "pay",
+                "vnp_TmnCode": "FRJ8RVSE",  # Mã Website Sandbox
+                "vnp_Amount": amount * 100,  # VNPAY yêu cầu nhân 100
+                "vnp_CurrCode": "VND",
+                "vnp_TxnRef": orderId,
+                "vnp_OrderInfo": f"Thanh toan khoa hoc {enrollment.course.subject}",
+                "vnp_OrderType": "other",
+                "vnp_Locale": "vn",
+                "vnp_IpnUrl": "https://courseapp.pythonanywhere.com/payments/ipn/",
+                "vnp_ReturnUrl": VNPAY_CONFIG["vnp_ReturnUrl"],
+                # Link redirect sau khi xong (quan trọng nếu làm Web, App thì ít quan trọng hơn)
+                "vnp_IpAddr": ip_addr,
+                "vnp_CreateDate": datetime.now().strftime('%Y%m%d%H%M%S'),
+            }
+
+            # 4. Sắp xếp tham số & Tạo Checksum (QUAN TRỌNG NHẤT)
+            inputData = sorted(vnp_Params.items())
+            queryString = ""
+            seq = 0
+            for key, val in inputData:
+                if seq == 1:
+                    queryString = queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
+                else:
+                    seq = 1
+                    queryString = key + "=" + urllib.parse.quote_plus(str(val))
+
+            # Tạo chữ ký bảo mật HMAC-SHA512
+            vnp_HashSecret = VNPAY_CONFIG["vnpHashSecret"] # Key Sandbox
+            hashValue = hmac.new(
+                vnp_HashSecret.encode('utf-8'),
+                queryString.encode('utf-8'),
+                hashlib.sha512
+            ).hexdigest()
+
+            # 5. Ghép chuỗi URL cuối cùng
+            payment_url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html" + "?" + queryString + "&vnp_SecureHash=" + hashValue
+
+            return Response({"payment_url": payment_url})
+
+        except Exception as e:
+            print(f"Lỗi tạo VNPay: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(methods=['get'], detail=False, url_path='ipn', permission_classes=[permissions.AllowAny],
+            authentication_classes=[])
+    def process_vnpay_ipn(self, request):
+        # Lấy toàn bộ tham số VNPay gửi về
+        inputData = request.GET.dict()
+
+        if not inputData:
+            return Response({"RspCode": "99", "Message": "Invalid request"})
+
+        # Lấy SecureHash ra để verify
+        vnp_SecureHash = inputData.get('vnp_SecureHash')
+
+        # Xóa các key hash để tính toán lại
+        if 'vnp_SecureHash' in inputData:
+            inputData.pop('vnp_SecureHash')
+        if 'vnp_SecureHashType' in inputData:
+            inputData.pop('vnp_SecureHashType')
+
+        # Sắp xếp lại tham số (Giống hệt lúc tạo)
+        sorted_inputData = sorted(inputData.items())
+        queryString = ""
+        seq = 0
+        for key, val in sorted_inputData:
+            if seq == 1:
+                queryString = queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
+            else:
+                seq = 1
+                queryString = key + "=" + urllib.parse.quote_plus(str(val))
+
+        # Tính lại Hash
+        vnp_HashSecret = VNPAY_CONFIG["vnpHashSecret"]
+        hashValue = hmac.new(
+            vnp_HashSecret.encode('utf-8'),
+            queryString.encode('utf-8'),
+            hashlib.sha512
+        ).hexdigest()
+
+        # So sánh Hash
+        if hashValue == vnp_SecureHash:
+            # Check trạng thái giao dịch (00 là thành công)
+            if inputData.get('vnp_ResponseCode') == "00":
+                txnRef = inputData.get('vnp_TxnRef')
+
+                print(f"VNPay Success: {txnRef}")
+
+                # CẬP NHẬT DATABASE
+                try:
+                    # Tìm Payment theo transaction_id đã lưu lúc tạo
+                    payment = Payment.objects.get(transaction_id=txnRef)
+
+                    if payment.status == Payment.Status.PENDING:
+                        payment.status = Payment.Status.COMPLETED
+                        payment.save()
+
+                        # Kích hoạt khóa học
+                        enrollment = payment.enrollment
+                        enrollment.status = Enrollment.Status.ACTIVE
+                        enrollment.save()
+
+                    return Response({"RspCode": "00", "Message": "Confirm Success"})
+                except Payment.DoesNotExist:
+                    return Response({"RspCode": "01", "Message": "Order not found"})
+            else:
+                return Response({"RspCode": "00", "Message": "Payment failed/Cancelled"})
+        else:
+            return Response({"RspCode": "97", "Message": "Invalid Checksum"})
+
+
+def payment_return_vnpay(request):
+    # 1. Lấy mã phản hồi từ VNPay
+    vnp_ResponseCode = request.GET.get('vnp_ResponseCode')
+
+    # 2. Cấu hình Deep Link về App
+    # Thêm tham số ?status=... để App biết kết quả
+    base_app_scheme = "exp://oid5eyu-anonymous-8081.exp.direct"
+
+    if vnp_ResponseCode == '00':
+        # --- TRƯỜNG HỢP THÀNH CÔNG ---
+        status = "success"
+        message = "Giao dịch thành công!"
+        color = "#4CAF50"  # Màu xanh
+        icon = "✅"
+    else:
+        # --- TRƯỜNG HỢP THẤT BẠI / HỦY ---
+        status = "failed"
+        message = "Giao dịch thất bại hoặc đã bị hủy."
+        color = "#F44336"  # Màu đỏ
+        icon = "❌"
+
+    # Ghép chuỗi Deep Link: exp://...?status=failed
+    app_link = f"{base_app_scheme}?status={status}"
+
+    # 3. Trả về HTML hiển thị thông báo tương ứng
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Kết quả thanh toán</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{ font-family: sans-serif; text-align: center; padding-top: 50px; color: #333; }}
+            .icon {{ font-size: 60px; margin-bottom: 20px; display: block; }}
+            .msg {{ font-size: 18px; font-weight: bold; color: {color}; }}
+            .btn {{
+                display: inline-block; margin-top: 20px; padding: 10px 20px;
+                background-color: {color}; color: white; text-decoration: none;
+                border-radius: 5px; font-weight: bold;
+            }}
+        </style>
+    </head>
+    <body>
+        <span class="icon">{icon}</span>
+        <h3 class="msg">{message}</h3>
+        <p>Đang quay trở lại ứng dụng...</p>
+
+        <script type="text/javascript">
+            // Tự động mở App sau 1.5 giây
+            setTimeout(function() {{
+                window.location.href = "{app_link}";
+            }}, 1500);
+        </script>
+
+        <a href="{app_link}" class="btn">Quay lại ứng dụng ngay</a>
+    </body>
+    </html>
+    """
+    return HttpResponse(html_content)
+
+class LocalZaloPaymentView(APIView):
+    def post(self, request):
+        try:
+            # Local Server không truy cập DB, nên App phải gửi kèm amount và enrollment_id
+            enrollment_id = request.data.get('enrollment_id')
+            amount = request.data.get('amount')  # App gửi số tiền sang luôn
+
+            if not enrollment_id or not amount:
+                return Response({"error": "Thiếu enrollment_id hoặc amount"}, status=400)
+
+            transID = int(round(time.time() * 1000))
+            app_trans_id = f"{datetime.now().strftime('%y%m%d')}_{transID}"
+
+            # Nhúng enrollment_id vào đây để lúc callback lấy ra dùng
+            embed_data = json.dumps({
+                "enrollment_id": enrollment_id,
+                "redirecturl": "exp://oid5eyu-anonymous-8081.exp.direct"  # Link về App
+            })
+
+            # Item giả lập (không cần query DB lấy tên môn học làm gì cho phức tạp)
+            items = json.dumps([{"id": enrollment_id, "price": amount}])
+
+            order = {
+                "app_id": ZALO_CONFIG["app_id"],
+                "app_trans_id": app_trans_id,
+                "app_user": "user_test",
+                "app_time": int(round(time.time() * 1000)),
+                "embed_data": embed_data,
+                "item": items,
+                "amount": int(amount),
+                "description": f"Thanh toan khoa hoc ID {enrollment_id}",
+                "bank_code": "",
+                "callback_url": ZALO_CONFIG["callback_url2"]
+            }
+
+            # Tạo MAC (Giữ nguyên code của bạn)
+            data = "{}|{}|{}|{}|{}|{}|{}".format(
+                order["app_id"], order["app_trans_id"], order["app_user"],
+                order["amount"], order["app_time"], order["embed_data"], order["item"]
+            )
+            order["mac"] = hmac.new(
+                ZALO_CONFIG["key1"].encode(), data.encode(), hashlib.sha256
+            ).hexdigest()
+
+            # Gửi sang ZaloPay
+            response = requests.post(ZALO_CONFIG["endpoint"], json=order)
+            return Response(response.json())
+
+        except Exception as e:
+            print(f"Lỗi Local: {str(e)}")
+            return Response({"error": str(e)}, status=400)
+
+
+class LocalZaloIPNView(APIView):
+    # 2. API NHẬN CALLBACK
+    def post(self, request):
+        result = {}
+        try:
+            data = request.data.get("data")
+            req_mac = request.data.get("mac")
+            key2 = ZALO_CONFIG["key2"]
+
+
+            # Kiểm tra MAC (Giữ nguyên code của bạn)
+            mac = hmac.new(key2.encode(), data.encode(), hashlib.sha256).hexdigest()
+
+            if req_mac != mac:
+                result["return_code"] = -1
+                result["return_message"] = "Mac not equal"
+            else:
+                # MAC chuẩn -> Lấy ID khóa học ra
+                data_json = json.loads(data)
+                app_trans_id = data_json.get("app_trans_id")
+                zp_trans_id = data_json.get("zp_trans_id")
+                embed_data_json = json.loads(data_json["embed_data"])
+                enrollment_id = embed_data_json.get("enrollment_id")
+
+                print(f"✅ Thanh toán thành công cho Enrollment ID: {enrollment_id}")
+
+                # --- ĐOẠN QUAN TRỌNG NHẤT: GỌI SANG PYTHONANYWHERE ---
+                # Thay vì Payment.objects.get... ta gọi API
+
+                PA_URL = "https://courseapp.pythonanywhere.com/payments/zalo-confirm/"
+
+                try:
+                    # 2. Gửi enrollment_id trong BODY (json) thay vì trên URL
+                    payload = {
+                        "enrollment_id": enrollment_id,
+                        "status": "PAID",
+                        "app_trans_id": app_trans_id,
+                        "zp_trans_id": zp_trans_id,
+                    }
+
+                    # Gọi POST
+                    res = requests.post(PA_URL, json=payload)
+                    print("Server chính phản hồi:", res.status_code, res.text)
+
+                except Exception as err:
+                    print("Lỗi gọi Server chính:", err)
+
+                # ------------------------------------------
+
+                result["return_code"] = 1
+                result["return_message"] = "success"
+            return Response(result)
+        except Exception as e:
+            print("Lỗi ipn: ", str(e))
+
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]
 
@@ -629,6 +979,7 @@ class StatView(viewsets.ViewSet):
             "total_lecturers": total_lecturers,
             "total_revenue": total_revenue
         }, status=status.HTTP_200_OK)
+
 
 
 class CommentView(viewsets.ViewSet, generics.UpdateAPIView, generics.DestroyAPIView):

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { Chip } from "react-native-paper";
@@ -21,45 +22,6 @@ const Home = () => {
     { label: "Giá cao", value: "price_desc" },
   ];
 
-  const isTokenValid = (token) => {
-    if (!token) return false;
-    try {
-      const decoded = jwtDecode(token);
-      return decoded.exp >= Date.now() / 1000;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const checkPaymentStatus = async () => {
-    const pendingEnrollId = await AsyncStorage.getItem("current_payment_id");
-    if (pendingEnrollId) {
-      console.log("Tìm thấy giao dịch treo, đang kiểm tra...", pendingEnrollId);
-      try {
-        let token = await AsyncStorage.getItem("token");
-        if (!isTokenValid(token)) {
-          await AsyncStorage.removeItem("token");
-          return;
-        }
-        let res = await authApis(token).get(endpoints["my-courses"]);
-        let isSuccess = res.data.find(
-          (c) => String(c.course.id) === String(pendingEnrollId)
-        );
-        if (isSuccess && isSuccess.status === "ACTIVE") {
-          Alert.alert("Thanh toán thành công!", "Khóa học đã được kích hoạt.");
-          await AsyncStorage.removeItem("current_payment_id");
-        }
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
-
-  useFocusEffect(
-    useCallback(() => {
-      checkPaymentStatus();
-    }, [])
-  );
 
   return (
     <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>

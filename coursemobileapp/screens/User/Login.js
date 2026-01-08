@@ -71,19 +71,30 @@ const Login = ({ route }) => {
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
           }
         );
+        console.info(res.data);
+        AsyncStorage.setItem("token", res.data.access_token);
 
-        const accessToken = res.data.access_token;
-        await AsyncStorage.setItem("token", accessToken);
-        let userRes = await authApis(accessToken).get(endpoints["current-user"]);
-        await AsyncStorage.setItem("user", JSON.stringify(userRes.data));
+        setTimeout(async () => {
+          let user = await authApis(res.data.access_token).get(
+            endpoints["current-user"]
+          );
+          console.info(user.data);
 
-        dispatch({
-          type: "login",
-          payload: userRes.data,
-        });
+          dispatch({
+            type: "login",
+            payload: userRes.data,
+          });
+          const next = route.params?.next;
+          const nextParams = route.params?.nextParams;
 
-        const next = route.params?.next;
-        if (next) nav.navigate(next);
+          if (next) {
+            setTimeout(() => {
+              nav.navigate(next, nextParams);
+            }, 500);
+          } else {
+            nav.navigate("Main");
+          }
+        }, 500);
 
       } catch (ex) {
         console.error(ex);

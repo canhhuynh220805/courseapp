@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState} from "react";
 import {
   ActivityIndicator,
   Image,
@@ -8,13 +8,17 @@ import {
   View,
   FlatList,
 } from "react-native";
-import Apis, { authApis, endpoints } from "../utils/Apis";
-import { Searchbar } from "react-native-paper";
-import { useNavigation } from "@react-navigation/native";
-import styles, { COLORS } from "../screens/Home/styles";
-import { Ionicons } from "@expo/vector-icons";
+import {FlatList} from "react-native";
+import Apis, {authApis, endpoints} from "../utils/Apis";
+import {List, Searchbar} from "react-native-paper";
+import {useFocusEffect, useNavigation} from "@react-navigation/native";
+import styles, {COLORS} from "../screens/Home/styles";
+import {Ionicons} from "@expo/vector-icons";
+import Slider from "@react-native-community/slider";
 import PaymentModal from "../screens/PaymentModal/PaymentModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Searchbar } from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
 
 const Courses = ({ cate, ordering }) => {
   const [courses, setCourses] = useState([]);
@@ -83,7 +87,12 @@ const Courses = ({ cate, ordering }) => {
       const ids = res.data.map((item) => item.course?.id || item.id);
       setEnrolledIds(ids);
     } catch (ex) {
-      console.error(ex);
+      if (ex.response && ex.response.status == 401) {
+        console.log("Token bị Server từ chối -> Logout");
+        await AsyncStorage.removeItem("token");
+      } else {
+        console.error(ex);
+      }
     }
   };
 
@@ -105,18 +114,23 @@ const Courses = ({ cate, ordering }) => {
   }, [q, cate, priceRange, ordering]);
 
   const loadMore = () => {
-    if (page > 0 && !loading) setPage(page + 1);
+    if (page > 0 && !loading && courses.length > 0) setPage(page + 1);
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      checkIsEnrolled();
+    }, [])
+  );
   return (
-    <View style={[styles.container, { flex: 1 }]}>
+    <View style={[styles.container, {flex: 1}]}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <Searchbar
             placeholder="Tìm khóa học..."
             value={q}
             onChangeText={setQ}
-            style={{ elevation: 0, backgroundColor: "transparent", flex: 1 }}
+            style={{elevation: 0, backgroundColor: "transparent", flex: 1}}
             inputStyle={styles.searchInput}
             iconColor="#6b7280"
           />
@@ -166,7 +180,7 @@ const Courses = ({ cate, ordering }) => {
       )}
 
       <FlatList
-        style={{ flex: 1 }}
+        style={{flex: 1}}
         contentContainerStyle={styles.courseList}
         keyExtractor={(item) => item.id.toString()}
         ListFooterComponent={
@@ -179,13 +193,13 @@ const Courses = ({ cate, ordering }) => {
             style={styles.courseCard}
             onPress={() =>
               item.is_free || enrolledIds.includes(item.id)
-                ? nav.navigate("Lesson", { courseId: item.id })
+                ? nav.navigate("Lesson", {courseId: item.id})
                 : handleRegisterCourse(item)
             }
             activeOpacity={0.9}
           >
-            <Image source={{ uri: item.image }} style={styles.courseImage} />
 
+            <Image source={{ uri: item.image }} style={styles.courseImage} />
             <View style={styles.courseContent}>
               <Text style={styles.courseTitle} numberOfLines={1}>
                 {item.subject}

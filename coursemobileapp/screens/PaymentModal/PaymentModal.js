@@ -15,7 +15,7 @@ import Apis, { authApis, endpoints } from "../../utils/Apis";
 import { MyUserContext } from "../../utils/contexts/MyContext";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { MoMoStrategy, PayPalStrategy, ZaloPayStrategy } from "./PaymentStrategy";
+import {MoMoStrategy, VNPayStrategy, ZaloPayStrategy} from "./PaymentStrategy";
 
 function PaymentModal({ visible, onClose, course }) {
   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -25,12 +25,12 @@ function PaymentModal({ visible, onClose, course }) {
   const PAYMENT_STRATEGIES = {
     momo: MoMoStrategy,
     zalopay: ZaloPayStrategy, // Gán tạm vào bảo trì
-    paypal: PayPalStrategy, // Gán tạm vào bảo trì
+    vnpay: VNPayStrategy, // Gán tạm vào bảo trì
   };
   const paymentMethods = [
-    { id: "momo", name: "MoMo", icon: "wallet" },
-    { id: "zalopay", name: "ZaloPay", icon: "card" },
-    { id: "paypal", name: "PayPal", icon: "logo-paypal" },
+    {id: "momo", name: "MoMo", icon: "wallet"},
+    {id: "zalopay", name: "ZaloPay", icon: "card"},
+    {id: "vnpay", name: "VNPay", icon: "qr-code"},
   ];
 
   const handlePayment = async (PaymentStrategy) => {
@@ -47,7 +47,8 @@ function PaymentModal({ visible, onClose, course }) {
             authApis,
             endpoints,
             token,
-            resEnroll.data.id
+            resEnroll.data.id,
+            course.price
           );
         } else {
           console.warn("Không tìm thấy chiến lược thanh toán phù hợp");
@@ -65,7 +66,7 @@ function PaymentModal({ visible, onClose, course }) {
         console.error("❌ LỖI KHÁC:", ex);
       }
     } finally {
-      if (!selectedPayment) setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -194,7 +195,7 @@ function PaymentModal({ visible, onClose, course }) {
                   styles.confirmButton,
                   (!selectedPayment || loading) && styles.confirmButtonDisabled,
                 ]}
-                onPress={() => nav.navigate("Login")}
+                onPress={() => nav.navigate("Auth", {screen: "Login"})}
               >
                 <Text style={[styles.confirmButtonText, { textAlign: "center" }]}>
                   Đăng nhập để thanh toán
