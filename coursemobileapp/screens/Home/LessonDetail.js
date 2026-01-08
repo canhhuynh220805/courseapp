@@ -12,9 +12,9 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-import {Ionicons} from "@expo/vector-icons";
-import {SafeAreaView} from "react-native";
-import YoutubePlayer from "react-native-youtube-iframe"; // Import thư viện
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native";
+import YoutubePlayer from "react-native-youtube-iframe";
 import styles from "./styles";
 import Apis, {authApis, endpoints} from "../../utils/Apis";
 import {MyUserContext} from "../../utils/contexts/MyContext";
@@ -156,6 +156,7 @@ function LessonDetail({route, navigation}) {
   };
 
   const addComment = async () => {
+    if (!content.trim()) return;
     try {
       let token = await AsyncStorage.getItem("token");
       let res = await authApis(token).post(endpoints["add-comment"](lessonId), {

@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { FlatList, View, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { FlatList, View, ActivityIndicator, Keyboard } from 'react-native';
 import { Avatar, ProgressBar, Text, Divider, Title, Caption, Searchbar } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,7 +21,7 @@ const StudentProgress = ({ route }) => {
             }
 
             let res = await authApis(token).get(url);
-            setStudents(res.data);
+            setStudents(res.data || []);
         } catch (ex) {
             console.error("Lỗi tải tiến độ sinh viên:", ex);
         } finally {
@@ -34,31 +34,34 @@ const StudentProgress = ({ route }) => {
     }, [courseId]);
 
     const onChangeSearch = query => setSearchQuery(query);
-    const onSearch = () => loadStudents(searchQuery);
+    const onSearch = () => {
+        Keyboard.dismiss();
+        loadStudents(searchQuery);
+    };
 
     const renderHeader = () => (
-        <View>
+        <View style={{ backgroundColor: '#fff' }}>
             <View style={styles.headerContainer}>
                 <Title style={styles.headerTitle}>Tiến độ học tập</Title>
                 <Caption style={styles.headerSubtitle}>{courseName || "Chi tiết khóa học"}</Caption>
             </View>
-            <View style={{ paddingHorizontal: 16, paddingBottom: 10, backgroundColor: '#f9fafb' }}>
+            <View style={{ paddingHorizontal: 16, paddingBottom: 10, backgroundColor: '#fff' }}>
                 <Searchbar
                     placeholder="Tìm tên học viên..."
                     onChangeText={onChangeSearch}
                     value={searchQuery}
                     onIconPress={onSearch}
                     onSubmitEditing={onSearch}
-                    style={{ elevation: 0, borderWidth: 1, borderColor: '#e5e7eb' }}
+                    style={{ elevation: 0, borderWidth: 1, borderColor: '#e5e7eb', backgroundColor: '#f9fafb' }}
                 />
             </View>
         </View>
     );
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { flex: 1, backgroundColor: '#fff' }]}>
             {loading && students.length === 0 ? (
-                <View style={styles.centered}>
+                <View style={[styles.centered, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
                     <ActivityIndicator color={PRIMARY_COLOR} size="large" />
                 </View>
             ) : (
@@ -68,31 +71,48 @@ const StudentProgress = ({ route }) => {
                     keyExtractor={item => item.id.toString()}
                     ItemSeparatorComponent={() => <Divider style={styles.divider} />}
                     ListEmptyComponent={
-                        <Text style={styles.emptyText}>
+                        <Text style={[styles.emptyText, { textAlign: 'center', marginTop: 20 }]}>
                             {searchQuery ? "Không tìm thấy học viên phù hợp." : "Chưa có sinh viên đăng ký khóa học này."}
                         </Text>
                     }
                     renderItem={({ item }) => (
-                        <View style={styles.studentItem}>
-                            <View style={styles.leftContent}>
+                        <View style={[styles.studentItem, {
+                            flexDirection: 'row',
+                            padding: 16,
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                        }]}>
+                            <View style={[styles.leftContent, { flexDirection: 'row', alignItems: 'center', flex: 1 }]}>
                                 {item.user.avatar ? (
                                     <Avatar.Image size={48} source={{ uri: item.user.avatar }} />
                                 ) : (
-                                    <Avatar.Text size={48} label={item.user.username?.[0]?.toUpperCase()}
-                                        style={{ backgroundColor: '#dbeafe' }} color={PRIMARY_COLOR} />
+                                    <Avatar.Text
+                                        size={48}
+                                        label={item.user.username?.[0]?.toUpperCase() || "?"}
+                                        style={{ backgroundColor: '#dbeafe' }}
+                                        color={PRIMARY_COLOR}
+                                    />
                                 )}
-                                <View style={styles.info}>
-                                    <Text style={styles.username}>{item.user.username}</Text>
-                                    <Caption>{item.user.email || "Không có email"}</Caption>
+                                <View style={[styles.info, { marginLeft: 12, flex: 1 }]}>
+                                    <Text style={[styles.username, { fontWeight: 'bold', fontSize: 15 }]} numberOfLines={1}>
+                                        {item.user.username}
+                                    </Text>
+                                    <Caption numberOfLines={1}>{item.user.email || "Không có email"}</Caption>
                                 </View>
                             </View>
 
-                            <View style={styles.rightContent}>
-                                <View style={styles.progressLabelContainer}>
-                                    <Text style={styles.progressLabel}>Tiến độ</Text>
-                                    <Text style={styles.progressValue}>{item.progress}%</Text>
+                            <View style={[styles.rightContent, { width: 100, marginLeft: 10 }]}>
+                                <View style={[styles.progressLabelContainer, { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }]}>
+                                    <Text style={[styles.progressLabel, { fontSize: 12, color: '#64748b' }]}>Tiến độ</Text>
+                                    <Text style={[styles.progressValue, { fontSize: 12, fontWeight: 'bold', color: PRIMARY_COLOR }]}>
+                                        {item.progress}%
+                                    </Text>
                                 </View>
-                                <ProgressBar progress={item.progress / 100} color={PRIMARY_COLOR} style={styles.progressBar} />
+                                <ProgressBar
+                                    progress={(item.progress || 0) / 100}
+                                    color={PRIMARY_COLOR}
+                                    style={[styles.progressBar, { height: 6, borderRadius: 3 }]}
+                                />
                             </View>
                         </View>
                     )}
