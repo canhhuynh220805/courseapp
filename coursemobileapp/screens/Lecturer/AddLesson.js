@@ -4,12 +4,13 @@ import { TextInput, Button, Title, Caption } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import styles, { PRIMARY_COLOR } from './styles';
+import { useAlert } from '../../utils/contexts/AlertContext';
 
 const AddLesson = ({ route, navigation }) => {
     const { courseId, courseName, lesson: existingLesson } = route.params;
     const [lesson, setLesson] = useState({ subject: '', content: '', video: '' });
     const [loading, setLoading] = useState(false);
-
+    const showAlert = useAlert();
     useEffect(() => {
         if (existingLesson) {
             setLesson({
@@ -22,7 +23,7 @@ const AddLesson = ({ route, navigation }) => {
 
     const handleSaveLesson = async () => {
         if (!lesson.subject?.trim() || !lesson.content?.trim()) {
-            Alert.alert("Lỗi", "Vui lòng điền đủ tiêu đề và nội dung!");
+            showAlert("Lỗi", "Vui lòng điền đủ tiêu đề và nội dung!", "error");
             return;
         }
         setLoading(true);
@@ -36,11 +37,11 @@ const AddLesson = ({ route, navigation }) => {
             } else {
                 await authApis(token).post(endpoints['add-lesson'], payload);
             }
-            Alert.alert("Thành công", "Đã lưu bài học!");
+            showAlert("Thành công", "Đã lưu bài học!", "success");
             navigation.goBack();
         } catch (ex) {
             console.error(ex);
-            Alert.alert("Lỗi", "Không thể lưu.");
+            showAlert("Lỗi", "Không thể lưu.", "error");
         } finally {
             setLoading(false);
         }
@@ -52,10 +53,8 @@ const AddLesson = ({ route, navigation }) => {
             style={{ flex: 1 }}
         >
             <ScrollView style={{ flex: 1, backgroundColor: '#fff' }} showsVerticalScrollIndicator={false}>
-                {/* Dùng styles.container để lấy paddingHorizontal: 16 */}
                 <View style={styles.container}>
 
-                    {/* Phần tiêu đề: Thêm paddingVertical để không dính trần */}
                     <View style={{ paddingVertical: 20 }}>
                         <Title style={styles.title}>
                             {existingLesson ? "Sửa bài học" : "Thêm bài học"}
@@ -63,7 +62,6 @@ const AddLesson = ({ route, navigation }) => {
                         <Caption style={{ fontSize: 14 }}>Khóa học: {courseName}</Caption>
                     </View>
 
-                    {/* Phần Form nhập liệu */}
                     <View style={styles.form}>
                         <TextInput
                             label="Tiêu đề bài học"
