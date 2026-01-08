@@ -9,11 +9,11 @@ import {
   View,
 } from "react-native";
 import MyStyles from "../../styles/MyStyles";
-import {Button, HelperText, TextInput} from "react-native-paper";
+import { Button, HelperText, TextInput } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
-import {useState} from "react";
-import Apis, {endpoints} from "../../utils/Apis";
-import {useNavigation} from "@react-navigation/native";
+import { useState } from "react";
+import Apis, { endpoints } from "../../utils/Apis";
+import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import RegisterStyle from "./RegisterStyle";
 
@@ -68,7 +68,7 @@ const Register = () => {
       const res = await axios.post(
         "https://api.cloudinary.com/v1_1/dpl8syyb9/image/upload",
         data,
-        {headers: {"Content-Type": "multipart/form-data"}}
+        { headers: { "Content-Type": "multipart/form-data" } }
       );
 
       return res.data.secure_url;
@@ -79,14 +79,14 @@ const Register = () => {
   };
 
   const pickImage = async () => {
-    let {status} = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    let { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (status !== "granted") {
       alert("Permissions denied!");
     } else {
       const result = await ImagePicker.launchImageLibraryAsync();
       if (!result.canceled) {
-        setUser({...user, avatar: result.assets[0]});
+        setUser({ ...user, avatar: result.assets[0] });
       }
     }
   };
@@ -165,7 +165,7 @@ const Register = () => {
 
           <View style={RegisterStyle.form}>
             {/* Error Message */}
-            <HelperText type="error" visible={err} style={{marginBottom: 8}}>
+            <HelperText type="error" visible={err} style={{ marginBottom: 8 }}>
               Mật khẩu KHÔNG khớp!
             </HelperText>
 
@@ -177,9 +177,9 @@ const Register = () => {
                   outlineColor="#e5e7eb"
                   activeOutlineColor="#2563eb"
                   placeholder={`Nhập ${i.title.toLowerCase()}`}
-                  style={{backgroundColor: "#f9fafb"}}
+                  style={{ backgroundColor: "#f9fafb" }}
                   value={user[i.field]}
-                  onChangeText={(t) => setUser({...user, [i.field]: t})}
+                  onChangeText={(t) => setUser({ ...user, [i.field]: t })}
                   secureTextEntry={i.secureTextEntry}
                   right={<TextInput.Icon icon={i.icon} color="#6b7280" />}
                 />
@@ -192,11 +192,11 @@ const Register = () => {
               <TouchableOpacity
                 style={[
                   RegisterStyle.inputWrapper,
-                  {borderStyle: "dashed", justifyContent: "center"},
+                  { borderStyle: "dashed", justifyContent: "center" },
                 ]}
                 onPress={pickImage}
               >
-                <Text style={{color: "#2563eb", fontWeight: "500"}}>
+                <Text style={{ color: "#2563eb", fontWeight: "500" }}>
                   {user.avatar
                     ? "Thay đổi ảnh đại diện"
                     : "Chọn ảnh từ thư viện..."}
@@ -205,9 +205,9 @@ const Register = () => {
             </View>
 
             {user.avatar && (
-              <View style={{alignItems: "center", marginBottom: 20}}>
+              <View style={{ alignItems: "center", marginBottom: 20 }}>
                 <Image
-                  source={{uri: user.avatar.uri}}
+                  source={{ uri: user.avatar.uri }}
                   style={{
                     width: 100,
                     height: 100,
@@ -225,7 +225,7 @@ const Register = () => {
               disabled={loading}
               mode="contained"
               onPress={register}
-              contentStyle={{height: 56}}
+              contentStyle={{ height: 56 }}
               style={RegisterStyle.registerButton}
               labelStyle={RegisterStyle.registerButtonText}
               icon="account-plus"

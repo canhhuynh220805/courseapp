@@ -6,6 +6,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  FlatList,
 } from "react-native";
 import {FlatList} from "react-native";
 import Apis, {authApis, endpoints} from "../utils/Apis";
@@ -16,8 +17,10 @@ import {Ionicons} from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import PaymentModal from "../screens/PaymentModal/PaymentModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Searchbar } from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
 
-const Courses = ({cate}) => {
+const Courses = ({ cate, ordering }) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState("");
@@ -33,31 +36,24 @@ const Courses = ({cate}) => {
     setSelectedCourse(course);
     setPaymentModalVisible(true);
   };
+
   const loadCourses = async () => {
     try {
       setLoading(true);
-      let url = `${endpoints["courses"]}?page=${page}`;
 
-      if (q) {
-        url = `${url}&q=${q}`;
-      }
+      let url = `${endpoints["courses"]}?page=${page}&ordering=${ordering}`;
 
-      if (cate) {
-        url = `${url}&category_id=${cate}`;
-      }
+      if (q) url = `${url}&q=${q}`;
+      if (cate) url = `${url}&category_id=${cate}`;
+      if (priceRange[0] > 0) url = `${url}&min_price=${priceRange[0]}`;
+      if (priceRange[1] > 0) url = `${url}&max_price=${priceRange[1]}`;
 
-      if (priceRange[0] > 0) {
-        url = `${url}&min_price=${priceRange[0]}`;
-      }
-
-      if (priceRange[1] > 0) {
-        url = `${url}&max_price=${priceRange[1]}`;
-      }
-
-      console.info(url);
+      console.info("Fetching URL:", url);
 
       let res = await Apis.get(url);
-      if (res.data.next === null) setPage(0);
+
+      if (res.data.next === null && page > 1) {
+      }
 
       if (page === 1) setCourses(res.data.results);
       else if (page > 1) setCourses([...courses, ...res.data.results]);
@@ -82,13 +78,13 @@ const Courses = ({cate}) => {
     setPriceRange([0, 100000000]);
   };
 
-  const checkIsEnrolled = async (courseId) => {
+  const checkIsEnrolled = async () => {
     try {
       setEnrolledIds([]);
       let token = await AsyncStorage.getItem("token");
       if (!token) return;
       let res = await authApis(token).get(endpoints["my-courses"]);
-      const ids = res.data.map((c) => c.course.id);
+      const ids = res.data.map((item) => item.course?.id || item.id);
       setEnrolledIds(ids);
     } catch (ex) {
       if (ex.response && ex.response.status == 401) {
@@ -101,16 +97,22 @@ const Courses = ({cate}) => {
   };
 
   useEffect(() => {
+    checkIsEnrolled();
+  }, [])
+
+  useEffect(() => {
     let timer = setTimeout(() => {
       if (page > 0) loadCourses();
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [q, page, cate, priceRange]);
+  }, [q, page, cate, priceRange, ordering]);
 
   useEffect(() => {
     setPage(1);
-  }, [q, cate, priceRange]);
+    setCourses([]);
+  }, [q, cate, priceRange, ordering]);
+
   const loadMore = () => {
     if (page > 0 && !loading && courses.length > 0) setPage(page + 1);
   };
@@ -140,6 +142,7 @@ const Courses = ({cate}) => {
           </TouchableOpacity>
         </View>
       </View>
+
       {showPriceFilter && (
         <View style={styles.priceFilterContainer}>
           <View style={styles.headerRow}>
@@ -148,9 +151,7 @@ const Courses = ({cate}) => {
               <Text style={styles.resetText}>Đặt lại</Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.row}>
-            {/* Ô INPUT MIN */}
             <View style={styles.inputWrapper}>
               <Text style={styles.subLabel}>Từ</Text>
               <TextInput
@@ -158,15 +159,9 @@ const Courses = ({cate}) => {
                 keyboardType="numeric"
                 value={String(priceRange[0])}
                 onChangeText={handleChangeMin}
-                placeholder="0"
-                placeholderTextColor={COLORS.textLight}
               />
             </View>
-
-            {/* Dấu gạch ngang ở giữa */}
             <Text style={styles.dash}>-</Text>
-
-            {/* Ô INPUT MAX */}
             <View style={styles.inputWrapper}>
               <Text style={styles.subLabel}>Đến</Text>
               <TextInput
@@ -174,39 +169,28 @@ const Courses = ({cate}) => {
                 keyboardType="numeric"
                 value={String(priceRange[1])}
                 onChangeText={handleChangeMax}
-                placeholder="Max"
-                placeholderTextColor={COLORS.textLight}
               />
             </View>
           </View>
-
-          {/* Dòng hiển thị kết quả format */}
           <Text style={styles.previewText}>
             {priceRange[0].toLocaleString("vi-VN")} đ —{" "}
             {priceRange[1].toLocaleString("vi-VN")} đ
           </Text>
         </View>
       )}
+
       <FlatList
         style={{flex: 1}}
         contentContainerStyle={styles.courseList}
         keyExtractor={(item) => item.id.toString()}
         ListFooterComponent={
-          loading && (
-            <ActivityIndicator
-              size="large"
-              color="#2563eb"
-              style={{margin: 16}}
-            />
-          )
+          loading && <ActivityIndicator size="large" color="#2563eb" style={{ margin: 16 }} />
         }
         onEndReached={loadMore}
         data={courses}
-        renderItem={({item}) => (
-          /* KHÔNG dùng List.Item ở đây nữa */
+        renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.courseCard}
-            // onPress={() => nav.navigate("Lesson", {courseId: item.id})}
             onPress={() =>
               item.is_free || enrolledIds.includes(item.id)
                 ? nav.navigate("Lesson", {courseId: item.id})
@@ -214,10 +198,8 @@ const Courses = ({cate}) => {
             }
             activeOpacity={0.9}
           >
-            {/* Hình ảnh chiếm trọn phía trên Card */}
-            <Image source={{uri: item.image}} style={styles.courseImage} />
 
-            {/* Phần nội dung bên dưới ảnh */}
+            <Image source={{ uri: item.image }} style={styles.courseImage} />
             <View style={styles.courseContent}>
               <Text style={styles.courseTitle} numberOfLines={1}>
                 {item.subject}
@@ -229,20 +211,17 @@ const Courses = ({cate}) => {
 
               <View style={styles.courseFooter}>
                 <View style={styles.levelBadge}>
-                  {item.is_free ? (
-                    <Text style={styles.levelBadgeText}>
-                      Giảng viên: {item.lecturer?.last_name}
-                      {item.lecturer?.first_name}
-                    </Text>
-                  ) : (
-                    <Text style={styles.levelBadgeText}>
-                      Giảng viên: {item.lecturer?.last_name}
-                      {item.lecturer?.first_name}
-                    </Text>
-                  )}
+                  <Text style={styles.levelBadgeText}>
+                    Giảng viên: {item.lecturer?.last_name} {item.lecturer?.first_name}
+                  </Text>
                 </View>
+
                 <Text style={styles.coursePrice}>
-                  {item.is_free ? "Miễn phí" : `${item.price} VNĐ`}
+                  {enrolledIds.includes(item.id)
+                    ? "Đã đăng ký"
+                    : item.price === 0 || item.is_free
+                      ? "Miễn phí"
+                      : `${parseInt(item.price).toLocaleString("vi-VN")} VNĐ`}
                 </Text>
               </View>
             </View>

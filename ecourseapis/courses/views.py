@@ -40,6 +40,9 @@ class CourseView(viewsets.ModelViewSet):
     def get_queryset(self):
         queries = self.queryset
         user = self.request.user
+
+        queries = queries.annotate(student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)))
+
         if user.is_authenticated and user.role == User.Role.LECTURER:
             queries = Course.objects.filter(lecturer=user)
         else:
@@ -61,8 +64,14 @@ class CourseView(viewsets.ModelViewSet):
             queries = queries.filter(price__lte=max_price)
 
         ordering = self.request.query_params.get("ordering")
-        if ordering in ['subject', 'price', '-subject', '-price']:
-            queries = queries.order_by(ordering)
+        if ordering == 'popular':
+            queries = queries.order_by('-student_count', '-id')
+        elif ordering == 'newest':
+            queries = queries.order_by('-id')
+        elif ordering == 'price_asc':
+            queries = queries.order_by('price')
+        elif ordering == 'price_desc':
+            queries = queries.order_by('-price')
         else:
             queries = queries.order_by('-id')
         return queries
@@ -837,7 +846,7 @@ class StatView(viewsets.ViewSet):
 
         course_qs = Course.objects.filter(active=True)
         enrollment_qs = Enrollment.objects.filter(status=Enrollment.Status.ACTIVE)
-        payment_qs = Payment.objects.all()
+        payment_qs = Payment.objects.filter(status = Payment.Status.COMPLETED)
 
         total_students = 0
         total_revenue = 0

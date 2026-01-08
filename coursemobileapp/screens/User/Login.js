@@ -1,4 +1,4 @@
-import React, {useContext, useState} from "react";
+import React, { useContext, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -6,12 +6,12 @@ import {
   Text,
   View,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import MyStyles from "../../styles/MyStyles";
-import {useNavigation} from "@react-navigation/native";
-import {Button, HelperText, TextInput} from "react-native-paper";
+import { useNavigation } from "@react-navigation/native";
+import { Button, HelperText, TextInput } from "react-native-paper";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAlert } from "../../utils/contexts/AlertContext";
 
 import Apis, {
   authApis,
@@ -19,12 +19,12 @@ import Apis, {
   CLIENT_SECRET,
   endpoints,
 } from "../../utils/Apis";
-import {MyUserContext} from "../../utils/contexts/MyContext";
+import { MyUserContext } from "../../utils/contexts/MyContext";
 import LoginStyle from "./LoginStyle";
 
 const PRIMARY_COLOR = "#2563eb";
 
-const Login = ({route}) => {
+const Login = ({ route }) => {
   const [user, setUser] = useState({
     username: "",
     password: "",
@@ -34,6 +34,7 @@ const Login = ({route}) => {
 
   const nav = useNavigation();
   const [, dispatch] = useContext(MyUserContext);
+  const showAlert = useAlert();
 
   const info = [
     {
@@ -63,26 +64,22 @@ const Login = ({route}) => {
       try {
         setLoading(true);
 
-        // 1. Gửi yêu cầu lấy Access Token (OAuth2)
         const res = await Apis.post(
           endpoints["login"],
           `grant_type=password&username=${user.username}&password=${user.password}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`,
           {
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
           }
         );
-        console.info(res.data);
-        AsyncStorage.setItem("token", res.data.access_token);
 
-        setTimeout(async () => {
-          let user = await authApis(res.data.access_token).get(
-            endpoints["current-user"]
-          );
-          console.info(user.data);
+        const accessToken = res.data.access_token;
+        await AsyncStorage.setItem("token", accessToken);
+        let userRes = await authApis(accessToken).get(endpoints["current-user"]);
+        await AsyncStorage.setItem("user", JSON.stringify(userRes.data));
 
           dispatch({
             type: "login",
-            payload: user.data,
+            payload: userRes.data,
           });
           const next = route.params?.next;
           const nextParams = route.params?.nextParams;
@@ -95,10 +92,13 @@ const Login = ({route}) => {
             nav.navigate("Main");
           }
         }, 500);
+
       } catch (ex) {
-        Alert.alert(
+        console.error(ex);
+        showAlert(
           "Lỗi đăng nhập",
-          "Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại!"
+          "Tên đăng nhập hoặc mật khẩu không đúng. Vui lòng thử lại!",
+          "error"
         );
       } finally {
         setLoading(false);
@@ -112,7 +112,7 @@ const Login = ({route}) => {
       style={LoginStyle.container}
     >
       <View style={LoginStyle.header}>
-        <Text style={[LoginStyle.title, {color: PRIMARY_COLOR}]}>
+        <Text style={[LoginStyle.title, { color: PRIMARY_COLOR }]}>
           ĐĂNG NHẬP
         </Text>
         <Text style={LoginStyle.subtitle}>Vui lòng đăng nhập để tiếp tục</Text>
@@ -123,7 +123,7 @@ const Login = ({route}) => {
         contentContainerStyle={LoginStyle.scrollContent}
       >
         <View style={LoginStyle.content}>
-          <HelperText type="error" visible={err} style={{marginBottom: 10}}>
+          <HelperText type="error" visible={err} style={{ marginBottom: 10 }}>
             Vui lòng nhập đầy đủ thông tin tài khoản!
           </HelperText>
 
@@ -134,9 +134,9 @@ const Login = ({route}) => {
                 outlineColor="#e5e7eb"
                 activeOutlineColor="#2563eb"
                 key={i.field}
-                style={{backgroundColor: "#f9fafb"}}
+                style={{ backgroundColor: "#f9fafb" }}
                 value={user[i.field]}
-                onChangeText={(t) => setUser({...user, [i.field]: t})}
+                onChangeText={(t) => setUser({ ...user, [i.field]: t })}
                 label={i.title}
                 secureTextEntry={i.secureTextEntry}
                 right={<TextInput.Icon icon={i.icon} color="#6b7280" />}
@@ -153,12 +153,12 @@ const Login = ({route}) => {
             disabled={loading}
             style={[
               LoginStyle.loginButton,
-              {backgroundColor: loading ? "#93c5fd" : "#2563eb"},
+              { backgroundColor: loading ? "#93c5fd" : "#2563eb" },
             ]}
             icon="login"
             mode="contained"
             onPress={login}
-            contentStyle={{height: 50}}
+            contentStyle={{ height: 50 }}
             labelStyle={LoginStyle.loginButtonText}
           >
             Đăng nhập
@@ -167,7 +167,7 @@ const Login = ({route}) => {
           <View style={LoginStyle.signupContainer}>
             <Text style={LoginStyle.signupText}>Chưa có tài khoản? </Text>
             <TouchableOpacity onPress={() => nav.navigate("Register")}>
-              <Text style={[LoginStyle.signupLink, {color: PRIMARY_COLOR}]}>
+              <Text style={[LoginStyle.signupLink, { color: PRIMARY_COLOR }]}>
                 Đăng ký ngay
               </Text>
             </TouchableOpacity>
