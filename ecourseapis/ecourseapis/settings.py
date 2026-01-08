@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import os
 
@@ -12,7 +11,8 @@ SECRET_KEY = 'django-insecure-8ye3$t#ae5*#28wv!179d4+7@dv*hfvamp501hh+4d2r)=ez*!
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com','127.0.0.1', 'localhost', '10.0.2.2', '*', 'courseapp.pythonanywhere.com']
+ALLOWED_HOSTS = ['canhdeptrai22.pythonanywhere.com', '127.0.0.1', 'localhost', '10.0.2.2', '*',
+                 'courseapp.pythonanywhere.com']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -64,8 +64,8 @@ WSGI_APPLICATION = 'ecourseapis.wsgi.application'
 
 # Database Setup
 import pymysql
-pymysql.install_as_MySQLdb()
 
+pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
@@ -151,6 +151,7 @@ ZALO_CONFIG = {
     "key2": "kLtgPl8HHhfvMuDHPwKfgfsY4Ydm9eIz",
     "endpoint": "https://sb-openapi.zalopay.vn/v2/create",
     "callback_url": "https://courseapp.pythonanywhere.com/payments/zalo-pay",
+    "callback_url2": "https://nonreparable-torpidly-eufemia.ngrok-free.dev/zalo-pay/ipn/"
 }
 
 VNPAY_CONFIG = {

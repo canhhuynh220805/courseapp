@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from "react";
 import { View, ScrollView, TouchableOpacity, StyleSheet } from "react-native";
 import { Chip } from "react-native-paper";
@@ -20,7 +21,6 @@ const Home = () => {
     { label: "Giá thấp", value: "price_asc" },
     { label: "Giá cao", value: "price_desc" },
   ];
-
 
 
   return (

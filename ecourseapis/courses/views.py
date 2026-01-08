@@ -4,6 +4,7 @@ from django.http import HttpResponse
 import json, hmac, hashlib, uuid, requests
 import urllib.parse
 from django.template import loader
+from rest_framework.views import APIView
 from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
@@ -773,6 +774,113 @@ def payment_return_vnpay(request):
     """
     return HttpResponse(html_content)
 
+class LocalZaloPaymentView(APIView):
+    def post(self, request):
+        try:
+            # Local Server không truy cập DB, nên App phải gửi kèm amount và enrollment_id
+            enrollment_id = request.data.get('enrollment_id')
+            amount = request.data.get('amount')  # App gửi số tiền sang luôn
+
+            if not enrollment_id or not amount:
+                return Response({"error": "Thiếu enrollment_id hoặc amount"}, status=400)
+
+            transID = int(round(time.time() * 1000))
+            app_trans_id = f"{datetime.now().strftime('%y%m%d')}_{transID}"
+
+            # Nhúng enrollment_id vào đây để lúc callback lấy ra dùng
+            embed_data = json.dumps({
+                "enrollment_id": enrollment_id,
+                "redirecturl": "exp://oid5eyu-anonymous-8081.exp.direct"  # Link về App
+            })
+
+            # Item giả lập (không cần query DB lấy tên môn học làm gì cho phức tạp)
+            items = json.dumps([{"id": enrollment_id, "price": amount}])
+
+            order = {
+                "app_id": ZALO_CONFIG["app_id"],
+                "app_trans_id": app_trans_id,
+                "app_user": "user_test",
+                "app_time": int(round(time.time() * 1000)),
+                "embed_data": embed_data,
+                "item": items,
+                "amount": int(amount),
+                "description": f"Thanh toan khoa hoc ID {enrollment_id}",
+                "bank_code": "",
+                "callback_url": ZALO_CONFIG["callback_url2"]
+            }
+
+            # Tạo MAC (Giữ nguyên code của bạn)
+            data = "{}|{}|{}|{}|{}|{}|{}".format(
+                order["app_id"], order["app_trans_id"], order["app_user"],
+                order["amount"], order["app_time"], order["embed_data"], order["item"]
+            )
+            order["mac"] = hmac.new(
+                ZALO_CONFIG["key1"].encode(), data.encode(), hashlib.sha256
+            ).hexdigest()
+
+            # Gửi sang ZaloPay
+            response = requests.post(ZALO_CONFIG["endpoint"], json=order)
+            return Response(response.json())
+
+        except Exception as e:
+            print(f"Lỗi Local: {str(e)}")
+            return Response({"error": str(e)}, status=400)
+
+
+class LocalZaloIPNView(APIView):
+    # 2. API NHẬN CALLBACK
+    def post(self, request):
+        result = {}
+        try:
+            data = request.data.get("data")
+            req_mac = request.data.get("mac")
+            key2 = ZALO_CONFIG["key2"]
+
+
+            # Kiểm tra MAC (Giữ nguyên code của bạn)
+            mac = hmac.new(key2.encode(), data.encode(), hashlib.sha256).hexdigest()
+
+            if req_mac != mac:
+                result["return_code"] = -1
+                result["return_message"] = "Mac not equal"
+            else:
+                # MAC chuẩn -> Lấy ID khóa học ra
+                data_json = json.loads(data)
+                app_trans_id = data_json.get("app_trans_id")
+                zp_trans_id = data_json.get("zp_trans_id")
+                embed_data_json = json.loads(data_json["embed_data"])
+                enrollment_id = embed_data_json.get("enrollment_id")
+
+                print(f"✅ Thanh toán thành công cho Enrollment ID: {enrollment_id}")
+
+                # --- ĐOẠN QUAN TRỌNG NHẤT: GỌI SANG PYTHONANYWHERE ---
+                # Thay vì Payment.objects.get... ta gọi API
+
+                PA_URL = "https://courseapp.pythonanywhere.com/payments/zalo-confirm/"
+
+                try:
+                    # 2. Gửi enrollment_id trong BODY (json) thay vì trên URL
+                    payload = {
+                        "enrollment_id": enrollment_id,
+                        "status": "PAID",
+                        "app_trans_id": app_trans_id,
+                        "zp_trans_id": zp_trans_id,
+                    }
+
+                    # Gọi POST
+                    res = requests.post(PA_URL, json=payload)
+                    print("Server chính phản hồi:", res.status_code, res.text)
+
+                except Exception as err:
+                    print("Lỗi gọi Server chính:", err)
+
+                # ------------------------------------------
+
+                result["return_code"] = 1
+                result["return_message"] = "success"
+            return Response(result)
+        except Exception as e:
+            print("Lỗi ipn: ", str(e))
 
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]

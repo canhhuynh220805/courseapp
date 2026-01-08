@@ -71,11 +71,14 @@ const Login = ({ route }) => {
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
           }
         );
+        console.info(res.data);
+        AsyncStorage.setItem("token", res.data.access_token);
 
-        const accessToken = res.data.access_token;
-        await AsyncStorage.setItem("token", accessToken);
-        let userRes = await authApis(accessToken).get(endpoints["current-user"]);
-        await AsyncStorage.setItem("user", JSON.stringify(userRes.data));
+        setTimeout(async () => {
+          let user = await authApis(res.data.access_token).get(
+            endpoints["current-user"]
+          );
+          console.info(user.data);
 
           dispatch({
             type: "login",
