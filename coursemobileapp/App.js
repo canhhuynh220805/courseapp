@@ -1,12 +1,12 @@
-import React, {useContext, useEffect, useReducer} from "react";
-import {NavigationContainer} from "@react-navigation/native";
-import {createNativeStackNavigator} from "@react-navigation/native-stack";
-import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
-import {Icon} from "react-native-paper";
-import {MyUserContext} from "./utils/contexts/MyContext";
+import React, { useContext, useEffect, useReducer } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Icon } from "react-native-paper";
+import { MyUserContext } from "./utils/contexts/MyContext";
 import MyUserReducer from "./utils/reducers/MyUserReducer";
-import {collection, query, where, onSnapshot} from "firebase/firestore";
-import {db} from "./utils/firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
+import { db } from "./utils/firebase";
 import Home from "./screens/Home/Home";
 import Lesson from "./screens/Home/Lesson";
 import LessonDetail from "./screens/Home/LessonDetail";
@@ -30,16 +30,16 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const AuthStack = () => (
-  <Stack.Navigator headerShown={false}>
+  <Stack.Navigator screenOptions={{headerShown: false}}>
     <Stack.Screen
       name="Login"
       component={Login}
-      options={{title: "Đăng nhập"}}
+      options={{ title: "Đăng nhập" }}
     />
     <Stack.Screen
       name="Register"
       component={Register}
-      options={{title: "Đăng ký"}}
+      options={{ title: "Đăng ký" }}
     />
   </Stack.Navigator>
 );
@@ -48,17 +48,17 @@ const CourseStack = () => (
     <Stack.Screen
       name="CourseHome"
       component={Home}
-      options={{ title: "Khóa học" }}
+      options={{title: "Khóa học"}}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{ title: "Bài học" }}
+      options={{title: "Bài học"}}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{ title: "Chi tiết bài học" }}
+      options={{title: "Chi tiết bài học"}}
     />
   </Stack.Navigator>
 );
@@ -68,17 +68,17 @@ const UserCourseStack = () => (
     <Stack.Screen
       name="UserCourseList"
       component={UserCourse}
-      options={{ title: "Khóa học của tôi" }}
+      options={{title: "Khóa học của tôi"}}
     />
     <Stack.Screen
       name="Lesson"
       component={Lesson}
-      options={{ title: "Bài học" }}
+      options={{title: "Bài học"}}
     />
     <Stack.Screen
       name="LessonDetail"
       component={LessonDetail}
-      options={{ title: "Chi tiết bài học" }}
+      options={{title: "Chi tiết bài học"}}
     />
   </Stack.Navigator>
 );
@@ -88,27 +88,27 @@ const LecturerStack = () => (
     <Stack.Screen
       name="LecturerHome"
       component={LecturerHome}
-      options={{title: "Quản lý giảng dạy"}}
+      options={{ title: "Quản lý giảng dạy" }}
     />
     <Stack.Screen
       name="ManageCourse"
       component={ManageCourse}
-      options={{title: "Chi tiết khóa học"}}
+      options={{ title: "Chi tiết khóa học" }}
     />
     <Stack.Screen
       name="AddCourse"
       component={AddCourse}
-      options={{title: "Tạo khóa học"}}
+      options={{ title: "Tạo khóa học" }}
     />
     <Stack.Screen
       name="AddLesson"
       component={AddLesson}
-      options={{title: "Thêm bài học"}}
+      options={{ title: "Thêm bài học" }}
     />
     <Stack.Screen
       name="StudentProgress"
       component={StudentProgress}
-      options={{title: "Kết quả học tập"}}
+      options={{ title: "Kết quả học tập" }}
     />
   </Stack.Navigator>
 );
@@ -118,12 +118,12 @@ const ChatStack = () => (
     <Stack.Screen
       name="ChatContacts"
       component={Chat}
-      options={{title: "Danh bạ chat"}}
+      options={{ title: "Danh bạ chat" }}
     />
     <Stack.Screen
       name="ChatDetail"
       component={ChatDetail}
-      options={({route}) => ({
+      options={({ route }) => ({
         title: route.params?.receiver?.username || "Phòng chat",
       })}
     />
@@ -135,28 +135,28 @@ const AdminStack = () => (
     <Stack.Screen
       name="AdminHome"
       component={AdminHome}
-      options={{title: "Admin Dashboard"}}
+      options={{ title: "Trang chủ quản trị viên" }}
     />
     <Stack.Screen
       name="StudentManagement"
       component={StudentManagement}
-      options={{title: "Quản lý Học viên"}}
+      options={{ title: "Quản lý Học viên" }}
     />
     <Stack.Screen
       name="LecturerManagement"
       component={LecturerManagement}
-      options={{title: "Quản lý Giảng viên"}}
+      options={{ title: "Quản lý Giảng viên" }}
     />
     <Stack.Screen
       name="Statistics"
       component={Statistics}
-      options={{title: "Thống kê hệ thống"}}
+      options={{ title: "Thống kê hệ thống" }}
     />
-    <Stack.Screen name="Chat" component={Chat} options={{title: "Tin nhắn"}} />
+    <Stack.Screen name="Chat" component={Chat} options={{ title: "Tin nhắn" }} />
     <Stack.Screen
       name="ChatDetail"
       component={ChatDetail}
-      options={{title: "Trò chuyện"}}
+      options={{ title: "Trò chuyện" }}
     />
   </Stack.Navigator>
 );
@@ -180,20 +180,21 @@ const TabNavigator = () => {
   }, [user]);
 
   return (
-    <Tab.Navigator screenOptions={{tabBarActiveTintColor: "#2563eb"}}>
-      {user?.role != "ADMIN" && (
+    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#2563eb" }}>
+
+      {user?.role !== "ADMIN" && (
         <Tab.Screen
           name="Main"
           component={CourseStack}
           options={{
             title: "Trang chủ",
             headerShown: false,
-            tabBarIcon: ({color}) => (
-              <Icon color={color} source="home" size={26} />
-            ),
+            tabBarIcon: ({ color }) => <Icon color={color} source="home" size={26} />,
           }}
         />
       )}
+
+
       {user?.role === "ADMIN" && (
         <Tab.Screen
           name="AdminManage"
@@ -201,103 +202,73 @@ const TabNavigator = () => {
           options={{
             title: "Quản trị",
             headerShown: false,
-            tabBarIcon: ({color}) => (
-              <Icon source="shield-check" size={26} color={color} />
-            ),
+            tabBarIcon: ({ color }) => <Icon source="shield-check" size={26} color={color} />,
           }}
         />
       )}
+
+
       {user?.role === "LECTURER" && (
-        <>
-          <Tab.Screen
-            name="Manage"
-            component={LecturerStack}
-            options={{
-              title: "Giảng dạy",
-              headerShown: false,
-              tabBarIcon: ({color}) => (
-                <Icon source="school" size={26} color={color} />
-              ),
-            }}
-          />
-          <Tab.Screen
-            name="StatisticsTab"
-            component={Statistics}
-            options={{
-              title: "Thống kê",
-              headerShown: true,
-              tabBarIcon: ({color}) => (
-                <Icon source="chart-bar" size={26} color={color} />
-              ),
-            }}
-          />
-        </>
+        <Tab.Screen
+          name="Manage"
+          component={LecturerStack}
+          options={{
+            title: "Giảng dạy",
+            headerShown: false,
+            tabBarIcon: ({ color }) => <Icon source="school" size={26} color={color} />,
+          }}
+        />
       )}
+
+
       {user !== null ? (
         <>
+
           <Tab.Screen
-            name="Chat"
+            name="ChatTab"
             component={ChatStack}
             options={{
               title: "Tin nhắn",
               headerShown: false,
-              tabBarIcon: ({color}) => (
-                <Icon
-                  source="chat-processing-outline"
-                  size={26}
-                  color={color}
-                />
-              ),
+              tabBarIcon: ({ color }) => <Icon source="chat-processing-outline" size={26} color={color} />,
               tabBarBadge: unreadCount > 0 ? unreadCount : null,
             }}
           />
-          <Tab.Screen
-            name="UserCourse"
-            component={UserCourseStack}
-            options={{
-              title: "Khóa học của tôi",
-              headerShown: false,
-              tabBarIcon: ({color}) => (
-                <Icon source="book-open-variant" size={26} color={color} />
-              ),
-            }}
-          />
+
+
+          {user?.role === "STUDENT" && (
+            <Tab.Screen
+              name="UserCourse"
+              component={UserCourseStack}
+              options={{
+                title: "Khóa học",
+                headerShown: false,
+                tabBarIcon: ({ color }) => <Icon source="book-open-variant" size={26} color={color} />,
+              }}
+            />
+          )}
+
+
           <Tab.Screen
             name="Profile"
             component={User}
             options={{
               title: "Cá nhân",
-              tabBarIcon: ({color}) => (
-                <Icon source="account" size={26} color={color} />
-              ),
+              tabBarIcon: ({ color }) => <Icon source="account" size={26} color={color} />,
             }}
           />
-
-          {user?.role === "STUDENT" && user?.role !== "ADMIN" && (
-            <Tab.Screen
-              name="UserCourse"
-              component={UserCourse}
-              options={{
-                title: "Khóa học của tôi",
-                tabBarIcon: ({ color }) => <Icon color={color} source="book-open-variant" size={26} />,
-              }}
-            />
-          )}
         </>
       ) : (
-        <>
-          <Tab.Screen
-            name="Auth"
-            component={AuthStack}
-            options={{
-              title: "Đăng nhập",
-              headerShown: false,
-              tabBarIcon: ({color}) => (
-                <Icon source="account" size={26} color={color} />
-              ),
-            }}
-          />
-        </>
+
+        <Tab.Screen
+          name="Auth"
+          component={AuthStack}
+          options={{
+            title: "Tài khoản",
+            headerShown: false,
+            tabBarIcon: ({ color }) => <Icon source="account" size={26} color={color} />,
+          }}
+        />
       )}
     </Tab.Navigator>
   );

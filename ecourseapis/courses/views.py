@@ -703,6 +703,7 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         else:
             return Response({"RspCode": "97", "Message": "Invalid Checksum"})
 
+
 def payment_return_vnpay(request):
     # 1. Lấy mã phản hồi từ VNPay
     vnp_ResponseCode = request.GET.get('vnp_ResponseCode')
@@ -762,6 +763,7 @@ def payment_return_vnpay(request):
     </html>
     """
     return HttpResponse(html_content)
+
 
 class StatView(viewsets.ViewSet):
     permission_classes = [perms.IsAdminOrLecturer]

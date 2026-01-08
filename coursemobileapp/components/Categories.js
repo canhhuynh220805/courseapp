@@ -2,10 +2,9 @@ import {useEffect, useState} from "react";
 import Apis, {endpoints} from "../utils/Apis";
 import {Chip} from "react-native-paper";
 import {ScrollView, TouchableOpacity, View} from "react-native";
-import MyStyles from "../styles/MyStyles";
 import styles from "../screens/Home/styles";
 
-const Categories = ({setCate, activeCate}) => {
+const Categories = ({setCate, activeCate = null}) => {
   const [categories, setCategories] = useState([]);
 
   const loadCategories = async () => {

@@ -85,7 +85,15 @@ const Login = ({route}) => {
             payload: user.data,
           });
           const next = route.params?.next;
-          if (next) nav.navigate(next);
+          const nextParams = route.params?.nextParams;
+
+          if (next) {
+            setTimeout(() => {
+              nav.navigate(next, nextParams);
+            }, 500);
+          } else {
+            nav.navigate("Main");
+          }
         }, 500);
       } catch (ex) {
         Alert.alert(

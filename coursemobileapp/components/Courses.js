@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import {useCallback, useEffect, useState} from "react";
 import {
   ActivityIndicator,
   Image,
@@ -7,17 +7,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { FlatList } from "react-native";
-import Apis, { authApis, endpoints } from "../utils/Apis";
-import { List, Searchbar } from "react-native-paper";
-import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import styles, { COLORS } from "../screens/Home/styles";
-import { Ionicons } from "@expo/vector-icons";
+import {FlatList} from "react-native";
+import Apis, {authApis, endpoints} from "../utils/Apis";
+import {List, Searchbar} from "react-native-paper";
+import {useFocusEffect, useNavigation} from "@react-navigation/native";
+import styles, {COLORS} from "../screens/Home/styles";
+import {Ionicons} from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import PaymentModal from "../screens/PaymentModal/PaymentModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const Courses = ({ cate }) => {
+const Courses = ({cate}) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState("");
@@ -91,10 +91,11 @@ const Courses = ({ cate }) => {
       const ids = res.data.map((c) => c.course.id);
       setEnrolledIds(ids);
     } catch (ex) {
-      console.error(ex);
       if (ex.response && ex.response.status == 401) {
         console.log("Token bị Server từ chối -> Logout");
         await AsyncStorage.removeItem("token");
+      } else {
+        console.error(ex);
       }
     }
   };
@@ -111,18 +112,23 @@ const Courses = ({ cate }) => {
     setPage(1);
   }, [q, cate, priceRange]);
   const loadMore = () => {
-    if (page > 0 && !loading) setPage(page + 1);
+    if (page > 0 && !loading && courses.length > 0) setPage(page + 1);
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      checkIsEnrolled();
+    }, [])
+  );
   return (
-    <View style={[styles.container, { flex: 1 }]}>
+    <View style={[styles.container, {flex: 1}]}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
           <Searchbar
             placeholder="Tìm khóa học..."
             value={q}
             onChangeText={setQ}
-            style={{ elevation: 0, backgroundColor: "transparent", flex: 1 }}
+            style={{elevation: 0, backgroundColor: "transparent", flex: 1}}
             inputStyle={styles.searchInput}
             iconColor="#6b7280"
           />
@@ -182,7 +188,7 @@ const Courses = ({ cate }) => {
         </View>
       )}
       <FlatList
-        style={{ flex: 1 }}
+        style={{flex: 1}}
         contentContainerStyle={styles.courseList}
         keyExtractor={(item) => item.id.toString()}
         ListFooterComponent={
@@ -190,26 +196,26 @@ const Courses = ({ cate }) => {
             <ActivityIndicator
               size="large"
               color="#2563eb"
-              style={{ margin: 16 }}
+              style={{margin: 16}}
             />
           )
         }
         onEndReached={loadMore}
         data={courses}
-        renderItem={({ item }) => (
+        renderItem={({item}) => (
           /* KHÔNG dùng List.Item ở đây nữa */
           <TouchableOpacity
             style={styles.courseCard}
             // onPress={() => nav.navigate("Lesson", {courseId: item.id})}
             onPress={() =>
               item.is_free || enrolledIds.includes(item.id)
-                ? nav.navigate("Lesson", { courseId: item.id })
+                ? nav.navigate("Lesson", {courseId: item.id})
                 : handleRegisterCourse(item)
             }
             activeOpacity={0.9}
           >
             {/* Hình ảnh chiếm trọn phía trên Card */}
-            <Image source={{ uri: item.image }} style={styles.courseImage} />
+            <Image source={{uri: item.image}} style={styles.courseImage} />
 
             {/* Phần nội dung bên dưới ảnh */}
             <View style={styles.courseContent}>
@@ -236,11 +242,6 @@ const Courses = ({ cate }) => {
                   )}
                 </View>
                 <Text style={styles.coursePrice}>
-                  {enrolledIds.includes(item.id)
-                    ? "Đã đăng ký"
-                    : item.price == 0
-                      ? "Miễn phí"
-                      : `${item.price} VNĐ`}
                   {item.is_free ? "Miễn phí" : `${item.price} VNĐ`}
                 </Text>
               </View>

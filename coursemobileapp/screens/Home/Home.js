@@ -8,7 +8,7 @@ import {Alert} from "react-native";
 import {jwtDecode} from "jwt-decode";
 
 const Home = () => {
-  const [cate, setCate] = useState();
+  const [cate, setCate] = useState(null);
   const isTokenValid = (token) => {
     if (!token) return false;
     try {
@@ -28,6 +28,7 @@ const Home = () => {
       try {
         let token = await AsyncStorage.getItem("token");
         if (!isTokenValid(token)) {
+          await AsyncStorage.removeItem("current_payment_id");
           await AsyncStorage.removeItem("token");
           return;
         }
