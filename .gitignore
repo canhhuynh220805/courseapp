@@ -234,3 +234,5 @@ __marimo__/
 
 serviceAccountKey.json
 **/serviceAccountKey.json
+# Ignore Google Service Account Key
+ecourseapis/serviceAccountKey.json
