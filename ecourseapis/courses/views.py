@@ -204,9 +204,11 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
             return Response(serializers.UserSerializer(lecturers, many=True).data)
 
         elif user.role == User.Role.LECTURER:
-            students = User.objects.filter(enrollments__course__lecturer=user,
-                                           enrollments__status=Enrollment.Status.ACTIVE).distinct()
-            return Response(serializers.UserSerializer(students, many=True).data)
+            students_query = Q(enrollments__course__lecturer=user, enrollments__status=Enrollment.Status.ACTIVE)
+            admins_query = Q(role=User.Role.ADMIN, is_active=True)
+
+            contacts = User.objects.filter(students_query | admins_query).distinct()
+            return Response(serializers.UserSerializer(contacts, many=True).data)
 
         elif user.role == User.Role.ADMIN:
             lecturers = User.objects.filter(role=User.Role.LECTURER, is_active=True)
@@ -529,6 +531,43 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
         return Response(result)
 
+    @action(methods=['post'], detail=False, url_path='zalo-confirm', permission_classes=[permissions.AllowAny],
+            authentication_classes=[])
+    def zalo_confirm(self, request):
+        """
+        API này để Local Server gọi lên báo thanh toán thành công
+        """
+        enrollment_id = request.data.get('enrollment_id')
+
+        zp_trans_id = request.data.get('zp_trans_id') # Mã của Zalo
+        app_trans_id = request.data.get('app_trans_id') # Mã đơn hàng của mình
+
+        if not enrollment_id:
+            return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # 1. Tìm Enrollment và kích hoạt
+            enrollment = Enrollment.objects.get(pk=enrollment_id)
+            enrollment.status = Enrollment.Status.ACTIVE # Active khóa học
+            enrollment.save()
+
+            # 2. (Tùy chọn) Tìm hoặc Tạo Payment Record để lưu lịch sử
+            # Nếu bạn muốn lưu lại là đã thanh toán bằng ZaloPay
+            Payment.objects.create(
+                enrollment=enrollment,
+                amount=enrollment.course.price, # Hoặc lấy từ request.data.get('amount')
+                payment_method=Payment.Method.ZALOPAY,
+                status=Payment.Status.COMPLETED,
+                transaction_id= zp_trans_id
+            )
+
+            return Response({"message": "Update thành công"}, status=status.HTTP_200_OK)
+
+        except Enrollment.DoesNotExist:
+            return Response({"error": "Không tìm thấy Enrollment"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(methods=['post'], detail=False, url_path="vnpay-payment")
     def create_vnpay_payment(self, request):
         try:
@@ -821,6 +860,7 @@ class StatView(viewsets.ViewSet):
             "total_lecturers": total_lecturers,
             "total_revenue": total_revenue
         }, status=status.HTTP_200_OK)
+
 
 
 class CommentView(viewsets.ViewSet, generics.UpdateAPIView, generics.DestroyAPIView):
