@@ -1,8 +1,9 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import * as Linking from "expo-linking";
 import {Alert} from "react-native";
 export const MoMoStrategy = {
-  async pay(authApis, endpoints, token, enrollmentId) {
+  async pay(authApis, endpoints, token, enrollmentId, coursePrice = 0) {
     console.info("--> Đang xử lý thanh toán MoMo...");
     let resEnroll = await authApis(token).post(endpoints["momo-payment"], {
       enrollment_id: enrollmentId,
@@ -27,34 +28,42 @@ export const MoMoStrategy = {
 
 // 2. Chiến lược thanh toán ZaloPay (Ví dụ để bạn thấy sự linh hoạt)
 export const ZaloPayStrategy = {
-  async pay(authApis, endpoints, token, enrollmentId) {
+  async pay(authApis, endpoints, token, enrollmentId, coursePrice = 0) {
     console.info("--> Đang xử lý thanh toán ZaloPay...");
-    let resEnroll = await authApis(token).post(endpoints["zalo-payment"], {
-      enrollment_id: enrollmentId,
-    });
-    if (resEnroll.data.return_code === 1) {
-      const payUrl = resEnroll.data.order_url;
-      const appTransId = resEnroll.data.app_trans_id; // Lưu cái này để check
+    // 1. CẤU HÌNH ĐƯỜNG DẪN LOCAL (NGROK)
+    // Mỗi lần tắt ngrok bật lại link này sẽ đổi, nhớ cập nhật nhé!
+    const LOCAL_BASE_URL =
+      "https://nonreparable-torpidly-eufemia.ngrok-free.dev";
+    const API_URL = `${LOCAL_BASE_URL}/zalo-pay/create/`;
 
-      // 4. Lưu lại ID giao dịch để lát quay lại app thì kiểm tra
-      await AsyncStorage.setItem("current_payment_id", String(enrollmentId));
+    try {
+      console.log("🚀 Đang gọi Server Local lấy link Zalo:", API_URL);
 
-      // 5. Mở ZaloPay (Web hoặc App)
-      const supported = await Linking.canOpenURL(payUrl);
-      if (supported) {
-        await Linking.openURL(payUrl);
+      // 2. GỌI API SANG NGROK
+      // Dùng axios thường, không cần authApis
+      let res = await axios.post(API_URL, {
+        enrollment_id: enrollmentId,
+        amount: coursePrice, // Gửi giá tiền từ App sang
+      });
+
+      console.log("✅ Kết quả từ Local:", res.data);
+
+      // 3. MỞ ZALOPAY
+      if (res.data.order_url) {
+        Linking.openURL(res.data.order_url);
       } else {
-        Alert.alert("Lỗi", "Không thể mở liên kết thanh toán");
+        Alert.alert("Lỗi", "Không lấy được link thanh toán");
       }
-    } else {
-      Alert.alert("Thất bại", "Tạo đơn hàng lỗi: " + res.data.return_message);
+    } catch (ex) {
+      console.error("❌ Lỗi gọi Local Server:", ex);
+      Alert.alert("Lỗi", "Không kết nối được với Server thanh toán (Local).");
     }
   },
 };
 
 // 3. Chiến lược khóa học Miễn phí (Nếu giá tiền = 0)
 export const VNPayStrategy = {
-  async pay(authApis, endpoints, token, enrollmentId) {
+  async pay(authApis, endpoints, token, enrollmentId, coursePrice = 0) {
     try {
       console.info("--> Đang xử lý thanh toán VNPay...");
       let resEnroll = await authApis(token).post(endpoints["vnpay-payment"], {

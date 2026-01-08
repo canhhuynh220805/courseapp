@@ -47,7 +47,8 @@ function PaymentModal({visible, onClose, course}) {
             authApis,
             endpoints,
             token,
-            resEnroll.data.id
+            resEnroll.data.id,
+            course.price
           );
         } else {
           console.warn("Không tìm thấy chiến lược thanh toán phù hợp");
