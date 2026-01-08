@@ -8,7 +8,10 @@ from django.conf import settings
 from django.db.models import Sum
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-
+import firebase_admin
+from firebase_admin import credentials, firestore
+import os
+import time
 
 # Create your models here.
 
@@ -101,7 +104,6 @@ class Lesson(BaseModel):
     class Meta:
         unique_together = ('subject', 'course')
 
-
 @receiver([post_save, post_delete], sender=Lesson)
 def update_course_duration(sender, instance, **kwargs):
     course = instance.course
@@ -189,3 +191,64 @@ class Rating(BaseModel):
 
     class Meta:
         unique_together = ('user', 'course')
+
+if not firebase_admin._apps:
+    cred_path = os.path.join(settings.BASE_DIR, 'serviceAccountKey.json')
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+
+
+@receiver(post_save, sender=Lesson)
+def notify_students_new_lesson(sender, instance, created, **kwargs):
+    if created and db is not None:
+        course = instance.course
+        lecturer = course.lecturer
+
+        if not lecturer or not course.active:
+            return
+
+        active_enrollments = Enrollment.objects.filter(course=course, status=Enrollment.Status.ACTIVE).select_related('user')
+
+        if not active_enrollments.exists():
+            return
+
+        message_text = f"Bài học mới: '{instance.subject}' vừa được thêm vào khóa học {course.subject}."
+        created_at = int(time.time() * 1000)
+
+        batch = db.batch()
+        count = 0
+        doc_count = 0
+
+        for enrollment in active_enrollments:
+            student = enrollment.user
+            if student.id == lecturer.id:
+                continue
+
+            doc_ref = db.collection('messages').document()
+
+            message_data = {
+                "text": message_text,
+                "createdAt": created_at,
+                "senderId": lecturer.id,
+                "receiverId": student.id,
+                "isRead": False,
+                "user": {
+                    "_id": lecturer.id,
+                    "name": f"{lecturer.last_name} {lecturer.first_name}".strip() or lecturer.username,
+                    "avatar": lecturer.avatar if lecturer.avatar else "https://res.cloudinary.com/dpl8syyb9/image/upload/v1766808871/geqv2zfnn6cqmrsgmrye.webp"
+                }
+            }
+
+            batch.set(doc_ref, message_data)
+            count += 1
+            doc_count += 1
+
+            if doc_count >= 400:
+                batch.commit()
+                batch = db.batch()
+                doc_count = 0
+
+        if doc_count > 0:
+            batch.commit()

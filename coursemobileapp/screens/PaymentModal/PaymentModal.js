@@ -1,4 +1,4 @@
-import React, {useContext, useState} from "react";
+import React, { useContext, useState } from "react";
 import {
   Modal,
   View,
@@ -9,15 +9,15 @@ import {
   ActivityIndicator,
 } from "react-native";
 import * as Linking from "expo-linking";
-import {Ionicons} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import styles from "./styles";
-import Apis, {authApis, endpoints} from "../../utils/Apis";
-import {MyUserContext} from "../../utils/contexts/MyContext";
-import {useNavigation} from "@react-navigation/native";
+import Apis, { authApis, endpoints } from "../../utils/Apis";
+import { MyUserContext } from "../../utils/contexts/MyContext";
+import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {MoMoStrategy, PayPalStrategy, ZaloPayStrategy} from "./PaymentStrategy";
+import { MoMoStrategy, PayPalStrategy, ZaloPayStrategy } from "./PaymentStrategy";
 
-function PaymentModal({visible, onClose, course}) {
+function PaymentModal({ visible, onClose, course }) {
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [loading, setLoading] = useState(false);
   const [user] = useContext(MyUserContext);
@@ -28,9 +28,9 @@ function PaymentModal({visible, onClose, course}) {
     paypal: PayPalStrategy, // Gán tạm vào bảo trì
   };
   const paymentMethods = [
-    {id: "momo", name: "MoMo", icon: "wallet"},
-    {id: "zalopay", name: "ZaloPay", icon: "card"},
-    {id: "paypal", name: "PayPal", icon: "logo-paypal"},
+    { id: "momo", name: "MoMo", icon: "wallet" },
+    { id: "zalopay", name: "ZaloPay", icon: "card" },
+    { id: "paypal", name: "PayPal", icon: "logo-paypal" },
   ];
 
   const handlePayment = async (PaymentStrategy) => {
@@ -115,7 +115,7 @@ function PaymentModal({visible, onClose, course}) {
           <View style={styles.courseInfoCard}>
             {/* Nếu có ảnh thì hiện, không thì hiện icon mặc định */}
             {course.image ? (
-              <Image source={{uri: course.image}} style={styles.cardImage} />
+              <Image source={{ uri: course.image }} style={styles.cardImage} />
             ) : (
               <View style={[styles.cardImage, styles.cardImagePlaceholder]}>
                 <Ionicons name="book" size={32} color="#FFF" />
@@ -196,7 +196,7 @@ function PaymentModal({visible, onClose, course}) {
                 ]}
                 onPress={() => nav.navigate("Login")}
               >
-                <Text style={[styles.confirmButtonText, {textAlign: "center"}]}>
+                <Text style={[styles.confirmButtonText, { textAlign: "center" }]}>
                   Đăng nhập để thanh toán
                 </Text>
               </TouchableOpacity>
@@ -220,7 +220,7 @@ function PaymentModal({visible, onClose, course}) {
                       name="arrow-forward"
                       size={20}
                       color="#FFF"
-                      style={{marginLeft: 8}}
+                      style={{ marginLeft: 8 }}
                     />
                   </>
                 )}
