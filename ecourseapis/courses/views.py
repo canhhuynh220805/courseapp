@@ -39,15 +39,15 @@ class CourseView(viewsets.ModelViewSet):
     pagination_class = paginators.CoursePaginator
 
     def get_queryset(self):
-        queries = self.queryset
         user = self.request.user
-
-        queries = queries.annotate(student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)))
 
         if user.is_authenticated and user.role == User.Role.LECTURER:
             queries = Course.objects.filter(lecturer=user)
         else:
             queries = Course.objects.filter(active=True)
+
+        queries = queries.annotate(student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)))
+
         q = self.request.query_params.get("q")
         if q:
             queries = queries.filter(Q(subject__icontains=q) | Q(lecturer__username__icontains=q))
@@ -75,6 +75,7 @@ class CourseView(viewsets.ModelViewSet):
             queries = queries.order_by('-price')
         else:
             queries = queries.order_by('-id')
+
         return queries
 
     def get_permissions(self):
