@@ -43,9 +43,39 @@ export default StyleSheet.create({
     form: {
         paddingVertical: SPACING
     },
+
     input: {
         marginBottom: 16,
         backgroundColor: '#fff'
+    },
+
+    imageDrop: {
+        height: 160,
+        backgroundColor: '#f8fafc',
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1.5,
+        borderColor: '#cbd5e1',
+        borderStyle: 'dashed',
+        marginBottom: 16,
+        marginTop: 8,
+        overflow: 'hidden',
+    },
+
+    previewImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+
+    pickerContainer: {
+        borderWidth: 1,
+        borderColor: '#79747E',
+        borderRadius: 4,
+        marginBottom: 16,
+        backgroundColor: '#fff',
+        overflow: 'hidden'
     },
 
     summaryGrid: {
