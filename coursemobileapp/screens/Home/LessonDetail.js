@@ -22,7 +22,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import moment from "moment";
 import "moment/locale/vi";
-import { useFocusEffect } from "@react-navigation/native";
 
 function LessonDetail({ route, navigation }) {
   const lessonId = route.params?.lessonId;
