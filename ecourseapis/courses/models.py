@@ -223,8 +223,14 @@ def notify_students_new_lesson(sender, instance, created, **kwargs):
 
         for enrollment in active_enrollments:
             student = enrollment.user
+
             if student.id == lecturer.id:
                 continue
+
+            if lecturer.id < student.id:
+                room_id = f"{lecturer.id}-{student.id}"
+            else:
+                room_id = f"{student.id}-{lecturer.id}"
 
             doc_ref = db.collection('messages').document()
 
@@ -233,6 +239,7 @@ def notify_students_new_lesson(sender, instance, created, **kwargs):
                 "createdAt": created_at,
                 "senderId": lecturer.id,
                 "receiverId": student.id,
+                "roomId": room_id,
                 "isRead": False,
                 "user": {
                     "_id": lecturer.id,

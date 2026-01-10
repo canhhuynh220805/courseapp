@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Image, TouchableOpacity, Alert, StyleSheet } from 'react-native';
+import { View, ScrollView, Image, TouchableOpacity, Alert } from 'react-native';
 import { TextInput, Button, Text, Title, ActivityIndicator } from 'react-native-paper';
 import { Picker } from '@react-native-picker/picker';
 import axios from 'axios';
@@ -16,6 +16,7 @@ const AddCourse = ({ route, navigation }) => {
     const [course, setCourse] = useState({ subject: '', description: '', price: '', category: '' });
     const [image, setImage] = useState(null);
     const showAlert = useAlert();
+
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
@@ -43,17 +44,31 @@ const AddCourse = ({ route, navigation }) => {
         };
         loadData();
     }, [courseEditId]);
-
     const uploadToCloudinary = async (file) => {
-        if (!file || file.uri.startsWith('http')) return file.uri;
+        if (!file) return null;
+
+        if (file.uri && file.uri.startsWith('http')) return file.uri;
+
         const data = new FormData();
-        data.append("file", { uri: file.uri, type: "image/jpeg", name: "upload.jpg" });
+        data.append("file", {
+            uri: file.uri,
+            type: file.mimeType || "image/jpeg",
+            name: file.fileName || "upload.jpg",
+        });
         data.append("upload_preset", "courseapp_preset");
         data.append("cloud_name", "dpl8syyb9");
+
         try {
-            const res = await axios.post("https://api.cloudinary.com/v1_1/dpl8syyb9/image/upload", data);
+            const res = await axios.post(
+                "https://api.cloudinary.com/v1_1/dpl8syyb9/image/upload",
+                data,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
             return res.data.secure_url;
-        } catch (error) { return null; }
+        } catch (error) {
+            console.error("Lỗi upload ảnh AddCourse:", error);
+            return null;
+        }
     };
 
     const pickImage = async () => {
@@ -86,9 +101,14 @@ const AddCourse = ({ route, navigation }) => {
 
         setLoading(true);
         try {
-            let imageUrl = image?.uri || "";
-            if (image && !image.uri.startsWith('http')) {
+            let imageUrl = "";
+            if (image) {
                 imageUrl = await uploadToCloudinary(image);
+                if (!imageUrl && image.uri && !image.uri.startsWith('http')) {
+                    showAlert("Lỗi", "Không thể upload ảnh, vui lòng thử lại.", "error");
+                    setLoading(false);
+                    return;
+                }
             }
 
             const token = await AsyncStorage.getItem("token");
@@ -106,8 +126,13 @@ const AddCourse = ({ route, navigation }) => {
             let errorMsg = "Không thể lưu khóa học.";
             if (ex.response && ex.response.data) {
                 const serverErrors = ex.response.data;
-                errorMsg = Object.keys(serverErrors).map(key => `${key}: ${serverErrors[key].join(", ")}`).join("\n");
+                if (typeof serverErrors === 'object') {
+                    errorMsg = Object.keys(serverErrors)
+                        .map(key => `${key}: ${serverErrors[key]}`)
+                        .join("\n");
+                }
             }
+            console.error("Save Course Error:", ex);
             showAlert("Lỗi hệ thống", errorMsg, "error");
         } finally {
             setLoading(false);

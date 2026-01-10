@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useState, useCallback} from "react";
+import React, { useContext, useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -16,14 +16,15 @@ import {Ionicons} from "@expo/vector-icons";
 import {SafeAreaView} from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 import styles from "./styles";
-import Apis, {authApis, endpoints} from "../../utils/Apis";
-import {MyUserContext} from "../../utils/contexts/MyContext";
+import Apis, { authApis, endpoints } from "../../utils/Apis";
+import { MyUserContext } from "../../utils/contexts/MyContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import moment from "moment";
 import "moment/locale/vi";
+import { useFocusEffect } from "@react-navigation/native";
 
-function LessonDetail({route, navigation}) {
+function LessonDetail({ route, navigation }) {
   const lessonId = route.params?.lessonId;
   const courseId = route.params?.courseId;
   const [lesson, setLesson] = useState(null);
@@ -253,7 +254,7 @@ function LessonDetail({route, navigation}) {
                           <Text
                             style={[
                               styles.videoNote,
-                              {color: "white", marginTop: 10},
+                              { color: "white", marginTop: 10 },
                             ]}
                           >
                             Nội dung bị khóa
@@ -272,19 +273,19 @@ function LessonDetail({route, navigation}) {
                           onPress={() =>
                             user === null
                               ? nav.navigate("Auth", {
-                                  screen: "Login",
-                                  params: {
-                                    next: "Main",
+                                screen: "Login",
+                                params: {
+                                  next: "Main",
 
-                                    nextParams: {
-                                      screen: "LessonDetail",
-                                      params: {
-                                        lessonId: lessonId,
-                                        courseId: courseId,
-                                      },
+                                  nextParams: {
+                                    screen: "LessonDetail",
+                                    params: {
+                                      lessonId: lessonId,
+                                      courseId: courseId,
                                     },
                                   },
-                                })
+                                },
+                              })
                               : registerCourse()
                           }
                         >
@@ -292,7 +293,7 @@ function LessonDetail({route, navigation}) {
                             name="log-in-outline"
                             size={24}
                             color="#FFF"
-                            style={{marginRight: 8}}
+                            style={{ marginRight: 8 }}
                           />
                           <Text style={styles.registerButtonText}>
                             {user === null
@@ -337,7 +338,7 @@ function LessonDetail({route, navigation}) {
 
                   {user === null ? (
                     <TouchableOpacity
-                      style={[styles.registerButton, {marginBottom: 16}]}
+                      style={[styles.registerButton, { marginBottom: 16 }]}
                       activeOpacity={0.8}
                       onPress={() =>
                         nav.navigate("Auth", {
@@ -359,7 +360,7 @@ function LessonDetail({route, navigation}) {
                       <Text
                         style={[
                           styles.loginPromptText,
-                          {textAlign: "center", color: "#FFF"},
+                          { textAlign: "center", color: "#FFF" },
                         ]}
                       >
                         Đăng nhập để bình luận
@@ -396,7 +397,7 @@ function LessonDetail({route, navigation}) {
               </>
             }
             // 2. Render từng comment
-            renderItem={({item}) => (
+            renderItem={({ item }) => (
               <View style={styles.commentItem}>
                 <Image
                   source={{
@@ -426,7 +427,7 @@ function LessonDetail({route, navigation}) {
                 <ActivityIndicator
                   size="small"
                   color="blue"
-                  style={{margin: 10}}
+                  style={{ margin: 10 }}
                 />
               ) : null
             }
@@ -446,7 +447,7 @@ function LessonDetail({route, navigation}) {
               )
             }
             // 6. Style cho list
-            contentContainerStyle={{paddingBottom: 20}}
+            contentContainerStyle={{ paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           />
         </KeyboardAvoidingView>

@@ -2,9 +2,8 @@ import React, { useState, useEffect, useContext } from 'react';
 import { View, FlatList, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, IconButton, Text, Card, ActivityIndicator } from 'react-native-paper';
 import { db } from '../../utils/firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, query, where, orderBy, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { MyUserContext } from "../../utils/contexts/MyContext";
-import { doc, updateDoc } from "firebase/firestore";
 
 const ChatDetail = ({ route }) => {
     const { receiver } = route.params;
@@ -12,13 +11,12 @@ const ChatDetail = ({ route }) => {
     const [msg, setMsg] = useState('');
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const chatRoomId = [user.id, receiver.id].sort((a, b) => a - b).join('_');
+    const roomId = [user.id, receiver.id].sort((a, b) => a - b).join('-');
 
     useEffect(() => {
         const q = query(
             collection(db, "messages"),
-            where("chatRoomId", "==", chatRoomId),
+            where("roomId", "==", roomId),
             orderBy("createdAt", "desc")
         );
 
@@ -37,19 +35,24 @@ const ChatDetail = ({ route }) => {
         });
 
         return () => unsubscribe();
-    }, [chatRoomId]);
+    }, [roomId]);
 
     const sendMessage = async () => {
         if (msg.trim()) {
             try {
                 await addDoc(collection(db, "messages"), {
-                    chatRoomId: chatRoomId,
+                    roomId: roomId,
+                    text: msg,
                     senderId: user.id,
                     senderName: user.username,
                     receiverId: receiver.id,
-                    content: msg,
                     isRead: false,
                     createdAt: new Date().getTime(),
+                    user: {
+                        _id: user.id,
+                        name: user.username,
+                        avatar: user.avatar
+                    }
                 });
                 setMsg('');
             } catch (e) {
@@ -73,7 +76,9 @@ const ChatDetail = ({ route }) => {
                         <View style={[styles.msgWrapper, item.senderId === user.id ? styles.myMsg : styles.theirMsg]}>
                             <Card style={[styles.msgCard, { backgroundColor: item.senderId === user.id ? '#2563eb' : '#f3f4f6' }]}>
                                 <Card.Content style={{ paddingVertical: 8, paddingHorizontal: 12 }}>
-                                    <Text style={{ color: item.senderId === user.id ? '#fff' : '#000' }}>{item.content}</Text>
+                                    <Text style={{ color: item.senderId === user.id ? '#fff' : '#000' }}>
+                                        {item.text || item.content}
+                                    </Text>
                                 </Card.Content>
                             </Card>
                         </View>
