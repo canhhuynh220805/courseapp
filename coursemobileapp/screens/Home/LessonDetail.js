@@ -12,14 +12,14 @@ import {
   FlatList,
   Alert,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native";
+import {Ionicons} from "@expo/vector-icons";
+import {SafeAreaView} from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 import styles from "./styles";
 import Apis, { authApis, endpoints } from "../../utils/Apis";
 import { MyUserContext } from "../../utils/contexts/MyContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useNavigation } from "@react-navigation/native";
+import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import moment from "moment";
 import "moment/locale/vi";
 import { useFocusEffect } from "@react-navigation/native";
