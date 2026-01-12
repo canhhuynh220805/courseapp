@@ -84,6 +84,7 @@ class Course(BaseModel):
     def __str__(self):
         return self.subject
 
+
 class Lesson(BaseModel):
     subject = models.CharField(max_length=255)
     content = RichTextField()
@@ -113,6 +114,20 @@ def update_course_duration(sender, instance, **kwargs):
     if course.duration != total_hours:
         course.duration = total_hours
         course.save(update_fields=['duration'])
+
+@receiver([post_save, post_delete], sender=Lesson)
+def update_enrollment_progress_on_lesson_change(sender, instance, **kwargs):
+    course = instance.course
+    total_lessons = Lesson.objects.filter(course=course, active=True).count()
+    enrollments = Enrollment.objects.filter(course=course)
+
+    for enrollment in enrollments:
+        completed_count = LessonComplete.objects.filter(enrollment=enrollment).count()
+        new_progress = int((completed_count / total_lessons) * 100) if total_lessons > 0 else 0
+
+        if enrollment.progress != new_progress:
+            enrollment.progress = new_progress
+            enrollment.save(update_fields=['progress'])
 
 class Tag(BaseModel):
     name = models.CharField(max_length=100, unique=True)

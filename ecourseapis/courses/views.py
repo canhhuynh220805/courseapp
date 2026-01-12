@@ -1,4 +1,4 @@
-from django.db.models import DecimalField, Count, Q, Sum
+from django.db.models import DecimalField, Count, Q, Sum, OuterRef, Exists, Subquery
 from django.db.models.functions import Coalesce, TruncYear, TruncMonth, TruncQuarter
 from django.http import HttpResponse
 import json, hmac, hashlib, uuid, requests
@@ -40,11 +40,14 @@ class CourseView(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-
         if user.is_authenticated and user.role == User.Role.LECTURER:
             queries = Course.objects.filter(lecturer=user)
         else:
             queries = Course.objects.filter(active=True)
+
+        if user.is_authenticated:
+            enrollment_subquery = Enrollment.objects.filter(course=OuterRef('pk'), user=user)
+            queries = queries.annotate(is_registered=Exists(enrollment_subquery),user_progress=Subquery(enrollment_subquery.values('progress')[:1]))
 
         queries = queries.annotate(student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)))
 
@@ -67,8 +70,10 @@ class CourseView(viewsets.ModelViewSet):
         ordering = self.request.query_params.get("ordering")
         if ordering == 'popular':
             queries = queries.order_by('-student_count', '-id')
-        elif ordering == 'newest':
-            queries = queries.order_by('-id')
+        elif ordering == 'name_asc':
+            queries = queries.order_by('subject')
+        elif ordering == 'name_desc':
+            queries = queries.order_by('-subject')
         elif ordering == 'price_asc':
             queries = queries.order_by('price')
         elif ordering == 'price_desc':

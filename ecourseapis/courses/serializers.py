@@ -52,29 +52,18 @@ class UserSerializer(serializers.ModelSerializer):
 class CoursesSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
     is_free = serializers.SerializerMethodField()
+    is_registered = serializers.BooleanField(read_only=True, default=False)
+    progress = serializers.IntegerField(source='user_progress', read_only=True, default=0)
+    student_count = serializers.IntegerField(read_only=True, default=0)
     lecturer = UserSerializer(read_only=True)
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration', 'is_registered', 'progress', 'student_count']
 
     def validate_price(self, value):
         if value < 0:
             raise serializers.ValidationError("Học phí không được là số âm.")
         return value
-
-    def is_registered(self, course):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            return Enrollment.objects.filter(user=request.user, course=course).exists()
-        return False
-
-    def get_progress(self, course):
-        request = self.context.get('request')
-        if request and request.user.is_authenticated:
-            enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
-            if enrollment:
-                return enrollment.progress
-        return None
 
     def get_is_free(self, obj):
         return obj.price == 0 or obj.price is None
