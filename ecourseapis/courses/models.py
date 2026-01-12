@@ -157,6 +157,7 @@ class Payment(BaseModel):
     class Status(models.TextChoices):
         PENDING = "1"
         COMPLETED = "2"
+        FAILED = "3"
 
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)

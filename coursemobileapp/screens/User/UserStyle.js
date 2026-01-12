@@ -76,4 +76,72 @@ export default StyleSheet.create({
     fontWeight: "700",
     color: "#e11d48", // Màu chữ đỏ đậm
   },
+  menuButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eff6ff", // Xanh dương nhạt
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#dbeafe",
+    width: "100%",
+  },
+  menuButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#3b82f6", // Chữ xanh dương
+    marginLeft: 12,
+  },
+
+  // --- STYLE CHO MODAL (Thêm mới) ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    height: "60%",
+    padding: 20,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+  },
+  paymentItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  paymentCourse: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#374151",
+  },
+  paymentDate: {
+    fontSize: 13,
+    color: "#9ca3af",
+    marginTop: 4,
+  },
+  paymentAmount: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#2563EB",
+  },
 });

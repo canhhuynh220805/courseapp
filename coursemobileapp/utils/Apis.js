@@ -29,6 +29,8 @@ export const endpoints = {
   comments: (lessonId) => `/lessons/${lessonId}/comments/`,
   "add-comment": (lessonId) => `/lessons/${lessonId}/add-comment/`,
   "mark-lesson-complete": (lessonId) => `/lessons/${lessonId}/complete/`,
+  "like-lesson": (lessonId) => `/lessons/${lessonId}/like/`,
+  "user-payments": "/payments/",
 };
 
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID;
