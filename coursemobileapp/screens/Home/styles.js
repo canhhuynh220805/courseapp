@@ -33,9 +33,8 @@ export default StyleSheet.create({
   },
 
   // ==============================
-  // HEADER (Tách ra 2 loại header)
+  // HEADER
   // ==============================
-  // Header cho trang danh sách (Home)
   homeHeader: {
     backgroundColor: COLORS.white,
     paddingHorizontal: 16,
@@ -44,7 +43,6 @@ export default StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  // Header cho trang chi tiết (Detail - có nút back)
   detailHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -54,7 +52,7 @@ export default StyleSheet.create({
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    zIndex: 10, // Đảm bảo nổi lên trên
+    zIndex: 10,
   },
   headerTitle: {
     fontSize: 18,
@@ -137,11 +135,11 @@ export default StyleSheet.create({
   sliderContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
   },
   slider: {
     flex: 1,
     height: 40,
+    marginHorizontal: 8,
   },
   sliderValue: {
     fontSize: 12,
@@ -162,7 +160,6 @@ export default StyleSheet.create({
     borderRadius: 16,
     marginBottom: 16,
     overflow: "hidden",
-    // Shadow
     shadowColor: "#000",
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.05,
@@ -244,7 +241,7 @@ export default StyleSheet.create({
   },
   difficultyBadge: {
     alignSelf: "flex-start",
-    backgroundColor: "rgba(59, 130, 246, 0.9)", // Primary with opacity
+    backgroundColor: "rgba(59, 130, 246, 0.9)",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
@@ -263,7 +260,7 @@ export default StyleSheet.create({
     paddingBottom: 24,
   },
 
-  // Title Section trong chi tiết
+  // Title Section
   titleSection: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -312,16 +309,17 @@ export default StyleSheet.create({
   metaInfo: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 16,
   },
   metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    marginRight: 16,
+    marginBottom: 12,
   },
   metaText: {
     fontSize: 14,
     color: COLORS.textSecondary,
+    marginLeft: 6,
   },
 
   // Video Section
@@ -334,13 +332,13 @@ export default StyleSheet.create({
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: COLORS.textMain,
+    marginLeft: 12,
   },
   videoPlayer: {
     width: "100%",
@@ -385,11 +383,11 @@ export default StyleSheet.create({
     borderStyle: "dashed",
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
   },
   noVideoText: {
     fontSize: 14,
     color: COLORS.textLight,
+    marginTop: 12,
   },
   contentSection: {
     paddingHorizontal: 20,
@@ -414,7 +412,6 @@ export default StyleSheet.create({
   addCommentContainer: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
     marginBottom: 24,
   },
   userAvatar: {
@@ -422,6 +419,7 @@ export default StyleSheet.create({
     height: 40,
     borderRadius: 20,
     backgroundColor: COLORS.border,
+    marginLeft: -5,
   },
   commentInputContainer: {
     flex: 1,
@@ -434,6 +432,7 @@ export default StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 8,
     paddingVertical: 8,
+    marginLeft: 12,
   },
   commentInput: {
     flex: 1,
@@ -454,19 +453,17 @@ export default StyleSheet.create({
   postButtonDisabled: {
     backgroundColor: COLORS.inputBg,
   },
-  commentsList: {
-    gap: 16,
-  },
   commentItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: 12,
+    marginBottom: 16,
   },
   commentAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: COLORS.border,
+    marginLeft: 12,
   },
   commentContent: {
     flex: 1,
@@ -497,23 +494,22 @@ export default StyleSheet.create({
   },
   commentActions: {
     flexDirection: "row",
-    gap: 16,
   },
   commentAction: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    marginRight: 16,
   },
   commentActionText: {
     fontSize: 12,
     fontWeight: "600",
     color: COLORS.textSecondary,
+    marginLeft: 4,
   },
   showMoreButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 8,
     paddingVertical: 12,
     marginTop: 8,
   },
@@ -521,6 +517,7 @@ export default StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: COLORS.primary,
+    marginLeft: 8,
   },
 
   // ==============================
@@ -570,7 +567,7 @@ export default StyleSheet.create({
     marginTop: 8,
   },
   inputWrapper: {
-    flex: 1, // Để 2 ô co giãn bằng nhau
+    flex: 1,
   },
   subLabel: {
     fontSize: 12,
@@ -581,38 +578,143 @@ export default StyleSheet.create({
   input: {
     height: 44,
     borderWidth: 1,
-    borderColor: COLORS.border, // Dùng màu viền chuẩn
-    backgroundColor: COLORS.white, // Nền trắng
-    borderRadius: 12, // Bo góc giống Search
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
     paddingHorizontal: 12,
     fontSize: 16,
-    color: COLORS.textMain, // Màu chữ chuẩn
-    textAlign: "center", // Căn giữa số cho đẹp
+    color: COLORS.textMain,
+    textAlign: "center",
   },
   dash: {
     marginHorizontal: 10,
     fontSize: 24,
     color: COLORS.textLight,
-    marginTop: 18, // Căn chỉnh cho ngang hàng với input
+    marginTop: 18,
   },
   previewText: {
     marginTop: 12,
     fontSize: 13,
-    color: COLORS.primary, // Dùng màu xanh chủ đạo
+    color: COLORS.primary,
     fontWeight: "600",
     textAlign: "center",
   },
   resetText: {
     fontSize: 12,
-    color: COLORS.primary, // Màu xanh
+    color: COLORS.primary,
     fontWeight: "600",
     paddingVertical: 4,
-    paddingHorizontal: 8, // Tăng vùng bấm cho dễ chạm
+    paddingHorizontal: 8,
   },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 8,
+  },
+  infoCard: {
+    backgroundColor: "#EFF6FF",
+    margin: 16,
+    padding: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    shadowColor: "#2563EB",
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  subjectLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#3B82F6",
+    textTransform: "uppercase",
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  cardTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1E3A8A",
+    lineHeight: 28,
+  },
+  iconCircle: {
+    width: 48,
+    height: 48,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: "#DBEAFE",
+    marginBottom: 12,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  timeBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#DBEAFE",
+    marginRight: 8,
+  },
+  timeText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#2563EB",
+  },
+  descriptionBox: {
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
+    padding: 12,
+    borderRadius: 12,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: "#475569",
+    lineHeight: 20,
+    fontStyle: "italic",
+  },
+  interactionContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+    marginBottom: 16,
+  },
+
+  likeButtonWrapper: {
+    marginRight: 12,
+  },
+  likeCountContainer: {
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  likeCountText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#4B5563",
   },
 });

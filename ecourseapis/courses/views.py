@@ -117,6 +117,16 @@ class CourseView(viewsets.ModelViewSet):
     def get_my_course(self, request):
         user = request.user
         enrollments = Enrollment.objects.filter(user=user, status=Enrollment.Status.ACTIVE)
+
+        q = request.query_params.get("q")
+        if q:
+            enrollments = enrollments.filter(course__subject__icontains=q)
+
+        page = self.paginate_queryset(enrollments)
+        if page is not None:
+            serializer = EnrollmentSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         return Response(EnrollmentSerializer(enrollments, many=True).data)
 
     @action(methods=['get'], url_path='progress', detail=True, permission_classes=[permissions.IsAuthenticated])
@@ -293,7 +303,7 @@ class LessonView(viewsets.ModelViewSet):
         c = Comment.objects.create(user=request.user, lesson=self.get_object(), content=content)
         return Response(serializers.CommentSerializer(c).data, status=status.HTTP_201_CREATED)
 
-    @action(methods=['post'], detail=True, url_path='like')
+    @action(methods=['post'], detail=True, url_path='like', permission_classes=[permissions.IsAuthenticated])
     def like(self, request, pk=None):
         like, created = Like.objects.get_or_create(user=request.user, lesson=self.get_object())
         if not created:
@@ -303,7 +313,7 @@ class LessonView(viewsets.ModelViewSet):
         return Response(serializers.LessonDetailsSerializer(self.get_object(), context={'request': request}).data)
 
 
-class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
+class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
     queryset = Payment.objects.all()
     serializer_class = serializers.PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -314,6 +324,14 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         enrollment.status = Enrollment.Status.ACTIVE
         enrollment.save()
 
+    def get_queryset(self):
+        queryset = Payment.objects.select_related('enrollment', 'enrollment__course')
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(enrollment__user=self.request.user)
+
+        return queryset.order_by('-created_date')
+
+
     @action(methods=['post'], detail=False, url_path='momo-pay')
     def create_momo_payment(self, request):
         try:
@@ -323,6 +341,8 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
 
             enrollment = Enrollment.objects.get(id=enrollment_id)
+            if enrollment.status == Enrollment.Status.ACTIVE:
+                return Response({"error": "Bạn đã sở hữu khóa học này rồi"}, status=400)
             amount = int(enrollment.course.price)
 
             # 2. Tạo mã đơn hàng (orderId) duy nhất
@@ -343,6 +363,13 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 f"&redirectUrl={MOMO_CONFIG['redirect_url']}"
                 f"&requestId={requestId}"
                 f"&requestType=captureWallet"
+            )
+            payment = Payment.objects.create(
+                enrollment=enrollment,
+                payment_method=Payment.Method.MOMO,
+                transaction_id=orderId,
+                amount=amount,
+                status=Payment.Status.PENDING,
             )
 
             h = hmac.new(
@@ -375,24 +402,19 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
             print("MOMO RESPONSE:", json_res)
             # 6. Xử lý kết quả
             if str(json_res.get('resultCode')) == '0':
-                # Lưu thông tin Payment tạm vào DB (status mặc định là PENDING hoặc bạn có thể set là chờ)
-                Payment.objects.create(
-                    enrollment=enrollment,
-                    payment_method=Payment.Method.MOMO,
-                    transaction_id=orderId,  # Lưu orderId để đối soát
-                    amount=amount,
-                    status=Payment.Status.PENDING,
-                )
-
-                # Trả về link thanh toán cho App
                 return Response({'payUrl': json_res['payUrl']})
             else:
+                payment.status = Payment.Status.FAILED
+                payment.save()
                 return Response({'error': json_res.get('localMessage'), 'momo_code': json_res.get('errorCode')},
                                 status=status.HTTP_400_BAD_REQUEST)
 
         except Enrollment.DoesNotExist:
             return Response({"error": "Không tìm thấy đăng ký"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            if 'payment' in locals():
+                payment.status = Payment.Status.FAILED
+                payment.save()
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['post'], detail=False, url_path='ipn', permission_classes=[permissions.AllowAny],
@@ -401,43 +423,26 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         data = request.data
         print("LOG IPN: Đã nhận được request!", data)
         # 1. Lấy dữ liệu quan trọng
-        resultCode = data.get('resultCode')  # 0 là thành công, khác 0 là thất bại
-        orderId = data.get('orderId')  # Chính là transaction_id mình lưu lúc tạo link
-
-        # 2. Kiểm tra chữ ký (Signature) - BƯỚC BẢO MẬT QUAN TRỌNG
-        # Nếu làm thật (Production) bạn PHẢI hash lại dữ liệu nhận được và so sánh với data['signature']
-        # để chắc chắn đây là MoMo gửi chứ không phải Hacker giả mạo.
-        # Nhưng ở môi trường Test, tạm thời ta bỏ qua để code chạy được đã.
-        check = (str(resultCode) == '0')
-        print(check)
+        resultCode = data.get('resultCode')
+        orderId = data.get('orderId')
         # 3. Xử lý Logic
-        if check:
-            # Tìm lại cái Payment đang chờ (PENDING) dựa vào orderId
-            try:
-                payment = Payment.objects.get(transaction_id=orderId)
-                # Nếu Payment này chưa xử lý thì mới xử lý (tránh lặp)
-                check2 = payment.status == Payment.Status.PENDING
-                print(check2)
-                if check2:  # Hoặc check status
-                    # Kích hoạt khóa học
-                    enrollment = payment.enrollment
-                    enrollment.status = Enrollment.Status.ACTIVE  # MỞ KHÓA HỌC
-                    enrollment.save()
-
-                    # Cập nhật trạng thái thanh toán
-                    payment.status = Payment.Status.COMPLETED
-                    payment.save()
-
-                    print(f"Đã kích hoạt khóa học cho đơn hàng {orderId}")
-                else:
-                    print("Lỗi ............................")
-
-            except Payment.DoesNotExist:
-                print("Không tìm thấy đơn hàng")
-            except Exception as e:
-                print("Lỗi xử lý:", e)
-
-        # MoMo yêu cầu trả về status 204 No Content để xác nhận đã nhận tin
+        try:
+            payment = Payment.objects.get(transaction_id=orderId)
+            enrollment = payment.enrollment
+            if str(resultCode) == '0' and payment.status == Payment.Status.PENDING:
+                enrollment.status = Enrollment.Status.ACTIVE
+                payment.status = Payment.Status.COMPLETED
+                print(f"Đã kích hoạt khóa học cho đơn hàng {orderId}")
+            else:
+                payment.status = Payment.Status.FAILED
+                if enrollment.status == Enrollment.Status.PENDING:
+                    enrollment.status = Enrollment.Status.CANCELED
+            enrollment.save()
+            payment.save()
+        except Payment.DoesNotExist:
+            print("Không tìm thấy đơn hàng")
+        except Exception as e:
+            print("Lỗi ipn momo:", e)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=False, url_path="zalo-pay")
@@ -550,33 +555,30 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
     @action(methods=['post'], detail=False, url_path='zalo-confirm', permission_classes=[permissions.AllowAny],
             authentication_classes=[])
     def zalo_confirm(self, request):
-        """
-        API này để Local Server gọi lên báo thanh toán thành công
-        """
         enrollment_id = request.data.get('enrollment_id')
 
-        zp_trans_id = request.data.get('zp_trans_id') # Mã của Zalo
-        app_trans_id = request.data.get('app_trans_id') # Mã đơn hàng của mình
-
+        zp_trans_id = request.data.get('zp_trans_id')
         if not enrollment_id:
             return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             # 1. Tìm Enrollment và kích hoạt
             enrollment = Enrollment.objects.get(pk=enrollment_id)
-            enrollment.status = Enrollment.Status.ACTIVE # Active khóa học
-            enrollment.save()
-
-            # 2. (Tùy chọn) Tìm hoặc Tạo Payment Record để lưu lịch sử
-            # Nếu bạn muốn lưu lại là đã thanh toán bằng ZaloPay
-            Payment.objects.create(
+            status_from_local = request.data.get('status', 'PAID')
+            p = Payment(
                 enrollment=enrollment,
-                amount=enrollment.course.price, # Hoặc lấy từ request.data.get('amount')
+                amount=enrollment.course.price,
                 payment_method=Payment.Method.ZALOPAY,
-                status=Payment.Status.COMPLETED,
-                transaction_id= zp_trans_id
+                transaction_id=zp_trans_id
             )
-
+            if status_from_local == "PAID":
+                enrollment.status = Enrollment.Status.ACTIVE
+                p.status = Payment.Status.COMPLETED
+            else:
+                enrollment.status = Enrollment.Status.CANCELED
+                p.status = Payment.Status.CANCELED
+            enrollment.save()
+            p.save()
             return Response({"message": "Update thành công"}, status=status.HTTP_200_OK)
 
         except Enrollment.DoesNotExist:
@@ -701,16 +703,16 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 try:
                     # Tìm Payment theo transaction_id đã lưu lúc tạo
                     payment = Payment.objects.get(transaction_id=txnRef)
-
+                    enrollment = payment.enrollment
                     if payment.status == Payment.Status.PENDING:
                         payment.status = Payment.Status.COMPLETED
-                        payment.save()
-
-                        # Kích hoạt khóa học
-                        enrollment = payment.enrollment
                         enrollment.status = Enrollment.Status.ACTIVE
-                        enrollment.save()
-
+                    else:
+                        payment.status = Payment.Status.FAILED
+                        if enrollment.status == Enrollment.Status.PENDING:
+                            enrollment.status = Enrollment.Status.CANCELED
+                    payment.save()
+                    enrollment.save()
                     return Response({"RspCode": "00", "Message": "Confirm Success"})
                 except Payment.DoesNotExist:
                     return Response({"RspCode": "01", "Message": "Order not found"})
@@ -783,7 +785,6 @@ def payment_return_vnpay(request):
 class LocalZaloPaymentView(APIView):
     def post(self, request):
         try:
-            # Local Server không truy cập DB, nên App phải gửi kèm amount và enrollment_id
             enrollment_id = request.data.get('enrollment_id')
             amount = request.data.get('amount')  # App gửi số tiền sang luôn
 
@@ -793,13 +794,11 @@ class LocalZaloPaymentView(APIView):
             transID = int(round(time.time() * 1000))
             app_trans_id = f"{datetime.now().strftime('%y%m%d')}_{transID}"
 
-            # Nhúng enrollment_id vào đây để lúc callback lấy ra dùng
             embed_data = json.dumps({
                 "enrollment_id": enrollment_id,
                 "redirecturl": "exp://oid5eyu-anonymous-8081.exp.direct"  # Link về App
             })
 
-            # Item giả lập (không cần query DB lấy tên môn học làm gì cho phức tạp)
             items = json.dumps([{"id": enrollment_id, "price": amount}])
 
             order = {
@@ -845,45 +844,36 @@ class LocalZaloIPNView(APIView):
 
             # Kiểm tra MAC (Giữ nguyên code của bạn)
             mac = hmac.new(key2.encode(), data.encode(), hashlib.sha256).hexdigest()
+            PA_URL = "https://courseapp.pythonanywhere.com/payments/zalo-confirm/"
+            data_json = json.loads(data)
+            app_trans_id = data_json.get("app_trans_id")
+            zp_trans_id = data_json.get("zp_trans_id")
+            if "embed_data" in data_json:
+                embed_data_json = json.loads(data_json["embed_data"])
+                enrollment_id = embed_data_json.get("enrollment_id")
+            else:
+                enrollment_id = None
 
+            payload = {
+                "enrollment_id": enrollment_id,
+                "app_trans_id": app_trans_id,
+                "zp_trans_id": zp_trans_id,
+            }
             if req_mac != mac:
+                payload["status"] = "FAILED"
                 result["return_code"] = -1
                 result["return_message"] = "Mac not equal"
             else:
-                # MAC chuẩn -> Lấy ID khóa học ra
-                data_json = json.loads(data)
-                app_trans_id = data_json.get("app_trans_id")
-                zp_trans_id = data_json.get("zp_trans_id")
-                embed_data_json = json.loads(data_json["embed_data"])
-                enrollment_id = embed_data_json.get("enrollment_id")
-
                 print(f"✅ Thanh toán thành công cho Enrollment ID: {enrollment_id}")
-
-                # --- ĐOẠN QUAN TRỌNG NHẤT: GỌI SANG PYTHONANYWHERE ---
-                # Thay vì Payment.objects.get... ta gọi API
-
-                PA_URL = "https://courseapp.pythonanywhere.com/payments/zalo-confirm/"
-
-                try:
-                    # 2. Gửi enrollment_id trong BODY (json) thay vì trên URL
-                    payload = {
-                        "enrollment_id": enrollment_id,
-                        "status": "PAID",
-                        "app_trans_id": app_trans_id,
-                        "zp_trans_id": zp_trans_id,
-                    }
-
-                    # Gọi POST
-                    res = requests.post(PA_URL, json=payload)
-                    print("Server chính phản hồi:", res.status_code, res.text)
-
-                except Exception as err:
-                    print("Lỗi gọi Server chính:", err)
-
-                # ------------------------------------------
-
+                payload["status"] = "PAID"
                 result["return_code"] = 1
                 result["return_message"] = "success"
+            if enrollment_id:
+                try:
+                    res = requests.post(PA_URL, json=payload)
+                    print("Server chính phản hồi:", res.status_code, res.text)
+                except Exception as err:
+                    print("Lỗi gọi Server chính:", err)
             return Response(result)
         except Exception as e:
             print("Lỗi ipn: ", str(e))
