@@ -89,9 +89,12 @@ const Courses = ({cate, ordering}) => {
     }
   };
 
-  useEffect(() => {
-    checkIsEnrolled();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      checkIsEnrolled();
+      return () => {};
+    }, [])
+  );
 
   useFocusEffect(
     useCallback(() => {
