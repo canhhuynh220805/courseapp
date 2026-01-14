@@ -68,9 +68,21 @@ const AddLesson = ({ route, navigation }) => {
     };
 
     const handleSaveLesson = async () => {
-        if (!lesson.subject?.trim() || !lesson.content?.trim()) {
-            showAlert("Lỗi", "Vui lòng điền đủ tiêu đề và nội dung!", "error");
+        const subject = lesson.subject?.trim();
+        const content = lesson.content?.trim();
+        const videoUrl = lesson.video?.trim();
+
+        if (!subject || !content) {
+            showAlert("Thiếu thông tin", "Vui lòng điền đủ tiêu đề và nội dung!", "error");
             return;
+        }
+
+        if (videoUrl) {
+            const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.?be)\/.+$/;
+            if (!youtubeRegex.test(videoUrl)) {
+                showAlert("Link không hợp lệ", "Vui lòng nhập đường dẫn YouTube đúng định dạng (ví dụ: https://youtu.be/...).", "error");
+                return;
+            }
         }
 
         setLoading(true);
@@ -86,8 +98,12 @@ const AddLesson = ({ route, navigation }) => {
             }
 
             const token = await AsyncStorage.getItem("token");
+
             const payload = {
                 ...lesson,
+                subject: subject,
+                content: content,
+                video: videoUrl || "",
                 course: courseId,
                 image: imageUrl
             };
@@ -131,7 +147,7 @@ const AddLesson = ({ route, navigation }) => {
                     />
 
                     <TextInput
-                        label="Link YouTube"
+                        label="Link YouTube (Tùy chọn)"
                         value={lesson.video}
                         mode="outlined"
                         placeholder="https://www.youtube.com/watch?v=..."
