@@ -27,7 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'role', 'is_lecturer_verified']
+        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'phone' ,'role', 'is_lecturer_verified']
         extra_kwargs = {
             'password': {
                 'write_only': True,
@@ -88,7 +88,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     image = serializers.CharField(required=False, allow_null=True)
-    video = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     class Meta:
         model = Lesson
         fields = ['id', 'subject', 'content', 'course', 'tags', 'image', 'video', 'duration']
@@ -155,8 +155,11 @@ class CommentSerializer(serializers.ModelSerializer):
         }
 
 class LessonDetailsSerializer(LessonSerializer):
+    like_counts = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
-    video = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    def get_like_counts(self, lesson):
+        return Like.objects.filter(lesson=lesson, active=True).count()
     def get_liked(self, lesson):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
@@ -172,5 +175,5 @@ class LessonDetailsSerializer(LessonSerializer):
         return data
     class Meta:
         model = Lesson
-        fields = LessonSerializer.Meta.fields + ['content', 'video', 'liked']
+        fields = LessonSerializer.Meta.fields + ['content', 'video', 'liked', 'like_counts']
 

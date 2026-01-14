@@ -46,6 +46,7 @@ class User(AbstractUser):
         STUDENT = "STUDENT", "Sinh viên"
 
     avatar = models.CharField(max_length=255, null=True, blank=True)
+    phone = models.CharField(max_length=13, null=True, blank=True)
     role = models.CharField(choices=Role.choices, max_length=20, default=Role.STUDENT)
     is_lecturer_verified = models.BooleanField(default=False)
 
@@ -157,6 +158,7 @@ class Payment(BaseModel):
     class Status(models.TextChoices):
         PENDING = "1"
         COMPLETED = "2"
+        FAILED = "3"
 
     enrollment = models.ForeignKey(Enrollment, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -182,15 +184,6 @@ class Like(Interaction):
 
     class Meta:
         unique_together = ('user', 'lesson')
-
-class Rating(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='ratings')
-    rate = models.IntegerField(default=5)
-    content = models.CharField(max_length=255, null=True, blank=True)
-
-    class Meta:
-        unique_together = ('user', 'course')
 
 if not firebase_admin._apps:
     cred_path = os.path.join(settings.BASE_DIR, 'serviceAccountKey.json')
@@ -223,8 +216,14 @@ def notify_students_new_lesson(sender, instance, created, **kwargs):
 
         for enrollment in active_enrollments:
             student = enrollment.user
+
             if student.id == lecturer.id:
                 continue
+
+            if lecturer.id < student.id:
+                room_id = f"{lecturer.id}-{student.id}"
+            else:
+                room_id = f"{student.id}-{lecturer.id}"
 
             doc_ref = db.collection('messages').document()
 
@@ -233,6 +232,7 @@ def notify_students_new_lesson(sender, instance, created, **kwargs):
                 "createdAt": created_at,
                 "senderId": lecturer.id,
                 "receiverId": student.id,
+                "roomId": room_id,
                 "isRead": False,
                 "user": {
                     "_id": lecturer.id,

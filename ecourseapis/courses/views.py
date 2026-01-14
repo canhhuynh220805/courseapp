@@ -1,5 +1,5 @@
 from django.db.models import DecimalField, Count, Q, Sum
-from django.db.models.functions import Coalesce, TruncYear, TruncMonth, TruncQuarter
+from django.db.models.functions import Coalesce, TruncYear, TruncMonth, TruncQuarter, TruncDay
 from django.http import HttpResponse
 import json, hmac, hashlib, uuid, requests
 import urllib.parse
@@ -9,12 +9,14 @@ from rest_framework import viewsets, permissions, generics, parsers, status
 from rest_framework.decorators import action, permission_classes
 from rest_framework.response import Response
 from ecourseapis.settings import MOMO_CONFIG, ZALO_CONFIG, VNPAY_CONFIG
-from courses import perms, serializers, paginators
+from courses import perms, serializers, paginators, models
 from courses.models import Course, User, Enrollment, Lesson, LessonComplete, Category, Payment, Comment, Like
 from courses.serializers import CoursesSerializer, UserSerializer, EnrollmentSerializer, LessonSerializer, \
     CategorySerializer, CourseRevenueSerializer, StudentEnrollmentSerializer, CommentSerializer
 import time
 from datetime import datetime, timedelta
+from django.utils import timezone
+import calendar
 
 
 # POST http://domain/o/token/
@@ -39,15 +41,15 @@ class CourseView(viewsets.ModelViewSet):
     pagination_class = paginators.CoursePaginator
 
     def get_queryset(self):
-        queries = self.queryset
         user = self.request.user
-
-        queries = queries.annotate(student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)))
 
         if user.is_authenticated and user.role == User.Role.LECTURER:
             queries = Course.objects.filter(lecturer=user)
         else:
             queries = Course.objects.filter(active=True)
+
+        queries = queries.annotate(student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)))
+
         q = self.request.query_params.get("q")
         if q:
             queries = queries.filter(Q(subject__icontains=q) | Q(lecturer__username__icontains=q))
@@ -75,6 +77,7 @@ class CourseView(viewsets.ModelViewSet):
             queries = queries.order_by('-price')
         else:
             queries = queries.order_by('-id')
+
         return queries
 
     def get_permissions(self):
@@ -100,17 +103,34 @@ class CourseView(viewsets.ModelViewSet):
     def enroll(self, request, pk=None):
         course = self.get_object()
         enrollment, created = Enrollment.objects.get_or_create(user=request.user, course=course)
-        if not created:
-            return Response({"message": "Đã đăng ký rồi."}, status=status.HTTP_409_CONFLICT)
+        if created:
+            enrollment.status = Enrollment.Status.ACTIVE if not course.price or course.price == 0 else Enrollment.Status.PENDING
+            enrollment.save()
+            return Response(serializers.EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED)
 
-        enrollment.status = Enrollment.Status.ACTIVE if not course.price or course.price == 0 else Enrollment.Status.PENDING
-        enrollment.save()
-        return Response(serializers.EnrollmentSerializer(enrollment).data, status=status.HTTP_201_CREATED)
+        if enrollment.status == Enrollment.Status.ACTIVE:
+            return Response({"message": "Bạn đã sở hữu khóa học này rồi."}, status=status.HTTP_409_CONFLICT)
+
+        if enrollment.status == Enrollment.Status.CANCELED:
+            enrollment.status = Enrollment.Status.PENDING
+            enrollment.save()
+
+        return Response(EnrollmentSerializer(enrollment).data, status=status.HTTP_200_OK)
 
     @action(methods=['get'], url_path='my-course', detail=False, permission_classes=[permissions.IsAuthenticated])
     def get_my_course(self, request):
         user = request.user
         enrollments = Enrollment.objects.filter(user=user, status=Enrollment.Status.ACTIVE)
+
+        q = request.query_params.get("q")
+        if q:
+            enrollments = enrollments.filter(course__subject__icontains=q)
+
+        page = self.paginate_queryset(enrollments)
+        if page is not None:
+            serializer = EnrollmentSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
         return Response(EnrollmentSerializer(enrollments, many=True).data)
 
     @action(methods=['get'], url_path='progress', detail=True, permission_classes=[permissions.IsAuthenticated])
@@ -208,6 +228,10 @@ class UserView(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
     @action(methods=['get'], url_path='chat-contacts', detail=False, permission_classes=[permissions.IsAuthenticated])
     def chat_contacts(self, request):
         user = request.user
+
+        if not user.is_authenticated:
+            return Response({"error": "Vui lòng đăng nhập"}, status=status.HTTP_401_UNAUTHORIZED)
+
         if user.role == User.Role.STUDENT:
             lecturers = User.objects.filter(courses__enrollments__user=user,
                                             courses__enrollments__status=Enrollment.Status.ACTIVE).distinct()
@@ -287,7 +311,7 @@ class LessonView(viewsets.ModelViewSet):
         c = Comment.objects.create(user=request.user, lesson=self.get_object(), content=content)
         return Response(serializers.CommentSerializer(c).data, status=status.HTTP_201_CREATED)
 
-    @action(methods=['post'], detail=True, url_path='like')
+    @action(methods=['post'], detail=True, url_path='like', permission_classes=[permissions.IsAuthenticated])
     def like(self, request, pk=None):
         like, created = Like.objects.get_or_create(user=request.user, lesson=self.get_object())
         if not created:
@@ -297,7 +321,7 @@ class LessonView(viewsets.ModelViewSet):
         return Response(serializers.LessonDetailsSerializer(self.get_object(), context={'request': request}).data)
 
 
-class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
+class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIView):
     queryset = Payment.objects.all()
     serializer_class = serializers.PaymentSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -308,6 +332,21 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         enrollment.status = Enrollment.Status.ACTIVE
         enrollment.save()
 
+    def get_queryset(self):
+        queryset = Payment.objects.select_related('enrollment', 'enrollment__course')
+
+        if self.action in ['process_vnpay_ipn', 'create_vnpay_payment']:
+            return queryset
+
+        if not self.request.user.is_authenticated:
+                return queryset.none()
+
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(enrollment__user=self.request.user, status=Payment.Status.COMPLETED)
+
+        return queryset.order_by('-created_date')
+
+
     @action(methods=['post'], detail=False, url_path='momo-pay')
     def create_momo_payment(self, request):
         try:
@@ -317,6 +356,8 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
 
             enrollment = Enrollment.objects.get(id=enrollment_id)
+            if enrollment.status == Enrollment.Status.ACTIVE:
+                return Response({"error": "Bạn đã sở hữu khóa học này rồi"}, status=400)
             amount = int(enrollment.course.price)
 
             # 2. Tạo mã đơn hàng (orderId) duy nhất
@@ -338,6 +379,15 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 f"&requestId={requestId}"
                 f"&requestType=captureWallet"
             )
+
+            payment = Payment.objects.create(
+                enrollment=enrollment,
+                transaction_id=orderId,
+                payment_method=Payment.Method.MOMO,
+                amount=amount,
+                status=Payment.Status.PENDING
+            )
+
 
             h = hmac.new(
                 bytes(MOMO_CONFIG['secret_key'], 'ascii'),
@@ -369,24 +419,19 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
             print("MOMO RESPONSE:", json_res)
             # 6. Xử lý kết quả
             if str(json_res.get('resultCode')) == '0':
-                # Lưu thông tin Payment tạm vào DB (status mặc định là PENDING hoặc bạn có thể set là chờ)
-                Payment.objects.create(
-                    enrollment=enrollment,
-                    payment_method=Payment.Method.MOMO,
-                    transaction_id=orderId,  # Lưu orderId để đối soát
-                    amount=amount,
-                    status=Payment.Status.PENDING,
-                )
-
-                # Trả về link thanh toán cho App
                 return Response({'payUrl': json_res['payUrl']})
             else:
+                payment.status = Payment.Status.FAILED
+                payment.save()
                 return Response({'error': json_res.get('localMessage'), 'momo_code': json_res.get('errorCode')},
                                 status=status.HTTP_400_BAD_REQUEST)
 
         except Enrollment.DoesNotExist:
             return Response({"error": "Không tìm thấy đăng ký"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
+            if 'payment' in locals():
+                payment.status = Payment.Status.FAILED
+                payment.save()
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(methods=['post'], detail=False, url_path='ipn', permission_classes=[permissions.AllowAny],
@@ -395,43 +440,26 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
         data = request.data
         print("LOG IPN: Đã nhận được request!", data)
         # 1. Lấy dữ liệu quan trọng
-        resultCode = data.get('resultCode')  # 0 là thành công, khác 0 là thất bại
-        orderId = data.get('orderId')  # Chính là transaction_id mình lưu lúc tạo link
-
-        # 2. Kiểm tra chữ ký (Signature) - BƯỚC BẢO MẬT QUAN TRỌNG
-        # Nếu làm thật (Production) bạn PHẢI hash lại dữ liệu nhận được và so sánh với data['signature']
-        # để chắc chắn đây là MoMo gửi chứ không phải Hacker giả mạo.
-        # Nhưng ở môi trường Test, tạm thời ta bỏ qua để code chạy được đã.
-        check = (str(resultCode) == '0')
-        print(check)
+        resultCode = data.get('resultCode')
+        orderId = data.get('orderId')
         # 3. Xử lý Logic
-        if check:
-            # Tìm lại cái Payment đang chờ (PENDING) dựa vào orderId
-            try:
-                payment = Payment.objects.get(transaction_id=orderId)
-                # Nếu Payment này chưa xử lý thì mới xử lý (tránh lặp)
-                check2 = payment.status == Payment.Status.PENDING
-                print(check2)
-                if check2:  # Hoặc check status
-                    # Kích hoạt khóa học
-                    enrollment = payment.enrollment
-                    enrollment.status = Enrollment.Status.ACTIVE  # MỞ KHÓA HỌC
-                    enrollment.save()
-
-                    # Cập nhật trạng thái thanh toán
-                    payment.status = Payment.Status.COMPLETED
-                    payment.save()
-
-                    print(f"Đã kích hoạt khóa học cho đơn hàng {orderId}")
-                else:
-                    print("Lỗi ............................")
-
-            except Payment.DoesNotExist:
-                print("Không tìm thấy đơn hàng")
-            except Exception as e:
-                print("Lỗi xử lý:", e)
-
-        # MoMo yêu cầu trả về status 204 No Content để xác nhận đã nhận tin
+        try:
+            payment = Payment.objects.get(transaction_id=orderId)
+            enrollment = payment.enrollment
+            if str(resultCode) == '0' and payment.status == Payment.Status.PENDING:
+                enrollment.status = Enrollment.Status.ACTIVE
+                payment.status = Payment.Status.COMPLETED
+                print(f"Đã kích hoạt khóa học cho đơn hàng {orderId}")
+            else:
+                payment.status = Payment.Status.FAILED
+                if enrollment.status == Enrollment.Status.PENDING:
+                    enrollment.status = Enrollment.Status.CANCELED
+            enrollment.save()
+            payment.save()
+        except Payment.DoesNotExist:
+            print("Không tìm thấy đơn hàng")
+        except Exception as e:
+            print("Lỗi ipn momo:", e)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(methods=['post'], detail=False, url_path="zalo-pay")
@@ -544,33 +572,34 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
     @action(methods=['post'], detail=False, url_path='zalo-confirm', permission_classes=[permissions.AllowAny],
             authentication_classes=[])
     def zalo_confirm(self, request):
-        """
-        API này để Local Server gọi lên báo thanh toán thành công
-        """
         enrollment_id = request.data.get('enrollment_id')
 
-        zp_trans_id = request.data.get('zp_trans_id') # Mã của Zalo
-        app_trans_id = request.data.get('app_trans_id') # Mã đơn hàng của mình
-
+        zp_trans_id = request.data.get('zp_trans_id')
         if not enrollment_id:
             return Response({"error": "Thiếu enrollment_id"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             # 1. Tìm Enrollment và kích hoạt
             enrollment = Enrollment.objects.get(pk=enrollment_id)
-            enrollment.status = Enrollment.Status.ACTIVE # Active khóa học
-            enrollment.save()
 
-            # 2. (Tùy chọn) Tìm hoặc Tạo Payment Record để lưu lịch sử
-            # Nếu bạn muốn lưu lại là đã thanh toán bằng ZaloPay
-            Payment.objects.create(
+            if Payment.objects.filter(transaction_id=zp_trans_id).exists():
+                return Response({"message": "Giao dịch đã được ghi nhận trước đó"}, status=status.HTTP_200_OK)
+
+            status_from_local = request.data.get('status', 'PAID')
+            p = Payment(
                 enrollment=enrollment,
-                amount=enrollment.course.price, # Hoặc lấy từ request.data.get('amount')
+                amount=enrollment.course.price,
                 payment_method=Payment.Method.ZALOPAY,
-                status=Payment.Status.COMPLETED,
-                transaction_id= zp_trans_id
+                transaction_id=zp_trans_id
             )
-
+            if status_from_local == "PAID":
+                enrollment.status = Enrollment.Status.ACTIVE
+                p.status = Payment.Status.COMPLETED
+            else:
+                enrollment.status = Enrollment.Status.CANCELED
+                p.status = Payment.Status.CANCELED
+            enrollment.save()
+            p.save()
             return Response({"message": "Update thành công"}, status=status.HTTP_200_OK)
 
         except Enrollment.DoesNotExist:
@@ -590,68 +619,73 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
             transID = int(round(time.time() * 1000))
             orderId = f"{datetime.now().strftime('%y%m%d')}_{transID}"  # Mã đơn hàng
 
-            Payment.objects.create(
+            payment = Payment.objects.create(
                 enrollment=enrollment,
-                amount=amount,
-                payment_method=Payment.Method.VNPAY,
-                status=Payment.Status.PENDING,
-                transaction_id=orderId
+                transaction_id= orderId,
+                payment_method= Payment.Method.VNPAY,
+                amount= amount,
+                status= Payment.Status.PENDING
             )
 
+            secret_key = VNPAY_CONFIG["vnpHashSecret"].strip()
+            tmn_code = VNPAY_CONFIG["vnp_TmnCode"].strip()
+
+
             # 3. Cấu hình tham số gửi VNPay
-            ip_addr = request.META.get('REMOTE_ADDR', '127.0.0.1')
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip_addr = x_forwarded_for.split(',')[0]
+            else:
+                ip_addr = request.META.get('REMOTE_ADDR', '127.0.0.1')
 
             vnp_Params = {
                 "vnp_Version": "2.1.0",
                 "vnp_Command": "pay",
-                "vnp_TmnCode": "FRJ8RVSE",  # Mã Website Sandbox
-                "vnp_Amount": amount * 100,  # VNPAY yêu cầu nhân 100
+                "vnp_TmnCode": tmn_code,
+                "vnp_Amount": amount * 100,
                 "vnp_CurrCode": "VND",
                 "vnp_TxnRef": orderId,
-                "vnp_OrderInfo": f"Thanh toan khoa hoc {enrollment.course.subject}",
+                "vnp_OrderInfo": f"Thanh toan khoa hoc {enrollment.course.id}",
                 "vnp_OrderType": "other",
                 "vnp_Locale": "vn",
-                "vnp_IpnUrl": "https://courseapp.pythonanywhere.com/payments/ipn/",
+                "vnp_IpnUrl": "https://courseapp.pythonanywhere.com/payments/vnpay-ipn/",
                 "vnp_ReturnUrl": VNPAY_CONFIG["vnp_ReturnUrl"],
-                # Link redirect sau khi xong (quan trọng nếu làm Web, App thì ít quan trọng hơn)
                 "vnp_IpAddr": ip_addr,
                 "vnp_CreateDate": datetime.now().strftime('%Y%m%d%H%M%S'),
             }
 
             # 4. Sắp xếp tham số & Tạo Checksum (QUAN TRỌNG NHẤT)
             inputData = sorted(vnp_Params.items())
-            queryString = ""
-            seq = 0
+            hasData = {}
             for key, val in inputData:
-                if seq == 1:
-                    queryString = queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
-                else:
-                    seq = 1
-                    queryString = key + "=" + urllib.parse.quote_plus(str(val))
+                if val: # Chỉ lấy tham số có giá trị
+                    hasData[key] = str(val)
+            queryString = urllib.parse.urlencode(sorted(hasData.items()))
+
 
             # Tạo chữ ký bảo mật HMAC-SHA512
-            vnp_HashSecret = VNPAY_CONFIG["vnpHashSecret"] # Key Sandbox
+            vnp_HashSecret = secret_key # Key Sandbox
             hashValue = hmac.new(
                 vnp_HashSecret.encode('utf-8'),
                 queryString.encode('utf-8'),
                 hashlib.sha512
             ).hexdigest()
-
             # 5. Ghép chuỗi URL cuối cùng
             payment_url = "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html" + "?" + queryString + "&vnp_SecureHash=" + hashValue
-
             return Response({"payment_url": payment_url})
 
         except Exception as e:
             print(f"Lỗi tạo VNPay: {e}")
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['get'], detail=False, url_path='ipn', permission_classes=[permissions.AllowAny],
+    @action(methods=['get'], detail=False, url_path='vnpay-ipn', permission_classes=[permissions.AllowAny],
             authentication_classes=[])
     def process_vnpay_ipn(self, request):
         # Lấy toàn bộ tham số VNPay gửi về
         inputData = request.GET.dict()
-
+        print("IPN VNPAY ĐANG CHẠY")
+        print(f"Input Data: {inputData}")
+        print("===================================================")
         if not inputData:
             return Response({"RspCode": "99", "Message": "Invalid request"})
 
@@ -666,14 +700,7 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
 
         # Sắp xếp lại tham số (Giống hệt lúc tạo)
         sorted_inputData = sorted(inputData.items())
-        queryString = ""
-        seq = 0
-        for key, val in sorted_inputData:
-            if seq == 1:
-                queryString = queryString + "&" + key + "=" + urllib.parse.quote_plus(str(val))
-            else:
-                seq = 1
-                queryString = key + "=" + urllib.parse.quote_plus(str(val))
+        queryString = urllib.parse.urlencode(sorted_inputData)
 
         # Tính lại Hash
         vnp_HashSecret = VNPAY_CONFIG["vnpHashSecret"]
@@ -695,16 +722,16 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView):
                 try:
                     # Tìm Payment theo transaction_id đã lưu lúc tạo
                     payment = Payment.objects.get(transaction_id=txnRef)
-
+                    enrollment = payment.enrollment
                     if payment.status == Payment.Status.PENDING:
                         payment.status = Payment.Status.COMPLETED
-                        payment.save()
-
-                        # Kích hoạt khóa học
-                        enrollment = payment.enrollment
                         enrollment.status = Enrollment.Status.ACTIVE
-                        enrollment.save()
-
+                    else:
+                        payment.status = Payment.Status.FAILED
+                        if enrollment.status == Enrollment.Status.PENDING:
+                            enrollment.status = Enrollment.Status.CANCELED
+                    payment.save()
+                    enrollment.save()
                     return Response({"RspCode": "00", "Message": "Confirm Success"})
                 except Payment.DoesNotExist:
                     return Response({"RspCode": "01", "Message": "Order not found"})
@@ -777,7 +804,6 @@ def payment_return_vnpay(request):
 class LocalZaloPaymentView(APIView):
     def post(self, request):
         try:
-            # Local Server không truy cập DB, nên App phải gửi kèm amount và enrollment_id
             enrollment_id = request.data.get('enrollment_id')
             amount = request.data.get('amount')  # App gửi số tiền sang luôn
 
@@ -787,13 +813,11 @@ class LocalZaloPaymentView(APIView):
             transID = int(round(time.time() * 1000))
             app_trans_id = f"{datetime.now().strftime('%y%m%d')}_{transID}"
 
-            # Nhúng enrollment_id vào đây để lúc callback lấy ra dùng
             embed_data = json.dumps({
                 "enrollment_id": enrollment_id,
                 "redirecturl": "exp://oid5eyu-anonymous-8081.exp.direct"  # Link về App
             })
 
-            # Item giả lập (không cần query DB lấy tên môn học làm gì cho phức tạp)
             items = json.dumps([{"id": enrollment_id, "price": amount}])
 
             order = {
@@ -839,45 +863,36 @@ class LocalZaloIPNView(APIView):
 
             # Kiểm tra MAC (Giữ nguyên code của bạn)
             mac = hmac.new(key2.encode(), data.encode(), hashlib.sha256).hexdigest()
+            PA_URL = "https://courseapp.pythonanywhere.com/payments/zalo-confirm/"
+            data_json = json.loads(data)
+            app_trans_id = data_json.get("app_trans_id")
+            zp_trans_id = data_json.get("zp_trans_id")
+            if "embed_data" in data_json:
+                embed_data_json = json.loads(data_json["embed_data"])
+                enrollment_id = embed_data_json.get("enrollment_id")
+            else:
+                enrollment_id = None
 
+            payload = {
+                "enrollment_id": enrollment_id,
+                "app_trans_id": app_trans_id,
+                "zp_trans_id": zp_trans_id,
+            }
             if req_mac != mac:
+                payload["status"] = "FAILED"
                 result["return_code"] = -1
                 result["return_message"] = "Mac not equal"
             else:
-                # MAC chuẩn -> Lấy ID khóa học ra
-                data_json = json.loads(data)
-                app_trans_id = data_json.get("app_trans_id")
-                zp_trans_id = data_json.get("zp_trans_id")
-                embed_data_json = json.loads(data_json["embed_data"])
-                enrollment_id = embed_data_json.get("enrollment_id")
-
                 print(f"✅ Thanh toán thành công cho Enrollment ID: {enrollment_id}")
-
-                # --- ĐOẠN QUAN TRỌNG NHẤT: GỌI SANG PYTHONANYWHERE ---
-                # Thay vì Payment.objects.get... ta gọi API
-
-                PA_URL = "https://courseapp.pythonanywhere.com/payments/zalo-confirm/"
-
-                try:
-                    # 2. Gửi enrollment_id trong BODY (json) thay vì trên URL
-                    payload = {
-                        "enrollment_id": enrollment_id,
-                        "status": "PAID",
-                        "app_trans_id": app_trans_id,
-                        "zp_trans_id": zp_trans_id,
-                    }
-
-                    # Gọi POST
-                    res = requests.post(PA_URL, json=payload)
-                    print("Server chính phản hồi:", res.status_code, res.text)
-
-                except Exception as err:
-                    print("Lỗi gọi Server chính:", err)
-
-                # ------------------------------------------
-
+                payload["status"] = "PAID"
                 result["return_code"] = 1
                 result["return_message"] = "success"
+            if enrollment_id:
+                try:
+                    res = requests.post(PA_URL, json=payload)
+                    print("Server chính phản hồi:", res.status_code, res.text)
+                except Exception as err:
+                    print("Lỗi gọi Server chính:", err)
             return Response(result)
         except Exception as e:
             print("Lỗi ipn: ", str(e))
@@ -888,6 +903,7 @@ class StatView(viewsets.ViewSet):
     @action(methods=['get'], detail=False, url_path='course-stats')
     def course_stats(self, request):
         user = request.user
+
         if user.role == User.Role.ADMIN:
             queryset = Course.objects.all()
         else:
@@ -895,76 +911,186 @@ class StatView(viewsets.ViewSet):
 
         q = request.query_params.get('q')
         if q:
-            queryset = queryset.filter(subject__icontains=q)
+            queryset = queryset.filter(Q(subject__icontains=q) | Q(lecturer__username__icontains=q))
 
         queryset = queryset.annotate(
             student_count=Count('enrollments', filter=Q(enrollments__status=Enrollment.Status.ACTIVE)),
-            total_revenue=Coalesce(Sum('enrollments__payments__amount'), 0, output_field=DecimalField())
-        ).order_by('-total_revenue')
-
-        paginator = paginators.CoursePaginator()
-        page = paginator.paginate_queryset(queryset, request)
-        if page is not None:
-            serializer = CourseRevenueSerializer(page, many=True, context={'request': request})
-            return paginator.get_paginated_response(serializer.data)
+            total_revenue=Coalesce(
+                Sum('enrollments__payments__amount',
+                    filter=Q(enrollments__payments__status=Payment.Status.COMPLETED)),
+                0,
+                output_field=DecimalField()
+            )
+        ).order_by('-total_revenue', '-student_count')
 
         serializer = CourseRevenueSerializer(queryset, many=True, context={'request': request})
+
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['get'], detail=False, url_path='revenue-stats')
     def revenue_stats(self, request):
         user = request.user
         period = request.query_params.get('period', 'month')
+        year = request.query_params.get('year')
 
-        payments = Payment.objects.filter(enrollment__course__active=True)
+        payments = Payment.objects.filter(status=Payment.Status.COMPLETED)
 
         if user.role == User.Role.LECTURER:
             payments = payments.filter(enrollment__course__lecturer=user)
 
-        if period == 'year':
-            trunc_func = TruncYear('created_date')
-        elif period == 'quarter':
-            trunc_func = TruncQuarter('created_date')
-        else:
-            trunc_func = TruncMonth('created_date')
-
-        stats = payments.annotate(period_date=trunc_func).values('period_date').annotate(
-            total_revenue=Sum('amount')).order_by('period_date')
+        current_year = timezone.now().year
+        target_year = int(year) if year else current_year
 
         data = []
-        for s in stats:
-            p_date = s['period_date']
-            if period == 'year':
-                label = p_date.strftime('%Y')
-            elif period == 'quarter':
-                quarter = (p_date.month - 1) // 3 + 1
-                label = f"Q{quarter}-{p_date.year}"
-            else:
-                label = p_date.strftime('%m-%Y')
 
-            data.append({
-                'period': label,
-                'total_revenue': s['total_revenue']
-            })
+        if period == 'month':
+            payments = payments.filter(created_date__year=target_year)
+
+            stats = payments.annotate(period_date=TruncMonth('created_date'))\
+                .values('period_date')\
+                .annotate(total_revenue=Sum('amount'))\
+                .order_by('period_date')
+
+            stats_dict = {item['period_date'].month: item['total_revenue'] for item in stats}
+
+            for i in range(1, 13):
+                data.append({
+                    'period': f"{i:02d}-{target_year}",
+                    'value': stats_dict.get(i, 0),
+                    'type': 'revenue'
+                })
+
+        elif period == 'quarter':
+
+            payments = payments.filter(created_date__year=target_year)
+
+            stats = payments.annotate(period_date=TruncQuarter('created_date'))\
+                .values('period_date')\
+                .annotate(total_revenue=Sum('amount'))\
+                .order_by('period_date')
+
+            stats_dict = {((item['period_date'].month - 1) // 3 + 1): item['total_revenue'] for item in stats}
+
+            for i in range(1, 5):
+                data.append({
+                    'period': f"Q{i}-{target_year}",
+                    'value': stats_dict.get(i, 0),
+                    'type': 'revenue'
+                })
+
+        elif period == 'year':
+            stats = payments.annotate(period_date=TruncYear('created_date'))\
+                .values('period_date')\
+                .annotate(total_revenue=Sum('amount'))\
+                .order_by('period_date')
+
+            for s in stats:
+                data.append({
+                    'period': str(s['period_date'].year),
+                    'value': s['total_revenue'],
+                    'type': 'revenue'
+                })
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    @action(methods=['get'], detail=False, url_path='enrollment-stats')
+    def enrollment_stats(self, request):
+        if request.user.role != User.Role.ADMIN:
+            return Response({"error": "Quyền hạn không cho phép"}, status=status.HTTP_403_FORBIDDEN)
+
+        period = request.query_params.get('period', 'month')
+
+        now = timezone.now()
+        year = int(request.query_params.get('year', now.year))
+        month = int(request.query_params.get('month', now.month))
+
+        enrollments = Enrollment.objects.filter(status=Enrollment.Status.ACTIVE)
+
+        data = []
+
+        if period == 'day':
+            enrollments = enrollments.filter(created_date__year=year, created_date__month=month)
+
+            stats = enrollments.annotate(period_date=TruncDay('created_date'))\
+                .values('period_date')\
+                .annotate(total_enrollments=Count('id'))\
+                .order_by('period_date')
+
+            stats_dict = {item['period_date'].day: item['total_enrollments'] for item in stats}
+
+            _, num_days = calendar.monthrange(year, month)
+
+            for d in range(1, num_days + 1):
+                data.append({
+                    'period': f"{d:02d}-{month:02d}",
+                    'value': stats_dict.get(d, 0),
+                    'type': 'enrollment'
+                })
+
+        elif period == 'month':
+            enrollments = enrollments.filter(created_date__year=year)
+
+            stats = enrollments.annotate(period_date=TruncMonth('created_date'))\
+                .values('period_date')\
+                .annotate(total_enrollments=Count('id'))\
+                .order_by('period_date')
+
+            stats_dict = {item['period_date'].month: item['total_enrollments'] for item in stats}
+
+            for m in range(1, 13):
+                data.append({
+                    'period': f"{m:02d}-{year}",
+                    'value': stats_dict.get(m, 0),
+                    'type': 'enrollment'
+                })
+
+        elif period == 'year':
+            stats = enrollments.annotate(period_date=TruncYear('created_date'))\
+                .values('period_date')\
+                .annotate(total_enrollments=Count('id'))\
+                .order_by('period_date')
+
+            for s in stats:
+                data.append({
+                    'period': str(s['period_date'].year),
+                    'value': s['total_enrollments'],
+                    'type': 'enrollment'
+                })
+
         return Response(data, status=status.HTTP_200_OK)
 
     @action(methods=['get'], detail=False, url_path='general-stats')
     def general_stats(self, request):
         user = request.user
 
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+
         course_qs = Course.objects.filter(active=True)
         enrollment_qs = Enrollment.objects.filter(status=Enrollment.Status.ACTIVE)
-        payment_qs = Payment.objects.filter(status = Payment.Status.COMPLETED)
+        payment_qs = Payment.objects.filter(status=Payment.Status.COMPLETED)
+
+        if from_date:
+            enrollment_qs = enrollment_qs.filter(created_date__gte=from_date)
+            payment_qs = payment_qs.filter(created_date__gte=from_date)
+            course_qs = course_qs.filter(created_date__gte=from_date)
+        if to_date:
+
+            enrollment_qs = enrollment_qs.filter(created_date__lte=to_date)
+            payment_qs = payment_qs.filter(created_date__lte=to_date)
+            course_qs = course_qs.filter(created_date__lte=to_date)
 
         total_students = 0
         total_revenue = 0
         total_lecturers = 0
 
         if user.role == User.Role.LECTURER:
+
             course_qs = course_qs.filter(lecturer=user)
+
             total_students = enrollment_qs.filter(course__lecturer=user).values('user').distinct().count()
-            total_revenue = payment_qs.filter(enrollment__course__lecturer=user).aggregate(sum=Sum('amount'))[
-                                'sum'] or 0
+
+            total_revenue = payment_qs.filter(enrollment__course__lecturer=user).aggregate(sum=Sum('amount'))['sum'] or 0
 
         elif user.role == User.Role.ADMIN:
             total_students = User.objects.filter(role=User.Role.STUDENT, is_active=True).count()
@@ -974,12 +1100,17 @@ class StatView(viewsets.ViewSet):
         total_courses = course_qs.count()
 
         return Response({
-            "total_courses": total_courses,
-            "total_students": total_students,
-            "total_lecturers": total_lecturers,
-            "total_revenue": total_revenue
+            "filter": {
+                "from_date": from_date,
+                "to_date": to_date
+            },
+            "metrics": {
+                "total_courses": total_courses,
+                "total_students": total_students,
+                "total_lecturers": total_lecturers,
+                "total_revenue": total_revenue
+            }
         }, status=status.HTTP_200_OK)
-
 
 
 class CommentView(viewsets.ViewSet, generics.UpdateAPIView, generics.DestroyAPIView):
