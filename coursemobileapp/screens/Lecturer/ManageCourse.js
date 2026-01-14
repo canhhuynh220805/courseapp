@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, FlatList } from 'react-native';
+import { View, FlatList, Image } from 'react-native';
 import { Text, Divider, List, FAB, ActivityIndicator, IconButton, Button as PaperButton } from 'react-native-paper';
 import { authApis, endpoints } from '../../utils/Apis';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -125,11 +125,20 @@ const ManageCourse = ({ route, navigation }) => {
                     data={lessons}
                     keyExtractor={item => item.id.toString()}
                     ListHeaderComponent={renderHeader}
+                    contentContainerStyle={{ paddingBottom: 100 }}
                     renderItem={({ item, index }) => (
                         <List.Item
                             title={`${index + 1}. ${item.subject}`}
                             description={item.active ? "Đang hiển thị" : "Đang ẩn"}
-                            left={p => <List.Icon {...p} icon="book-open-variant" />}
+                            left={props => item.image ? (
+                                <Image
+                                    source={{ uri: item.image }}
+                                    style={{ width: 60, height: 40, borderRadius: 4, marginRight: 10 }}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <List.Icon {...props} icon="book-open-variant" />
+                            )}
                             right={p => (
                                 <View style={{ flexDirection: 'row' }}>
                                     <IconButton icon="pencil-outline" onPress={() => navigation.navigate("AddLesson", { courseId: course.id, lesson: item })} />

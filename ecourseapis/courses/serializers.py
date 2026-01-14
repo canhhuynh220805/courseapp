@@ -27,7 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
     avatar = serializers.CharField(required=False, allow_null=True)
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'role', 'is_lecturer_verified']
+        fields = ['id', 'first_name', 'last_name', 'username', 'password', 'avatar', 'email', 'phone' ,'role', 'is_lecturer_verified']
         extra_kwargs = {
             'password': {
                 'write_only': True,
@@ -52,18 +52,29 @@ class UserSerializer(serializers.ModelSerializer):
 class CoursesSerializer(ImageSerializer):
     image = serializers.CharField(required=False, allow_null=True)
     is_free = serializers.SerializerMethodField()
-    is_registered = serializers.BooleanField(read_only=True, default=False)
-    progress = serializers.IntegerField(source='user_progress', read_only=True, default=0)
-    student_count = serializers.IntegerField(read_only=True, default=0)
     lecturer = UserSerializer(read_only=True)
     class Meta:
         model = Course
-        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration', 'is_registered', 'progress', 'student_count']
+        fields = ['id', 'subject', 'description', 'image' ,'price', 'category', 'is_free', 'lecturer', 'duration']
 
     def validate_price(self, value):
         if value < 0:
             raise serializers.ValidationError("Học phí không được là số âm.")
         return value
+
+    def is_registered(self, course):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return Enrollment.objects.filter(user=request.user, course=course).exists()
+        return False
+
+    def get_progress(self, course):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+            if enrollment:
+                return enrollment.progress
+        return None
 
     def get_is_free(self, obj):
         return obj.price == 0 or obj.price is None
@@ -77,7 +88,7 @@ class EnrollmentSerializer(serializers.ModelSerializer):
 
 class LessonSerializer(serializers.ModelSerializer):
     image = serializers.CharField(required=False, allow_null=True)
-    video = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     class Meta:
         model = Lesson
         fields = ['id', 'subject', 'content', 'course', 'tags', 'image', 'video', 'duration']
@@ -146,7 +157,7 @@ class CommentSerializer(serializers.ModelSerializer):
 class LessonDetailsSerializer(LessonSerializer):
     like_counts = serializers.SerializerMethodField()
     liked = serializers.SerializerMethodField()
-    video = serializers.CharField(required=False, allow_null=True)
+    video = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     def get_like_counts(self, lesson):
         return Like.objects.filter(lesson=lesson, active=True).count()
     def get_liked(self, lesson):

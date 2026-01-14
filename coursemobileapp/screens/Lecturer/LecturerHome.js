@@ -22,7 +22,7 @@ const LecturerHome = ({ navigation }) => {
 
             setStats(resStats.data.results || resStats.data);
 
-            setSummary(resGeneral.data);
+            setSummary(resGeneral.data.metrics || { total_revenue: 0, total_students: 0 });
         } catch (ex) {
             console.error("Lỗi khi tải dữ liệu giảng viên:", ex);
         } finally {
