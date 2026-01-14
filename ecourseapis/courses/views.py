@@ -89,15 +89,15 @@ class CourseView(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
-    @action(methods=['get'], detail=False, url_path='compare')
-    def compare(self, request):
-        ids = request.query_params.get('ids')
-        if not ids:
-            return Response({"error": "Vui lòng cung cấp danh sách ID"}, status=status.HTTP_400_BAD_REQUEST)
+    # @action(methods=['get'], detail=False, url_path='compare')
+    # def compare(self, request):
+    #     ids = request.query_params.get('ids')
+    #     if not ids:
+    #         return Response({"error": "Vui lòng cung cấp danh sách ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        course_ids = [int(pk) for pk in ids.split(',')]
-        courses = Course.objects.filter(id__in=course_ids, active=True)
-        return Response(serializers.CourseCompareSerializer(courses, many=True).data)
+    #     course_ids = [int(pk) for pk in ids.split(',')]
+    #     courses = Course.objects.filter(id__in=course_ids, active=True)
+    #     return Response(serializers.CourseCompareSerializer(courses, many=True).data)
 
     @action(methods=['post'], detail=True, url_path='enroll', permission_classes=[permissions.IsAuthenticated])
     def enroll(self, request, pk=None):
