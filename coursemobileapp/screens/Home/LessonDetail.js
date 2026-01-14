@@ -1,4 +1,10 @@
-import React, {useContext, useEffect, useState, useCallback} from "react";
+import React, {
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 import {
   View,
   Text,
@@ -11,19 +17,21 @@ import {
   ActivityIndicator,
   FlatList,
   Alert,
+  useWindowDimensions,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native";
+import {Ionicons} from "@expo/vector-icons";
+import {SafeAreaView} from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
-import styles from "./styles";
+import styles, {COLORS} from "./styles";
 import Apis, {authApis, endpoints} from "../../utils/Apis";
 import {MyUserContext} from "../../utils/contexts/MyContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {useNavigation} from "@react-navigation/native";
+import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import moment from "moment";
 import "moment/locale/vi";
-
-function LessonDetail({route, navigation}) {
+import {useAlert} from "../../utils/contexts/AlertContext";
+import RenderHTML from "react-native-render-html";
+function LessonDetail({route}) {
   const lessonId = route.params?.lessonId;
   const courseId = route.params?.courseId;
   const [lesson, setLesson] = useState(null);
@@ -31,13 +39,17 @@ function LessonDetail({route, navigation}) {
   const [likeCount, setLikeCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [hasNext, setHasNext] = useState(true);
+  const [isMarked, setIsMarked] = useState(false);
   const [comments, setComments] = useState([]);
   const [content, setContent] = useState("");
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [user] = useContext(MyUserContext);
   const [page, setPage] = useState(1);
+  const showAlert = useAlert();
+  const {width} = useWindowDimensions();
   const nav = useNavigation();
+  const contentWidth = width - 64;
 
   const getYouTubeId = (url) => {
     if (!url) return null;
@@ -65,11 +77,7 @@ function LessonDetail({route, navigation}) {
       );
       console.info("Mark complete response:", res.data);
       if (res.status === 200) {
-        console.log("Đánh dấu hoàn thành bài học thành công");
-        Alert.alert(
-          "Hoàn thành bài học!",
-          `${res.data.message}\nTiến độ hiện tại: ${res.data.progress}% (${res.data.completed_lessons_count}/${res.data.total_lessons} bài)`
-        );
+        showAlert("Thông báo", "Bạn đã hoàn thành bài học này!", "success");
       }
     } catch (ex) {
       console.error(ex);
@@ -79,21 +87,48 @@ function LessonDetail({route, navigation}) {
     }
   };
 
-  const handleLike = () => {
-    if (isLiked) {
-      setIsLiked(false);
-      setLikeCount(likeCount - 1);
-    } else {
-      setIsLiked(true);
-      setLikeCount(likeCount + 1);
+  const hasEndReached = () => {
+    if (hasNext) {
+      console.log("Load thêm comment...");
+      loadMore();
+    }
+
+    if (!lesson?.video && !isMarked) {
+      console.log("Đã cuộn tới cuối, đánh dấu học xong!");
+      markLessonComplete();
+      setIsMarked(true);
+    }
+  };
+
+  const handleLike = async () => {
+    try {
+      let token = await AsyncStorage.getItem("token");
+      let res = await authApis(token).post(endpoints["like-lesson"](lessonId));
+      setLikeCount(res.data.like_counts);
+      setIsLiked(res.data.liked);
+    } catch (ex) {
+      console.error(ex);
     }
   };
 
   const loadLesson = async () => {
     try {
       setLoading(true);
-      let res = await Apis.get(endpoints["lesson-detail"](lessonId));
+      let token = await AsyncStorage.getItem("token");
+      let res = null;
+      if (token)
+        res = await authApis(token).get(endpoints["lesson-detail"](lessonId));
+      else res = await Apis.get(endpoints["lesson-detail"](lessonId));
       setLesson(res.data);
+      setLikeCount(res.data.like_counts);
+      setIsLiked(res.data.liked);
+      if (!res.data.video && !isMarked) {
+        if (token) {
+          console.log("Đã cuộn tới cuối, đánh dấu học xong!");
+          markLessonComplete();
+          setIsMarked(true);
+        }
+      }
     } catch (ex) {
       console.error(ex);
     } finally {
@@ -158,6 +193,10 @@ function LessonDetail({route, navigation}) {
   const addComment = async () => {
     if (!content.trim()) return;
     try {
+      if (!content) {
+        showAlert("Lỗi", "Nội dung bình luận không được để trống.", "error");
+        return;
+      }
       let token = await AsyncStorage.getItem("token");
       let res = await authApis(token).post(endpoints["add-comment"](lessonId), {
         content: content,
@@ -180,6 +219,7 @@ function LessonDetail({route, navigation}) {
 
   useEffect(() => {
     checkEnrollment();
+    loadLesson();
   }, [user, courseId]);
 
   useEffect(() => {
@@ -206,30 +246,25 @@ function LessonDetail({route, navigation}) {
             keyExtractor={(item) => item.id.toString()}
             // 1. Header chứa Video + Input
             ListHeaderComponent={
-              <>
+              <View>
                 <View style={styles.titleSection}>
-                  <View style={styles.titleRow}>
-                    <View style={styles.titleContent}>
-                      <Text style={styles.subject}>{lesson.subject}</Text>
+                  <View style={styles.infoCard}>
+                    <View style={styles.cardHeaderRow}>
+                      <View style={{flex: 1}}>
+                        <Text style={styles.subjectLabel}>BÀI HỌC</Text>
+                        <Text style={styles.cardTitle}>{lesson?.subject}</Text>
+                      </View>
+                      <View style={styles.iconCircle}>
+                        <Text style={{fontSize: 24}}>📚</Text>
+                      </View>
                     </View>
-                    <TouchableOpacity
-                      style={[
-                        styles.likeButton,
-                        isLiked && styles.likeButtonActive,
-                      ]}
-                      onPress={handleLike}
-                    >
-                      <Ionicons
-                        name={isLiked ? "heart" : "heart-outline"}
-                        size={28}
-                        color={isLiked ? "#ef4444" : "#6b7280"}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                  <View style={styles.metaInfo}>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="heart" size={16} color="#6b7280" />
-                      <Text style={styles.metaText}>{likeCount} likes</Text>
+                    <View style={styles.cardDivider} />
+                    <View style={styles.metaRow}>
+                      <View style={styles.timeBadge}>
+                        <Text style={styles.timeText}>
+                          Thời lượng học: ⏱ {lesson?.duration} phút
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -319,19 +354,74 @@ function LessonDetail({route, navigation}) {
                             color="#d1d5db"
                           />
                           <Text style={styles.noVideoText}>
-                            Bài học này không có video hoặc lỗi đường dẫn
+                            Bài học này không có video
                           </Text>
                         </View>
                       )}
                     </View>
                   )}
                 </View>
+                <View style={styles.infoCard}>
+                  <View style={styles.cardHeaderRow}>
+                    <View>
+                      <Text style={styles.subjectLabel}>NỘI DUNG BÀI HỌC</Text>
+                      <Text style={[styles.cardTitle, {fontSize: 18}]}>
+                        Lý thuyết
+                      </Text>
+                    </View>
+                    <View style={styles.iconCircle}>
+                      <Ionicons
+                        name="book-outline"
+                        size={24}
+                        color={COLORS.primary}
+                      />
+                    </View>
+                  </View>
+                  <View style={styles.cardDivider} />
+                  <RenderHTML
+                    contentWidth={contentWidth}
+                    source={{html: lesson.content}}
+                    tagsStyles={styles}
+                    systemFonts={["System", "Roboto", "Arial"]}
+                  />
+                </View>
                 <View style={styles.commentSection}>
-                  <View style={styles.sectionHeader}>
-                    <Ionicons name="chatbubbles" size={24} color="#3b82f6" />
-                    <Text style={styles.sectionTitle}>
-                      Bình luận ({comments.length})
-                    </Text>
+                  <View
+                    style={[
+                      styles.sectionHeader,
+                      {justifyContent: "space-between"},
+                    ]}
+                  >
+                    <View style={{flexDirection: "row", alignItems: "center"}}>
+                      <Ionicons name="chatbubbles" size={24} color="#3b82f6" />
+                      <Text style={styles.sectionTitle}>
+                        Bình luận ({comments.length})
+                      </Text>
+                    </View>
+                    <View style={styles.interactionContainer}>
+                      <TouchableOpacity
+                        style={[
+                          styles.likeButton,
+                          isLiked && styles.likeButtonActive,
+                        ]}
+                        onPress={() =>
+                          user == null
+                            ? nav.navigate("Auth", {screen: "Login"})
+                            : handleLike()
+                        }
+                      >
+                        <Ionicons
+                          name={isLiked ? "heart" : "heart-outline"}
+                          size={24} // Giảm size chút cho vừa vặn
+                          color={isLiked ? "#ef4444" : "#6b7280"}
+                        />
+                      </TouchableOpacity>
+                      <View style={styles.likeCountContainer}>
+                        <Text style={styles.likeCountText}>
+                          {likeCount} yêu thích
+                        </Text>
+                      </View>
+                    </View>
                   </View>
 
                   {user === null ? (
@@ -392,7 +482,7 @@ function LessonDetail({route, navigation}) {
                     </View>
                   )}
                 </View>
-              </>
+              </View>
             }
             // 2. Render từng comment
             renderItem={({item}) => (

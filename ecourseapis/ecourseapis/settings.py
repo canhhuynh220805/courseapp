@@ -29,7 +29,6 @@ INSTALLED_APPS = [
     'oauth2_provider',
 ]
 
-# Đặt dòng này ngay dưới INSTALLED_APPS để tránh lỗi E304
 AUTH_USER_MODEL = 'courses.User'
 
 MIDDLEWARE = [
@@ -76,6 +75,7 @@ DATABASES = {
         'USER': 'courseapp',
         'PASSWORD': 'admin@123',
         'HOST': 'courseapp.mysql.pythonanywhere-services.com'
+
     }
 }
 

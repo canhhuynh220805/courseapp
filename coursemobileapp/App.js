@@ -1,12 +1,12 @@
-import React, { useContext, useEffect, useReducer } from "react";
-import { NavigationContainer } from "@react-navigation/native";
-import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Icon } from "react-native-paper";
-import { MyUserContext } from "./utils/contexts/MyContext";
+import React, {useContext, useEffect, useReducer} from "react";
+import {NavigationContainer} from "@react-navigation/native";
+import {createNativeStackNavigator} from "@react-navigation/native-stack";
+import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
+import {Icon} from "react-native-paper";
+import {MyUserContext} from "./utils/contexts/MyContext";
 import MyUserReducer from "./utils/reducers/MyUserReducer";
-import { collection, query, where, onSnapshot } from "firebase/firestore";
-import { db } from "./utils/firebase";
+import {collection, query, where, onSnapshot} from "firebase/firestore";
+import {db} from "./utils/firebase";
 import Home from "./screens/Home/Home";
 import Lesson from "./screens/Home/Lesson";
 import LessonDetail from "./screens/Home/LessonDetail";
@@ -25,24 +25,24 @@ import Chat from "./screens/User/Chat";
 import AdminHome from "./screens/Admin/AdminHome";
 import LecturerManagement from "./screens/Admin/LecturerManegement";
 import StudentManagement from "./screens/Admin/StudentManagement";
-import { Provider as PaperProvider } from 'react-native-paper';
-import { AlertProvider } from "./utils/contexts/AlertContext";
+import {Provider as PaperProvider} from "react-native-paper";
+import {AlertProvider} from "./utils/contexts/AlertContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const AuthStack = () => (
-  <Stack.Navigator screenOptions={{headerShown: false}}>
+  <Stack.Navigator headerShown={false}>
     <Stack.Screen
       name="Login"
       component={Login}
-      options={{ title: "Đăng nhập" }}
+      options={{title: "Đăng nhập"}}
     />
     <Stack.Screen
       name="Register"
       component={Register}
-      options={{ title: "Đăng ký" }}
+      options={{title: "Đăng ký"}}
     />
   </Stack.Navigator>
 );
@@ -91,27 +91,27 @@ const LecturerStack = () => (
     <Stack.Screen
       name="LecturerHome"
       component={LecturerHome}
-      options={{ title: "Quản lý giảng dạy" }}
+      options={{title: "Quản lý giảng dạy"}}
     />
     <Stack.Screen
       name="ManageCourse"
       component={ManageCourse}
-      options={{ title: "Chi tiết khóa học" }}
+      options={{title: "Chi tiết khóa học"}}
     />
     <Stack.Screen
       name="AddCourse"
       component={AddCourse}
-      options={{ title: "Tạo khóa học" }}
+      options={{title: "Tạo khóa học"}}
     />
     <Stack.Screen
       name="AddLesson"
       component={AddLesson}
-      options={{ title: "Thêm bài học" }}
+      options={{title: "Thêm bài học"}}
     />
     <Stack.Screen
       name="StudentProgress"
       component={StudentProgress}
-      options={{ title: "Kết quả học tập" }}
+      options={{title: "Kết quả học tập"}}
     />
   </Stack.Navigator>
 );
@@ -121,12 +121,12 @@ const ChatStack = () => (
     <Stack.Screen
       name="ChatContacts"
       component={Chat}
-      options={{ title: "Danh bạ chat" }}
+      options={{title: "Danh bạ chat"}}
     />
     <Stack.Screen
       name="ChatDetail"
       component={ChatDetail}
-      options={({ route }) => ({
+      options={({route}) => ({
         title: route.params?.receiver?.username || "Phòng chat",
       })}
     />
@@ -138,28 +138,28 @@ const AdminStack = () => (
     <Stack.Screen
       name="AdminHome"
       component={AdminHome}
-      options={{ title: "Trang chủ quản trị viên" }}
+      options={{title: "Trang chủ quản trị viên"}}
     />
     <Stack.Screen
       name="StudentManagement"
       component={StudentManagement}
-      options={{ title: "Quản lý Học viên" }}
+      options={{title: "Quản lý Học viên"}}
     />
     <Stack.Screen
       name="LecturerManagement"
       component={LecturerManagement}
-      options={{ title: "Quản lý Giảng viên" }}
+      options={{title: "Quản lý Giảng viên"}}
     />
     <Stack.Screen
       name="Statistics"
       component={Statistics}
-      options={{ title: "Thống kê hệ thống" }}
+      options={{title: "Thống kê hệ thống"}}
     />
-    <Stack.Screen name="Chat" component={Chat} options={{ title: "Tin nhắn" }} />
+    <Stack.Screen name="Chat" component={Chat} options={{title: "Tin nhắn"}} />
     <Stack.Screen
       name="ChatDetail"
       component={ChatDetail}
-      options={{ title: "Trò chuyện" }}
+      options={{title: "Trò chuyện"}}
     />
   </Stack.Navigator>
 );
@@ -183,8 +183,7 @@ const TabNavigator = () => {
   }, [user]);
 
   return (
-    <Tab.Navigator screenOptions={{ tabBarActiveTintColor: "#2563eb" }}>
-
+    <Tab.Navigator screenOptions={{tabBarActiveTintColor: "#2563eb"}}>
       {user?.role !== "ADMIN" && (
         <Tab.Screen
           name="Main"
@@ -192,11 +191,12 @@ const TabNavigator = () => {
           options={{
             title: "Trang chủ",
             headerShown: false,
-            tabBarIcon: ({ color }) => <Icon color={color} source="home" size={26} />,
+            tabBarIcon: ({color}) => (
+              <Icon color={color} source="home" size={26} />
+            ),
           }}
         />
       )}
-
 
       {user?.role === "ADMIN" && (
         <Tab.Screen
@@ -205,11 +205,12 @@ const TabNavigator = () => {
           options={{
             title: "Quản trị",
             headerShown: false,
-            tabBarIcon: ({ color }) => <Icon source="shield-check" size={26} color={color} />,
+            tabBarIcon: ({color}) => (
+              <Icon source="shield-check" size={26} color={color} />
+            ),
           }}
         />
       )}
-
 
       {user?.role === "LECTURER" && (
         <Tab.Screen
@@ -218,26 +219,31 @@ const TabNavigator = () => {
           options={{
             title: "Giảng dạy",
             headerShown: false,
-            tabBarIcon: ({ color }) => <Icon source="school" size={26} color={color} />,
+            tabBarIcon: ({color}) => (
+              <Icon source="school" size={26} color={color} />
+            ),
           }}
         />
       )}
 
-
       {user !== null ? (
         <>
-
           <Tab.Screen
             name="ChatTab"
             component={ChatStack}
             options={{
               title: "Tin nhắn",
               headerShown: false,
-              tabBarIcon: ({ color }) => <Icon source="chat-processing-outline" size={26} color={color} />,
+              tabBarIcon: ({color}) => (
+                <Icon
+                  source="chat-processing-outline"
+                  size={26}
+                  color={color}
+                />
+              ),
               tabBarBadge: unreadCount > 0 ? unreadCount : null,
             }}
           />
-
 
           {user?.role === "STUDENT" && (
             <Tab.Screen
@@ -246,30 +252,34 @@ const TabNavigator = () => {
               options={{
                 title: "Khóa học",
                 headerShown: false,
-                tabBarIcon: ({ color }) => <Icon source="book-open-variant" size={26} color={color} />,
+                tabBarIcon: ({color}) => (
+                  <Icon source="book-open-variant" size={26} color={color} />
+                ),
               }}
             />
           )}
-
 
           <Tab.Screen
             name="Profile"
             component={User}
             options={{
               title: "Cá nhân",
-              tabBarIcon: ({ color }) => <Icon source="account" size={26} color={color} />,
+              tabBarIcon: ({color}) => (
+                <Icon source="account" size={26} color={color} />
+              ),
             }}
           />
         </>
       ) : (
-
         <Tab.Screen
           name="Auth"
           component={AuthStack}
           options={{
             title: "Tài khoản",
             headerShown: false,
-            tabBarIcon: ({ color }) => <Icon source="account" size={26} color={color} />,
+            tabBarIcon: ({color}) => (
+              <Icon source="account" size={26} color={color} />
+            ),
           }}
         />
       )}
@@ -287,7 +297,7 @@ const App = () => {
         const token = await AsyncStorage.getItem("token");
         const storedUser = await AsyncStorage.getItem("user");
         if (token && storedUser) {
-          dispatch({ type: "login", payload: JSON.parse(storedUser) });
+          dispatch({type: "login", payload: JSON.parse(storedUser)});
         }
       } catch (e) {
         console.error(e);

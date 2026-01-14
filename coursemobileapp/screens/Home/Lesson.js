@@ -1,5 +1,5 @@
 import {useEffect, useEffectEvent, useState} from "react";
-import Apis, {endpoints} from "../../utils/Apis";
+import Apis, {authApis, endpoints} from "../../utils/Apis";
 import {
   ActivityIndicator,
   FlatList,
@@ -16,17 +16,13 @@ import {useNavigation} from "@react-navigation/native";
 const Lesson = ({route}) => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [course, setCourse] = useState(null);
   const courseId = route.params?.courseId;
   const nav = useNavigation();
   const loadLessons = async () => {
     try {
       setLoading(true);
-      let token = await AsyncStorage.getItem("token");
-      let res = await Apis.get(endpoints["lessons"](courseId), {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      let res = await Apis.get(endpoints["lessons"](courseId));
       setLessons(res.data);
     } catch (ex) {
       console.error(ex);
@@ -35,13 +31,53 @@ const Lesson = ({route}) => {
     }
   };
 
+  const loadCourse = async () => {
+    try {
+      setLoading(true);
+      let res = await Apis.get(endpoints["course-details"](courseId));
+      setCourse(res.data);
+    } catch (ex) {}
+  };
+
   useEffect(() => {
     loadLessons();
+    loadCourse();
   }, [courseId]);
 
   return (
     <View style={MyStyles.padding}>
       <FlatList
+        ListHeaderComponent={
+          <View style={styles.infoCard}>
+            <View style={styles.cardHeaderRow}>
+              <View>
+                <Text style={styles.subjectLabel}>DANH SÁCH BÀI HỌC</Text>
+                <Text style={styles.cardTitle}>{course?.subject}</Text>
+              </View>
+              <View style={styles.iconCircle}>
+                <Text style={{fontSize: 24}}>📚</Text>
+              </View>
+            </View>
+
+            <View style={styles.cardDivider} />
+
+            <View style={styles.metaRow}>
+              <View style={styles.timeBadge}>
+                <Text style={styles.timeText}>
+                  Thời lượng học: ⏱ {course?.duration} phút / {lessons.length}{" "}
+                  bài học
+                </Text>
+              </View>
+            </View>
+            {course?.description ? (
+              <View style={styles.descriptionBox}>
+                <Text style={styles.descriptionText}>
+                  {course?.description}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        }
         ListFooterComponent={loading && <ActivityIndicator size="large" />}
         data={lessons}
         renderItem={({item}) => (
@@ -56,16 +92,15 @@ const Lesson = ({route}) => {
             activeOpacity={0.9}
           >
             {/* Hình ảnh chiếm trọn phía trên Card */}
-            <Image source={{uri: item.image}} style={styles.courseImage} />
+            <Image
+              source={{uri: item.image || "https://via.placeholder.com/300"}}
+              style={styles.courseImage}
+            />
 
             {/* Phần nội dung bên dưới ảnh */}
             <View style={styles.courseContent}>
               <Text style={styles.courseTitle} numberOfLines={1}>
                 {item.subject}
-              </Text>
-
-              <Text style={styles.courseDescription} numberOfLines={2}>
-                {item.content}
               </Text>
             </View>
           </TouchableOpacity>

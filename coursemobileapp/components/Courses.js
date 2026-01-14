@@ -8,23 +8,20 @@ import {
   View,
   FlatList,
 } from "react-native";
-import {FlatList} from "react-native";
 import Apis, {authApis, endpoints} from "../utils/Apis";
-import {List, Searchbar} from "react-native-paper";
+import {Searchbar} from "react-native-paper";
 import {useFocusEffect, useNavigation} from "@react-navigation/native";
 import styles, {COLORS} from "../screens/Home/styles";
 import {Ionicons} from "@expo/vector-icons";
-import Slider from "@react-native-community/slider";
 import PaymentModal from "../screens/PaymentModal/PaymentModal";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Searchbar } from "react-native-paper";
-import { useNavigation } from "@react-navigation/native";
 
-const Courses = ({ cate, ordering }) => {
+const Courses = ({cate, ordering}) => {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
+  const [nextPage, setNextPage] = useState(null);
   const [priceRange, setPriceRange] = useState([0, 100000000]);
   const [showPriceFilter, setShowPriceFilter] = useState(false);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
@@ -52,13 +49,14 @@ const Courses = ({ cate, ordering }) => {
 
       let res = await Apis.get(url);
 
-      if (res.data.next === null && page > 1) {
-      }
-
       if (page === 1) setCourses(res.data.results);
       else if (page > 1) setCourses([...courses, ...res.data.results]);
     } catch (ex) {
-      console.error(ex);
+      if (ex.response && ex.response.status === 404) {
+        setNextPage(null);
+      } else {
+        console.error("lỗi", ex);
+      }
     } finally {
       setLoading(false);
     }
@@ -84,44 +82,45 @@ const Courses = ({ cate, ordering }) => {
       let token = await AsyncStorage.getItem("token");
       if (!token) return;
       let res = await authApis(token).get(endpoints["my-courses"]);
-      const ids = res.data.map((item) => item.course?.id || item.id);
+      const ids = res.data.results.map((item) => item.course?.id || item.id);
       setEnrolledIds(ids);
     } catch (ex) {
-      if (ex.response && ex.response.status == 401) {
-        console.log("Token bị Server từ chối -> Logout");
-        await AsyncStorage.removeItem("token");
-      } else {
-        console.error(ex);
-      }
+      console.error(ex);
     }
   };
 
   useEffect(() => {
     checkIsEnrolled();
-  }, [])
+  }, []);
 
-  useEffect(() => {
-    let timer = setTimeout(() => {
-      if (page > 0) loadCourses();
-    }, 500);
+  useFocusEffect(
+    useCallback(() => {
+      let timer = setTimeout(() => {
+        if (page > 0) loadCourses();
+      }, 500);
+      return () => clearTimeout(timer);
+    }, [q, page, cate, priceRange, ordering])
+  );
 
-    return () => clearTimeout(timer);
-  }, [q, page, cate, priceRange, ordering]);
+  // useEffect(() => {
+  //   let timer = setTimeout(() => {
+  //     if (page > 0) loadCourses();
+  //   }, 500);
+
+  //   return () => clearTimeout(timer);
+  // }, [q, page, cate, priceRange, ordering]);
 
   useEffect(() => {
     setPage(1);
+    setNextPage(null);
     setCourses([]);
   }, [q, cate, priceRange, ordering]);
 
   const loadMore = () => {
-    if (page > 0 && !loading && courses.length > 0) setPage(page + 1);
+    if (page > 0 && !loading && courses.length > 0 && nextPage)
+      setPage(page + 1);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      checkIsEnrolled();
-    }, [])
-  );
   return (
     <View style={[styles.container, {flex: 1}]}>
       <View style={styles.header}>
@@ -184,11 +183,17 @@ const Courses = ({ cate, ordering }) => {
         contentContainerStyle={styles.courseList}
         keyExtractor={(item) => item.id.toString()}
         ListFooterComponent={
-          loading && <ActivityIndicator size="large" color="#2563eb" style={{ margin: 16 }} />
+          loading && (
+            <ActivityIndicator
+              size="large"
+              color="#2563eb"
+              style={{margin: 16}}
+            />
+          )
         }
         onEndReached={loadMore}
         data={courses}
-        renderItem={({ item }) => (
+        renderItem={({item}) => (
           <TouchableOpacity
             style={styles.courseCard}
             onPress={() =>
@@ -198,8 +203,8 @@ const Courses = ({ cate, ordering }) => {
             }
             activeOpacity={0.9}
           >
+            <Image source={{uri: item.image}} style={styles.courseImage} />
 
-            <Image source={{ uri: item.image }} style={styles.courseImage} />
             <View style={styles.courseContent}>
               <Text style={styles.courseTitle} numberOfLines={1}>
                 {item.subject}
@@ -212,7 +217,8 @@ const Courses = ({ cate, ordering }) => {
               <View style={styles.courseFooter}>
                 <View style={styles.levelBadge}>
                   <Text style={styles.levelBadgeText}>
-                    Giảng viên: {item.lecturer?.last_name} {item.lecturer?.first_name}
+                    Giảng viên: {item.lecturer?.last_name}{" "}
+                    {item.lecturer?.first_name}
                   </Text>
                 </View>
 
@@ -220,8 +226,8 @@ const Courses = ({ cate, ordering }) => {
                   {enrolledIds.includes(item.id)
                     ? "Đã đăng ký"
                     : item.price === 0 || item.is_free
-                      ? "Miễn phí"
-                      : `${parseInt(item.price).toLocaleString("vi-VN")} VNĐ`}
+                    ? "Miễn phí"
+                    : `${parseInt(item.price).toLocaleString("vi-VN")} VNĐ`}
                 </Text>
               </View>
             </View>
