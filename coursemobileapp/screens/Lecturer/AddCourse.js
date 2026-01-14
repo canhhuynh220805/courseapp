@@ -82,20 +82,36 @@ const AddCourse = ({ route, navigation }) => {
     };
 
     const handleSave = async () => {
-        const { subject, price, description } = course;
-        if (!subject?.trim() || price === '' || !description?.trim()) {
-            showAlert("Lỗi", "Vui lòng nhập đầy đủ thông tin!", "error");
+        const subject = course.subject?.trim();
+        const description = course.description?.trim();
+        const priceStr = course.price?.toString().trim();
+
+        if (!subject || !description || priceStr === '') {
+            showAlert("Thiếu thông tin", "Vui lòng nhập tên khóa học, mô tả và học phí.", "error");
             return;
         }
 
+        if (subject.length < 10) {
+            showAlert("Lỗi nội dung", "Tên khóa học quá ngắn .", "error");
+            return;
+        }
         if (subject.length > 255) {
-            showAlert("Lỗi", "Tên khóa học không được quá 255 ký tự.", "error");
+            showAlert("Lỗi nội dung", "Tên khóa học không được quá 255 ký tự.", "error");
             return;
         }
+        if (description.length < 20) {
+            showAlert("Lỗi nội dung", "Mô tả khóa học cần chi tiết hơn.", "error");
+            return;
+        }
+        const priceRegex = /^[0-9]+$/;
+        if (!priceRegex.test(priceStr)) {
+            showAlert("Lỗi định dạng", "Học phí chỉ được chứa số và không âm.", "error");
+            return;
+        }
+        const priceNum = parseInt(priceStr);
 
-        const priceNum = parseFloat(price);
-        if (isNaN(priceNum) || priceNum < 0) {
-            showAlert("Lỗi", "Học phí phải là số nguyên dương hoặc bằng 0.", "error");
+        if (!courseEditId && !image) {
+            showAlert("Thiếu ảnh", "Vui lòng chọn ảnh đại diện cho khóa học.", "error");
             return;
         }
 
@@ -112,7 +128,13 @@ const AddCourse = ({ route, navigation }) => {
             }
 
             const token = await AsyncStorage.getItem("token");
-            const payload = { ...course, price: priceNum, image: imageUrl };
+            const payload = {
+                subject: subject,
+                description: description,
+                price: priceNum,
+                category: course.category,
+                image: imageUrl
+            };
 
             if (courseEditId) {
                 await authApis(token).patch(endpoints['course-details'](courseEditId), payload);
@@ -123,17 +145,8 @@ const AddCourse = ({ route, navigation }) => {
             }
             navigation.goBack();
         } catch (ex) {
-            let errorMsg = "Không thể lưu khóa học.";
-            if (ex.response && ex.response.data) {
-                const serverErrors = ex.response.data;
-                if (typeof serverErrors === 'object') {
-                    errorMsg = Object.keys(serverErrors)
-                        .map(key => `${key}: ${serverErrors[key]}`)
-                        .join("\n");
-                }
-            }
             console.error("Save Course Error:", ex);
-            showAlert("Lỗi hệ thống", errorMsg, "error");
+            showAlert("Lỗi hệ thống", "Không thể lưu khóa học.", "error");
         } finally {
             setLoading(false);
         }

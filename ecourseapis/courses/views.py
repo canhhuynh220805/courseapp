@@ -42,6 +42,7 @@ class CourseView(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+
         if user.is_authenticated and user.role == User.Role.LECTURER:
             queries = Course.objects.filter(lecturer=user)
         else:
@@ -73,10 +74,8 @@ class CourseView(viewsets.ModelViewSet):
         ordering = self.request.query_params.get("ordering")
         if ordering == 'popular':
             queries = queries.order_by('-student_count', '-id')
-        elif ordering == 'name_asc':
-            queries = queries.order_by('subject')
-        elif ordering == 'name_desc':
-            queries = queries.order_by('-subject')
+        elif ordering == 'newest':
+            queries = queries.order_by('-id')
         elif ordering == 'price_asc':
             queries = queries.order_by('price')
         elif ordering == 'price_desc':
@@ -95,15 +94,15 @@ class CourseView(viewsets.ModelViewSet):
             return [permissions.IsAuthenticated(), perms.IsCourseOwnerOrAdmin()]
         return [permissions.IsAuthenticated()]
 
-    @action(methods=['get'], detail=False, url_path='compare')
-    def compare(self, request):
-        ids = request.query_params.get('ids')
-        if not ids:
-            return Response({"error": "Vui lòng cung cấp danh sách ID"}, status=status.HTTP_400_BAD_REQUEST)
+    # @action(methods=['get'], detail=False, url_path='compare')
+    # def compare(self, request):
+    #     ids = request.query_params.get('ids')
+    #     if not ids:
+    #         return Response({"error": "Vui lòng cung cấp danh sách ID"}, status=status.HTTP_400_BAD_REQUEST)
 
-        course_ids = [int(pk) for pk in ids.split(',')]
-        courses = Course.objects.filter(id__in=course_ids, active=True)
-        return Response(serializers.CourseCompareSerializer(courses, many=True).data)
+    #     course_ids = [int(pk) for pk in ids.split(',')]
+    #     courses = Course.objects.filter(id__in=course_ids, active=True)
+    #     return Response(serializers.CourseCompareSerializer(courses, many=True).data)
 
     @action(methods=['post'], detail=True, url_path='enroll', permission_classes=[permissions.IsAuthenticated])
     def enroll(self, request, pk=None):
@@ -349,8 +348,6 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
 
         if not self.request.user.is_staff:
             queryset = queryset.filter(enrollment__user=self.request.user, status=Payment.Status.COMPLETED)
-
-
         return queryset.order_by('-created_date')
 
 
@@ -383,12 +380,13 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
                 f"&requestId={requestId}"
                 f"&requestType=captureWallet"
             )
+
             payment = Payment.objects.create(
                 enrollment=enrollment,
-                payment_method=Payment.Method.MOMO,
                 transaction_id=orderId,
+                payment_method=Payment.Method.MOMO,
                 amount=amount,
-                status=Payment.Status.PENDING,
+                status=Payment.Status.PENDING
             )
 
 
@@ -615,7 +613,6 @@ class PaymentViewSet(viewsets.ViewSet, generics.CreateAPIView, generics.ListAPIV
 
             secret_key = VNPAY_CONFIG["vnpHashSecret"].strip()
             tmn_code = VNPAY_CONFIG["vnp_TmnCode"].strip()
-
 
             x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
             if x_forwarded_for:

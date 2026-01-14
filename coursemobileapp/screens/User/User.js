@@ -1,9 +1,9 @@
-import {useContext} from "react";
-import {Button} from "react-native-paper";
-import {MyUserContext} from "../../utils/contexts/MyContext";
+import { useContext } from "react";
+import { Button } from "react-native-paper";
+import { MyUserContext } from "../../utils/contexts/MyContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MyStyles from "../../styles/MyStyles";
-import React, {useState} from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -15,11 +15,11 @@ import {
   FlatList,
   Modal,
 } from "react-native";
-import {Ionicons} from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import UserStyle from "./UserStyle";
-import {authApis, endpoints} from "../../utils/Apis";
-import {ActivityIndicator} from "react-native";
-import {set} from "ramda";
+import { authApis, endpoints } from "../../utils/Apis";
+import { ActivityIndicator } from "react-native";
+import { set } from "ramda";
 const User = () => {
   const [user, dispatch] = useContext(MyUserContext);
   const [payments, setPayments] = useState([]);
@@ -52,7 +52,7 @@ const User = () => {
       <View style={UserStyle.profileCard}>
         <View style={UserStyle.avatarContainer}>
           <Image
-            source={{uri: user.avatar || "https://i.pravatar.cc/300"}}
+            source={{ uri: user.avatar || "https://i.pravatar.cc/300" }}
             style={UserStyle.avatar}
           />
         </View>
@@ -63,18 +63,19 @@ const User = () => {
         <Text style={UserStyle.userEmail}>
           Số điện thoại liên hệ: {user.phone || "Chưa có SĐT"}
         </Text>
-        <View style={{width: "100%", gap: 12}}>
-          {/* 1. Nút xem Lịch sử thanh toán (Mới thêm) */}
-          <TouchableOpacity style={UserStyle.menuButton} onPress={loadPayments}>
-            <Ionicons name="receipt-outline" size={24} color="#3b82f6" />
-            <Text style={UserStyle.menuButtonText}>Lịch sử thanh toán</Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color="#9ca3af"
-              style={{marginLeft: "auto"}}
-            />
-          </TouchableOpacity>
+        <View style={{ width: "100%", gap: 12 }}>
+          {user?.role === "STUDENT" && (
+            <TouchableOpacity style={UserStyle.menuButton} onPress={loadPayments}>
+              <Ionicons name="receipt-outline" size={24} color="#3b82f6" />
+              <Text style={UserStyle.menuButtonText}>Lịch sử thanh toán</Text>
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color="#9ca3af"
+                style={{ marginLeft: "auto" }}
+              />
+            </TouchableOpacity>
+          )}
 
           {/* 2. Nút Đăng xuất */}
           <TouchableOpacity style={UserStyle.logoutButton} onPress={logout}>
@@ -102,7 +103,7 @@ const User = () => {
               <ActivityIndicator
                 size="large"
                 color="#3b82f6"
-                style={{marginTop: 20}}
+                style={{ marginTop: 20 }}
               />
             ) : (
               <FlatList
@@ -110,14 +111,14 @@ const User = () => {
                 keyExtractor={(item) => item.id.toString()}
                 ListEmptyComponent={
                   <Text
-                    style={{textAlign: "center", marginTop: 20, color: "#999"}}
+                    style={{ textAlign: "center", marginTop: 20, color: "#999" }}
                   >
                     Bạn chưa có giao dịch nào
                   </Text>
                 }
-                renderItem={({item}) => (
+                renderItem={({ item }) => (
                   <View style={UserStyle.paymentItem}>
-                    <View style={{flex: 1}}>
+                    <View style={{ flex: 1 }}>
                       <Text
                         style={UserStyle.paymentCourse}
                       >{`Khóa học ${item.enrollment.course.subject}`}</Text>
@@ -127,7 +128,7 @@ const User = () => {
                         )}
                       </Text>
                     </View>
-                    <View style={{alignItems: "flex-end"}}>
+                    <View style={{ alignItems: "flex-end" }}>
                       <Text style={UserStyle.paymentAmount}>
                         {parseInt(item.amount).toLocaleString("vi-VN")} VNĐ
                       </Text>
