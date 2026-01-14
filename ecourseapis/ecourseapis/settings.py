@@ -29,7 +29,6 @@ INSTALLED_APPS = [
     'oauth2_provider',
 ]
 
-# Đặt dòng này ngay dưới INSTALLED_APPS để tránh lỗi E304
 AUTH_USER_MODEL = 'courses.User'
 
 MIDDLEWARE = [
@@ -69,25 +68,25 @@ pymysql.install_as_MySQLdb()
 
 AUTH_USER_MODEL = 'courses.User'
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.mysql',
-#         'NAME': 'courseapp$coursedb',
-#         'USER': 'courseapp',
-#         'PASSWORD': 'admin@123',
-#         'HOST': 'courseapp.mysql.pythonanywhere-services.com'
-#     }
-# }
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'coursedb',
-        'USER': 'root',
-        'PASSWORD': '123456',
-        'HOST': ''  # mặc định localhost
+        'NAME': 'courseapp$coursedb',
+        'USER': 'courseapp',
+        'PASSWORD': 'admin@123',
+        'HOST': 'courseapp.mysql.pythonanywhere-services.com'
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.mysql',
+#         'NAME': 'coursedb',
+#         'USER': 'root',
+#         'PASSWORD': '123456',
+#         'HOST': ''  # mặc định localhost
+#     }
+# }
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -155,6 +154,7 @@ ZALO_CONFIG = {
 }
 
 VNPAY_CONFIG = {
+    "vnp_TmnCode": "FRJ8RVSE",
     "vnp_ReturnUrl": "https://courseapp.pythonanywhere.com/payments/payment-return/",
     "vnpHashSecret": "1NWO2X8ITPSC7AY3OAVZ789EOHEXL1HK"
 }

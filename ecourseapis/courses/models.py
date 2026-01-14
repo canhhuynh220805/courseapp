@@ -200,15 +200,6 @@ class Like(Interaction):
     class Meta:
         unique_together = ('user', 'lesson')
 
-class Rating(BaseModel):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='ratings')
-    rate = models.IntegerField(default=5)
-    content = models.CharField(max_length=255, null=True, blank=True)
-
-    class Meta:
-        unique_together = ('user', 'course')
-
 if not firebase_admin._apps:
     cred_path = os.path.join(settings.BASE_DIR, 'serviceAccountKey.json')
     cred = credentials.Certificate(cred_path)

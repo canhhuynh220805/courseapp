@@ -19,19 +19,19 @@ import {
   Alert,
   useWindowDimensions,
 } from "react-native";
-import {Ionicons} from "@expo/vector-icons";
-import {SafeAreaView} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { SafeAreaView } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
-import styles, {COLORS} from "./styles";
-import Apis, {authApis, endpoints} from "../../utils/Apis";
-import {MyUserContext} from "../../utils/contexts/MyContext";
+import styles, { COLORS } from "./styles";
+import Apis, { authApis, endpoints } from "../../utils/Apis";
+import { MyUserContext } from "../../utils/contexts/MyContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {useFocusEffect, useNavigation} from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import moment from "moment";
 import "moment/locale/vi";
-import {useAlert} from "../../utils/contexts/AlertContext";
+import { useAlert } from "../../utils/contexts/AlertContext";
 import RenderHTML from "react-native-render-html";
-function LessonDetail({route}) {
+function LessonDetail({ route }) {
   const lessonId = route.params?.lessonId;
   const courseId = route.params?.courseId;
   const [lesson, setLesson] = useState(null);
@@ -47,7 +47,7 @@ function LessonDetail({route}) {
   const [user] = useContext(MyUserContext);
   const [page, setPage] = useState(1);
   const showAlert = useAlert();
-  const {width} = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const nav = useNavigation();
   const contentWidth = width - 64;
 
@@ -249,12 +249,12 @@ function LessonDetail({route}) {
                 <View style={styles.titleSection}>
                   <View style={styles.infoCard}>
                     <View style={styles.cardHeaderRow}>
-                      <View style={{flex: 1}}>
+                      <View style={{ flex: 1 }}>
                         <Text style={styles.subjectLabel}>BÀI HỌC</Text>
                         <Text style={styles.cardTitle}>{lesson?.subject}</Text>
                       </View>
                       <View style={styles.iconCircle}>
-                        <Text style={{fontSize: 24}}>📚</Text>
+                        <Text style={{ fontSize: 24 }}>📚</Text>
                       </View>
                     </View>
                     <View style={styles.cardDivider} />
@@ -286,7 +286,7 @@ function LessonDetail({route}) {
                           <Text
                             style={[
                               styles.videoNote,
-                              {color: "white", marginTop: 10},
+                              { color: "white", marginTop: 10 },
                             ]}
                           >
                             Nội dung bị khóa
@@ -305,19 +305,19 @@ function LessonDetail({route}) {
                           onPress={() =>
                             user === null
                               ? nav.navigate("Auth", {
-                                  screen: "Login",
-                                  params: {
-                                    next: "Main",
+                                screen: "Login",
+                                params: {
+                                  next: "Main",
 
-                                    nextParams: {
-                                      screen: "LessonDetail",
-                                      params: {
-                                        lessonId: lessonId,
-                                        courseId: courseId,
-                                      },
+                                  nextParams: {
+                                    screen: "LessonDetail",
+                                    params: {
+                                      lessonId: lessonId,
+                                      courseId: courseId,
                                     },
                                   },
-                                })
+                                },
+                              })
                               : registerCourse()
                           }
                         >
@@ -325,7 +325,7 @@ function LessonDetail({route}) {
                             name="log-in-outline"
                             size={24}
                             color="#FFF"
-                            style={{marginRight: 8}}
+                            style={{ marginRight: 8 }}
                           />
                           <Text style={styles.registerButtonText}>
                             {user === null
@@ -364,7 +364,7 @@ function LessonDetail({route}) {
                   <View style={styles.cardHeaderRow}>
                     <View>
                       <Text style={styles.subjectLabel}>NỘI DUNG BÀI HỌC</Text>
-                      <Text style={[styles.cardTitle, {fontSize: 18}]}>
+                      <Text style={[styles.cardTitle, { fontSize: 18 }]}>
                         Lý thuyết
                       </Text>
                     </View>
@@ -379,7 +379,7 @@ function LessonDetail({route}) {
                   <View style={styles.cardDivider} />
                   <RenderHTML
                     contentWidth={contentWidth}
-                    source={{html: lesson.content}}
+                    source={{ html: lesson.content }}
                     tagsStyles={styles}
                     systemFonts={["System", "Roboto", "Arial"]}
                   />
@@ -388,10 +388,10 @@ function LessonDetail({route}) {
                   <View
                     style={[
                       styles.sectionHeader,
-                      {justifyContent: "space-between"},
+                      { justifyContent: "space-between" },
                     ]}
                   >
-                    <View style={{flexDirection: "row", alignItems: "center"}}>
+                    <View style={{ flexDirection: "row", alignItems: "center" }}>
                       <Ionicons name="chatbubbles" size={24} color="#3b82f6" />
                       <Text style={styles.sectionTitle}>
                         Bình luận ({comments.length})
@@ -405,7 +405,7 @@ function LessonDetail({route}) {
                         ]}
                         onPress={() =>
                           user == null
-                            ? nav.navigate("Auth", {screen: "Login"})
+                            ? nav.navigate("Auth", { screen: "Login" })
                             : handleLike()
                         }
                       >
@@ -425,7 +425,7 @@ function LessonDetail({route}) {
 
                   {user === null ? (
                     <TouchableOpacity
-                      style={[styles.registerButton, {marginBottom: 16}]}
+                      style={[styles.registerButton, { marginBottom: 16 }]}
                       activeOpacity={0.8}
                       onPress={() =>
                         nav.navigate("Auth", {
@@ -447,7 +447,7 @@ function LessonDetail({route}) {
                       <Text
                         style={[
                           styles.loginPromptText,
-                          {textAlign: "center", color: "#FFF"},
+                          { textAlign: "center", color: "#FFF" },
                         ]}
                       >
                         Đăng nhập để bình luận
@@ -484,7 +484,7 @@ function LessonDetail({route}) {
               </View>
             }
             // 2. Render từng comment
-            renderItem={({item}) => (
+            renderItem={({ item }) => (
               <View style={styles.commentItem}>
                 <Image
                   source={{
@@ -514,7 +514,7 @@ function LessonDetail({route}) {
                 <ActivityIndicator
                   size="small"
                   color="blue"
-                  style={{margin: 10}}
+                  style={{ margin: 10 }}
                 />
               ) : null
             }
@@ -534,7 +534,7 @@ function LessonDetail({route}) {
               )
             }
             // 6. Style cho list
-            contentContainerStyle={{paddingBottom: 20}}
+            contentContainerStyle={{ paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           />
         </KeyboardAvoidingView>
