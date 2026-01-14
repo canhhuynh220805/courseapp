@@ -113,6 +113,11 @@ const LecturerStack = () => (
       component={StudentProgress}
       options={{ title: "Kết quả học tập" }}
     />
+    <Stack.Screen
+      name="Statistics"
+      component={Statistics}
+      options={{ title: "Thống kê khóa học" }}
+    />
   </Stack.Navigator>
 );
 

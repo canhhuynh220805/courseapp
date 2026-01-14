@@ -117,8 +117,7 @@ const AddLesson = ({ route, navigation }) => {
             showAlert("Thành công", "Đã lưu bài học!", "success");
             navigation.goBack();
         } catch (ex) {
-            console.error(ex);
-            showAlert("Lỗi", "Không thể lưu bài học.", "error");
+            showAlert("Lỗi", "Vui lòng điền đủ thông tin.", "error");
         } finally {
             setLoading(false);
         }
