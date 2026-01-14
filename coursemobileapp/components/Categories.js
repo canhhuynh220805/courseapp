@@ -1,10 +1,10 @@
-import {useEffect, useState} from "react";
-import Apis, {endpoints} from "../utils/Apis";
-import {Chip} from "react-native-paper";
-import {ScrollView, TouchableOpacity, View} from "react-native";
+import { useEffect, useState } from "react";
+import Apis, { endpoints } from "../utils/Apis";
+import { Chip } from "react-native-paper";
+import { ScrollView, TouchableOpacity, View } from "react-native";
 import styles from "../screens/Home/styles";
 
-const Categories = ({setCate, activeCate = null}) => {
+const Categories = ({ setCate, activeCate = null }) => {
   const [categories, setCategories] = useState([]);
 
   const loadCategories = async () => {
@@ -23,7 +23,6 @@ const Categories = ({setCate, activeCate = null}) => {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.categoriesContent}
       >
-        {/* Chip cho "Tất cả" */}
         <TouchableOpacity onPress={() => setCate(null)}>
           <Chip
             selected={activeCate === null}
@@ -35,14 +34,12 @@ const Categories = ({setCate, activeCate = null}) => {
               styles.categoryText,
               activeCate === null && styles.categoryTextActive,
             ]}
-            // Ẩn icon mặc định nếu đang active để trông sạch hơn
             showSelectedOverlay
           >
             Tất cả
           </Chip>
         </TouchableOpacity>
 
-        {/* Danh sách các Categories */}
         {categories.map((c) => (
           <TouchableOpacity key={c.id} onPress={() => setCate(c.id)}>
             <Chip

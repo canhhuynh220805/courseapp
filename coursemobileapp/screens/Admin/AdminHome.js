@@ -1,5 +1,3 @@
-// coursemobileapp/screens/Admin/AdminHome.js
-
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { Card, Text, Button, Title, List } from 'react-native-paper';

@@ -1,5 +1,5 @@
-import {useEffect, useEffectEvent, useState} from "react";
-import Apis, {authApis, endpoints} from "../../utils/Apis";
+import { useEffect, useEffectEvent, useState } from "react";
+import Apis, { authApis, endpoints } from "../../utils/Apis";
 import {
   ActivityIndicator,
   FlatList,
@@ -11,9 +11,9 @@ import {
 import MyStyles from "../../styles/MyStyles";
 import styles from "../Home/styles";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {useNavigation} from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 
-const Lesson = ({route}) => {
+const Lesson = ({ route }) => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(false);
   const [course, setCourse] = useState(null);
@@ -36,7 +36,7 @@ const Lesson = ({route}) => {
       setLoading(true);
       let res = await Apis.get(endpoints["course-details"](courseId));
       setCourse(res.data);
-    } catch (ex) {}
+    } catch (ex) { }
   };
 
   useEffect(() => {
@@ -55,7 +55,7 @@ const Lesson = ({route}) => {
                 <Text style={styles.cardTitle}>{course?.subject}</Text>
               </View>
               <View style={styles.iconCircle}>
-                <Text style={{fontSize: 24}}>📚</Text>
+                <Text style={{ fontSize: 24 }}>📚</Text>
               </View>
             </View>
 
@@ -80,7 +80,7 @@ const Lesson = ({route}) => {
         }
         ListFooterComponent={loading && <ActivityIndicator size="large" />}
         data={lessons}
-        renderItem={({item}) => (
+        renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.courseCard}
             onPress={() =>
@@ -91,13 +91,11 @@ const Lesson = ({route}) => {
             }
             activeOpacity={0.9}
           >
-            {/* Hình ảnh chiếm trọn phía trên Card */}
             <Image
-              source={{uri: item.image || "https://via.placeholder.com/300"}}
+              source={{ uri: item.image || "https://via.placeholder.com/300" }}
               style={styles.courseImage}
             />
 
-            {/* Phần nội dung bên dưới ảnh */}
             <View style={styles.courseContent}>
               <Text style={styles.courseTitle} numberOfLines={1}>
                 {item.subject}

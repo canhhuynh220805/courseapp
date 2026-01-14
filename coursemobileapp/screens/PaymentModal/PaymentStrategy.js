@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import * as Linking from "expo-linking";
-import {Alert} from "react-native";
+import { Alert } from "react-native";
 export const MoMoStrategy = {
   async pay(authApis, endpoints, token, enrollmentId, coursePrice = 0) {
     console.info("--> Đang xử lý thanh toán MoMo...");
@@ -10,7 +10,6 @@ export const MoMoStrategy = {
     });
     console.log(resEnroll.data);
     if (resEnroll.data) {
-      // let enrollId = resEnroll.data.id;
       let resMOMO = await authApis(token).post(endpoints["momo-payment"], {
         enrollment_id: enrollmentId,
       });
@@ -26,12 +25,10 @@ export const MoMoStrategy = {
   },
 };
 
-// 2. Chiến lược thanh toán ZaloPay (Ví dụ để bạn thấy sự linh hoạt)
 export const ZaloPayStrategy = {
   async pay(authApis, endpoints, token, enrollmentId, coursePrice = 0) {
     console.info("--> Đang xử lý thanh toán ZaloPay...");
-    // 1. CẤU HÌNH ĐƯỜNG DẪN LOCAL (NGROK)
-    // Mỗi lần tắt ngrok bật lại link này sẽ đổi, nhớ cập nhật nhé!
+
     const LOCAL_BASE_URL =
       "https://nonreparable-torpidly-eufemia.ngrok-free.dev";
     const API_URL = `${LOCAL_BASE_URL}/zalo-pay/create/`;
@@ -39,16 +36,13 @@ export const ZaloPayStrategy = {
     try {
       console.log("🚀 Đang gọi Server Local lấy link Zalo:", API_URL);
 
-      // 2. GỌI API SANG NGROK
-      // Dùng axios thường, không cần authApis
       let res = await axios.post(API_URL, {
         enrollment_id: enrollmentId,
-        amount: coursePrice, // Gửi giá tiền từ App sang
+        amount: coursePrice,
       });
 
       console.log("✅ Kết quả từ Local:", res.data);
 
-      // 3. MỞ ZALOPAY
       if (res.data.order_url) {
         Linking.openURL(res.data.order_url);
       } else {
@@ -61,7 +55,6 @@ export const ZaloPayStrategy = {
   },
 };
 
-// 3. Chiến lược khóa học Miễn phí (Nếu giá tiền = 0)
 export const VNPayStrategy = {
   async pay(authApis, endpoints, token, enrollmentId, coursePrice = 0) {
     try {
@@ -72,12 +65,8 @@ export const VNPayStrategy = {
       if (resEnroll.data && resEnroll.data.payment_url) {
         const payUrl = resEnroll.data.payment_url;
         console.log("VNPay URL:", payUrl);
-
-        // 3. Lưu ID để lát quay lại App kiểm tra (QUAN TRỌNG)
-        // Key này phải khớp với key bạn dùng trong hàm checkPaymentStatus
         await AsyncStorage.setItem("current_payment_id", String(enrollmentId));
 
-        // 4. Mở trình duyệt web để thanh toán
         const supported = await Linking.canOpenURL(payUrl);
         if (supported) {
           await Linking.openURL(payUrl);

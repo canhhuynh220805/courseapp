@@ -77,7 +77,6 @@ const User = () => {
             </TouchableOpacity>
           )}
 
-          {/* 2. Nút Đăng xuất */}
           <TouchableOpacity style={UserStyle.logoutButton} onPress={logout}>
             <Ionicons name="log-out-outline" size={24} color="#e11d48" />
             <Text style={UserStyle.logoutButtonText}>Đăng xuất</Text>
