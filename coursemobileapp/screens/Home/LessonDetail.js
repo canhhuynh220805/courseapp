@@ -178,7 +178,6 @@ function LessonDetail({ route }) {
       }
       if (page === 1) setComments(res.data.results);
       else if (page > 1) setComments([...comments, ...res.data.results]);
-      // setComments((prev) => [...prev, ...(res.data.results || [])]);
     } catch (ex) {
       if (ex.response && ex.response.status === 404 && page > 1) {
         setHasNext(false);
@@ -243,7 +242,6 @@ function LessonDetail({ route }) {
           <FlatList
             data={comments}
             keyExtractor={(item) => item.id.toString()}
-            // 1. Header chứa Video + Input
             ListHeaderComponent={
               <View>
                 <View style={styles.titleSection}>
@@ -411,7 +409,7 @@ function LessonDetail({ route }) {
                       >
                         <Ionicons
                           name={isLiked ? "heart" : "heart-outline"}
-                          size={24} // Giảm size chút cho vừa vặn
+                          size={24}
                           color={isLiked ? "#ef4444" : "#6b7280"}
                         />
                       </TouchableOpacity>
@@ -483,7 +481,6 @@ function LessonDetail({ route }) {
                 </View>
               </View>
             }
-            // 2. Render từng comment
             renderItem={({ item }) => (
               <View style={styles.commentItem}>
                 <Image
@@ -505,10 +502,8 @@ function LessonDetail({ route }) {
                 </View>
               </View>
             )}
-            // 3. Logic Load More
             onEndReached={loadMore}
             onEndReachedThreshold={0.1}
-            // 4. Footer Loading (khi cuộn xuống dưới)
             ListFooterComponent={
               loading && page > 1 ? (
                 <ActivityIndicator
@@ -518,7 +513,6 @@ function LessonDetail({ route }) {
                 />
               ) : null
             }
-            // 5. Empty State (Nếu chưa có cmt)
             ListEmptyComponent={
               !loading && (
                 <Text
@@ -533,7 +527,6 @@ function LessonDetail({ route }) {
                 </Text>
               )
             }
-            // 6. Style cho list
             contentContainerStyle={{ paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           />

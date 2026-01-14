@@ -15,6 +15,7 @@ const LecturerHome = ({ navigation }) => {
         try {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
+
             const [resStats, resGeneral] = await Promise.all([
                 authApis(token).get(endpoints['course-stats']),
                 authApis(token).get(endpoints['general-stats'])
@@ -22,7 +23,12 @@ const LecturerHome = ({ navigation }) => {
 
             setStats(resStats.data.results || resStats.data);
 
-            setSummary(resGeneral.data.metrics || { total_revenue: 0, total_students: 0 });
+            const metrics = resGeneral.data.metrics || resGeneral.data;
+            setSummary({
+                total_revenue: metrics.total_revenue || 0,
+                total_students: metrics.total_students || 0
+            });
+
         } catch (ex) {
             console.error("Lỗi khi tải dữ liệu giảng viên:", ex);
         } finally {
@@ -35,23 +41,37 @@ const LecturerHome = ({ navigation }) => {
     }, []));
 
     const renderHeader = () => (
-        <View style={styles.summaryGrid}>
-            <Card style={styles.flex1} mode="outlined">
-                <Card.Content>
-                    <Caption>Doanh thu tổng</Caption>
-                    <Title style={{ color: PRIMARY_COLOR, fontWeight: 'bold' }}>
-                        {Number(summary.total_revenue || 0).toLocaleString()}đ
-                    </Title>
-                </Card.Content>
-            </Card>
-            <Card style={styles.flex1} mode="outlined">
-                <Card.Content>
-                    <Caption>Tổng học viên</Caption>
-                    <Title style={{ color: PRIMARY_COLOR, fontWeight: 'bold' }}>
-                        {summary.total_students || 0}
-                    </Title>
-                </Card.Content>
-            </Card>
+        <View>
+            <View style={styles.summaryGrid}>
+                <Card style={styles.flex1} mode="outlined">
+                    <Card.Content>
+                        <Caption>Doanh thu tổng</Caption>
+                        <Title style={{ color: PRIMARY_COLOR, fontWeight: 'bold' }}>
+                            {Number(summary.total_revenue).toLocaleString()}đ
+                        </Title>
+                    </Card.Content>
+                </Card>
+
+                <Card style={styles.flex1} mode="outlined">
+                    <Card.Content>
+                        <Caption>Tổng học viên</Caption>
+                        <Title style={{ color: PRIMARY_COLOR, fontWeight: 'bold' }}>
+                            {summary.total_students}
+                        </Title>
+                    </Card.Content>
+                </Card>
+            </View>
+
+            <Button
+                mode="contained"
+                icon="chart-bar"
+                onPress={() => navigation.navigate("Statistics")}
+                style={{ marginHorizontal: 5, marginBottom: 15, marginTop: 10 }}
+                buttonColor="#e0f2fe"
+                textColor={PRIMARY_COLOR}
+            >
+                Xem biểu đồ thống kê chi tiết
+            </Button>
         </View>
     );
 
@@ -70,19 +90,23 @@ const LecturerHome = ({ navigation }) => {
             </View>
 
             {loading ? (
-                <ActivityIndicator color={PRIMARY_COLOR} style={{ marginTop: 20 }} />
+                <ActivityIndicator color={PRIMARY_COLOR} style={{ marginTop: 20 }} size="large" />
             ) : (
                 <FlatList
                     ListHeaderComponent={renderHeader}
                     data={stats}
                     keyExtractor={item => item.id.toString()}
+                    contentContainerStyle={{ paddingBottom: 80 }}
                     renderItem={({ item }) => (
                         <Card
                             style={styles.courseCard}
                             mode="elevated"
                             onPress={() => navigation.navigate("ManageCourse", { course: item })}
                         >
-                            <Card.Cover source={{ uri: item.image }} style={styles.courseImg} />
+                            {item.image && (
+                                <Card.Cover source={{ uri: item.image }} style={styles.courseImg} />
+                            )}
+
                             <Card.Content style={{ marginTop: 10 }}>
                                 <Title style={{ fontSize: 18 }}>{item.subject}</Title>
                                 <Paragraph style={{ color: 'gray' }}>
@@ -93,7 +117,7 @@ const LecturerHome = ({ navigation }) => {
                     )}
                     ListEmptyComponent={
                         <Text style={{ textAlign: 'center', marginTop: 20, color: 'gray' }}>
-                            Bạn chưa có khóa học nào.
+                            Bạn chưa có khóa học nào. Hãy tạo khóa học đầu tiên!
                         </Text>
                     }
                 />

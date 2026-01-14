@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -8,13 +8,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Apis, {authApis, endpoints} from "../../utils/Apis";
+import Apis, { authApis, endpoints } from "../../utils/Apis";
 import UserCourseStyle from "./UserCourseStyle";
-import {TouchableOpacity} from "react-native";
-import {Ionicons} from "@expo/vector-icons";
+import { TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {useFocusEffect, useNavigation} from "@react-navigation/native";
-import {set} from "ramda";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { set } from "ramda";
 function UserCourse() {
   const [enrolledCourses, setEnrolledCourses] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -92,7 +92,7 @@ function UserCourse() {
         />
       </View>
       {loading && enrolledCourses.length === 0 && (
-        <View style={{position: "absolute", top: "50%", left: 0, right: 0}}>
+        <View style={{ position: "absolute", top: "50%", left: 0, right: 0 }}>
           <ActivityIndicator size="large" color="blue" />
         </View>
       )}
@@ -102,15 +102,13 @@ function UserCourse() {
         contentContainerStyle={UserCourseStyle.scrollContent}
         keyExtractor={(item) => item.id.toString()}
         data={enrolledCourses}
-        renderItem={({item}) => (
+        renderItem={({ item }) => (
           <View key={item.id} style={UserCourseStyle.courseCard}>
-            {/* Course Thumbnail */}
             <Image
-              source={{uri: item.course.image}}
+              source={{ uri: item.course.image }}
               style={UserCourseStyle.courseThumbnail}
             />
 
-            {/* Course Info */}
             <View style={UserCourseStyle.courseInfo}>
               <Text style={UserCourseStyle.courseTitle} numberOfLines={2}>
                 {item.course.subject}
@@ -119,7 +117,6 @@ function UserCourse() {
                 {item.course.description}
               </Text>
 
-              {/* Progress Section */}
               <View style={UserCourseStyle.progressSection}>
                 <View style={UserCourseStyle.progressHeader}>
                   <Text style={UserCourseStyle.progressText}>
@@ -130,7 +127,7 @@ function UserCourse() {
                   <View
                     style={[
                       UserCourseStyle.progressBar,
-                      {width: `${item.progress}%`},
+                      { width: `${item.progress}%` },
                     ]}
                   />
                 </View>
@@ -139,7 +136,7 @@ function UserCourse() {
                 disabled={loading}
                 style={UserCourseStyle.continueButton}
                 onPress={() =>
-                  nav.navigate("Lesson", {courseId: item.course.id})
+                  nav.navigate("Lesson", { courseId: item.course.id })
                 }
               >
                 <Text style={UserCourseStyle.continueButtonText}>
@@ -170,7 +167,7 @@ function UserCourse() {
             <ActivityIndicator
               size="small"
               color="blue"
-              style={{marginVertical: 20}}
+              style={{ marginVertical: 20 }}
             />
           ) : null
         }

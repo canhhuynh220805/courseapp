@@ -15,7 +15,7 @@ import Apis, { authApis, endpoints } from "../../utils/Apis";
 import { MyUserContext } from "../../utils/contexts/MyContext";
 import { useNavigation } from "@react-navigation/native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import {MoMoStrategy, VNPayStrategy, ZaloPayStrategy} from "./PaymentStrategy";
+import { MoMoStrategy, VNPayStrategy, ZaloPayStrategy } from "./PaymentStrategy";
 
 function PaymentModal({ visible, onClose, course }) {
   const [selectedPayment, setSelectedPayment] = useState(null);
@@ -24,13 +24,13 @@ function PaymentModal({ visible, onClose, course }) {
   const nav = useNavigation();
   const PAYMENT_STRATEGIES = {
     momo: MoMoStrategy,
-    zalopay: ZaloPayStrategy, // Gán tạm vào bảo trì
-    vnpay: VNPayStrategy, // Gán tạm vào bảo trì
+    zalopay: ZaloPayStrategy,
+    vnpay: VNPayStrategy,
   };
   const paymentMethods = [
-    {id: "momo", name: "MoMo", icon: "wallet"},
-    {id: "zalopay", name: "ZaloPay", icon: "card"},
-    {id: "vnpay", name: "VNPay", icon: "qr-code"},
+    { id: "momo", name: "MoMo", icon: "wallet" },
+    { id: "zalopay", name: "ZaloPay", icon: "card" },
+    { id: "vnpay", name: "VNPay", icon: "qr-code" },
   ];
 
   const handlePayment = async (PaymentStrategy) => {
@@ -95,16 +95,14 @@ function PaymentModal({ visible, onClose, course }) {
       transparent
       animationType="slide"
       onRequestClose={onClose}
-      statusBarTranslucent // Giúp modal đè lên cả thanh trạng thái Android
+      statusBarTranslucent
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          {/* Handle Bar - Thanh gạch ngang trang trí */}
           <View style={styles.handleBarContainer}>
             <View style={styles.handleBar} />
           </View>
 
-          {/* Header */}
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Checkout</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
@@ -112,9 +110,7 @@ function PaymentModal({ visible, onClose, course }) {
             </TouchableOpacity>
           </View>
 
-          {/* Course Info Card - Giao diện thẻ bài */}
           <View style={styles.courseInfoCard}>
-            {/* Nếu có ảnh thì hiện, không thì hiện icon mặc định */}
             {course.image ? (
               <Image source={{ uri: course.image }} style={styles.cardImage} />
             ) : (
@@ -138,7 +134,6 @@ function PaymentModal({ visible, onClose, course }) {
             </View>
           </View>
 
-          {/* Payment Methods */}
           <View style={styles.paymentMethods}>
             {paymentMethods.map((method) => {
               const isActive = selectedPayment === method.id;
@@ -180,7 +175,6 @@ function PaymentModal({ visible, onClose, course }) {
             })}
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.actionButtons}>
             <TouchableOpacity
               style={styles.cancelButton}
@@ -195,7 +189,7 @@ function PaymentModal({ visible, onClose, course }) {
                   styles.confirmButton,
                   (!selectedPayment || loading) && styles.confirmButtonDisabled,
                 ]}
-                onPress={() => nav.navigate("Auth", {screen: "Login"})}
+                onPress={() => nav.navigate("Auth", { screen: "Login" })}
               >
                 <Text style={[styles.confirmButtonText, { textAlign: "center" }]}>
                   Đăng nhập để thanh toán

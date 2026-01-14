@@ -142,10 +142,6 @@ const Login = ({ route }) => {
             </View>
           ))}
 
-          <TouchableOpacity style={LoginStyle.forgotPassword}>
-            <Text style={LoginStyle.forgotPasswordText}>Quên mật khẩu?</Text>
-          </TouchableOpacity>
-
           <Button
             loading={loading}
             disabled={loading}
