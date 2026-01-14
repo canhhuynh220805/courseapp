@@ -17,7 +17,7 @@ const AdminHome = ({ navigation }) => {
             setLoading(true);
             const token = await AsyncStorage.getItem("token");
             const res = await authApis(token).get(endpoints['general-stats']);
-            setSummary(res.data);
+            setSummary(res.data.metrics || { total_courses: 0, total_students: 0, total_lecturers: 0 });
         } catch (ex) {
             console.error(ex);
         } finally {
