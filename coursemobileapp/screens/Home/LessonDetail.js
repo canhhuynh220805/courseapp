@@ -141,7 +141,7 @@ function LessonDetail({route}) {
     try {
       let token = await AsyncStorage.getItem("token");
       let res = await authApis(token).get(endpoints["my-courses"]);
-      let enrolled = res.data.some((c) => c.course.id == courseId);
+      let enrolled = res.data.results.some((c) => c.course.id == courseId);
       setIsEnrolled(enrolled);
     } catch (ex) {
       console.error(ex);
