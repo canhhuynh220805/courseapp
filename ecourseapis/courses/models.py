@@ -46,6 +46,7 @@ class User(AbstractUser):
         STUDENT = "STUDENT", "Sinh viên"
 
     avatar = models.CharField(max_length=255, null=True, blank=True)
+    phone = models.CharField(max_length=13, null=True, blank=True)
     role = models.CharField(choices=Role.choices, max_length=20, default=Role.STUDENT)
     is_lecturer_verified = models.BooleanField(default=False)
 
