@@ -171,20 +171,19 @@ function LessonDetail({route}) {
     try {
       let url = `${endpoints["comments"](lessonId)}?page=${page}`;
       let res = await Apis.get(url);
-      // if (res.data.next === null) setPage(0);
       if (!res.data.next) {
-        setHasNext(false); // Backend bảo hết trang rồi -> Khóa lại
+        setHasNext(false);
       } else {
-        setHasNext(true); // Vẫn còn trang sau -> Mở khóa
+        setHasNext(true);
       }
       if (page === 1) setComments(res.data.results);
-      else if (page > 1) setComments((prev) => [...prev, ...res.data.results]);
+      else if (page > 1) setComments([...comments, ...res.data.results]);
+      // setComments((prev) => [...prev, ...(res.data.results || [])]);
     } catch (ex) {
       if (ex.response && ex.response.status === 404 && page > 1) {
-        setHasNext(false); // Khóa lại để không gọi nữa
-        console.log("Đã tải hết comment (End of list)."); // Log nhẹ nhàng thôi
+        setHasNext(false);
+        console.log("Đã tải hết comment (End of list).");
       } else {
-        // Những lỗi khác (500, mất mạng...) thì mới in đỏ
         console.error("Lỗi tải comment:", ex);
       }
     }
@@ -201,7 +200,7 @@ function LessonDetail({route}) {
       let res = await authApis(token).post(endpoints["add-comment"](lessonId), {
         content: content,
       });
-      setComments((prev) => [...prev, ...res.data.results]);
+      setComments([res.data, ...comments]);
       setContent("");
     } catch (ex) {
       console.error(ex);
