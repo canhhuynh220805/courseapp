@@ -9,11 +9,10 @@ export const AlertProvider = ({ children }) => {
     const [config, setConfig] = useState({
         title: '',
         message: '',
-        type: 'info', // success, error, info
+        type: 'info',
         onConfirm: null,
     });
 
-    // Thêm tham số 'type' để thay đổi màu sắc/icon linh hoạt
     const showAlert = (title, message, type = 'info', onConfirm = null) => {
         setConfig({ title, message, type, onConfirm });
         setVisible(true);
@@ -21,7 +20,6 @@ export const AlertProvider = ({ children }) => {
 
     const hideAlert = () => setVisible(false);
 
-    // Xác định màu sắc và icon dựa trên loại thông báo
     const getTheme = () => {
         switch (config.type) {
             case 'success': return { color: '#00a36dff', icon: 'check-circle-outline' };
@@ -38,7 +36,6 @@ export const AlertProvider = ({ children }) => {
             <Portal>
                 <Dialog visible={visible} onDismiss={hideAlert} style={styles.dialog}>
                     <View style={styles.content}>
-                        {/* Icon minh họa hiện đại */}
                         <View style={[styles.iconContainer, { backgroundColor: theme.color + '15' }]}>
                             <Icon source={theme.icon} size={40} color={theme.color} />
                         </View>
@@ -76,7 +73,7 @@ export const AlertProvider = ({ children }) => {
 
 const styles = StyleSheet.create({
     dialog: {
-        borderRadius: 24, // Bo góc cực đại theo trend hiện đại
+        borderRadius: 24,
         backgroundColor: '#fff',
         paddingVertical: 10,
     },

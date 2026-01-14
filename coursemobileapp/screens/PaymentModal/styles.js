@@ -1,4 +1,4 @@
-import {StyleSheet} from "react-native";
+import { StyleSheet } from "react-native";
 
 export default StyleSheet.create({
   modalOverlay: {
@@ -113,14 +113,13 @@ export default StyleSheet.create({
     color: "#ffffff",
   },
   courseInfoCard: {
-    flexDirection: "row", // Xếp ngang
+    flexDirection: "row",
     backgroundColor: "#ffffff",
     padding: 16,
     borderRadius: 16,
     marginBottom: 24,
-    // Tạo bóng đổ (Shadow) để card nổi lên
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 4,
@@ -137,7 +136,7 @@ export default StyleSheet.create({
   cardImagePlaceholder: {
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#3B82F6", // Màu xanh placeholder
+    backgroundColor: "#3B82F6",
   },
   cardContent: {
     flex: 1,
@@ -161,7 +160,7 @@ export default StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: "auto", // Đẩy xuống đáy nếu content dài
+    marginTop: "auto",
   },
   totalLabel: {
     fontSize: 14,
@@ -171,6 +170,6 @@ export default StyleSheet.create({
   cardPrice: {
     fontSize: 18,
     fontWeight: "800",
-    color: "#2563EB", // Màu xanh chủ đạo
+    color: "#2563EB",
   },
 });

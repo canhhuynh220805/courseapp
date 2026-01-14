@@ -1,4 +1,4 @@
-import {StyleSheet, Dimensions} from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
 
 // 1. Định nghĩa bảng màu (giống CSS variables)
 export const COLORS = {
@@ -15,7 +15,7 @@ export const COLORS = {
   success: "#10b981",
 };
 
-const {width} = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 export default StyleSheet.create({
   // ==============================
@@ -161,7 +161,7 @@ export default StyleSheet.create({
     marginBottom: 16,
     overflow: "hidden",
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
@@ -216,9 +216,6 @@ export default StyleSheet.create({
     color: COLORS.textSecondary,
   },
 
-  // ==============================
-  // DETAIL SCREEN / LESSON VIEW
-  // ==============================
   imageContainer: {
     position: "relative",
     width: "100%",
@@ -260,7 +257,6 @@ export default StyleSheet.create({
     paddingBottom: 24,
   },
 
-  // Title Section
   titleSection: {
     paddingHorizontal: 20,
     paddingBottom: 20,
@@ -298,7 +294,7 @@ export default StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: {width: 0, height: 2},
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 2,
@@ -322,7 +318,6 @@ export default StyleSheet.create({
     marginLeft: 6,
   },
 
-  // Video Section
   videoSection: {
     paddingHorizontal: 20,
     paddingVertical: 24,
@@ -401,9 +396,6 @@ export default StyleSheet.create({
     lineHeight: 28,
   },
 
-  // ==============================
-  // COMMENTS SECTION
-  // ==============================
   commentSection: {
     paddingHorizontal: 20,
     paddingTop: 24,
@@ -520,9 +512,6 @@ export default StyleSheet.create({
     marginLeft: 8,
   },
 
-  // ==============================
-  // REGISTER BUTTON SECTION
-  // ==============================
   registerSection: {
     padding: 20,
     backgroundColor: "#F0F9FF",
@@ -532,6 +521,18 @@ export default StyleSheet.create({
     marginTop: 10,
     borderWidth: 1,
     borderColor: "#BAE6FD",
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 50,
+    opacity: 0.7,
+  },
+  emptyText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
   },
   registerHint: {
     fontSize: 14,
@@ -549,7 +550,7 @@ export default StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     shadowColor: COLORS.primary,
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 6,
@@ -620,7 +621,7 @@ export default StyleSheet.create({
     borderWidth: 1,
     borderColor: "#BFDBFE",
     shadowColor: "#2563EB",
-    shadowOffset: {width: 0, height: 4},
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
     elevation: 4,

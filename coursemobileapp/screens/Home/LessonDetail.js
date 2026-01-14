@@ -171,20 +171,18 @@ function LessonDetail({ route }) {
     try {
       let url = `${endpoints["comments"](lessonId)}?page=${page}`;
       let res = await Apis.get(url);
-      // if (res.data.next === null) setPage(0);
       if (!res.data.next) {
-        setHasNext(false); // Backend bảo hết trang rồi -> Khóa lại
+        setHasNext(false);
       } else {
-        setHasNext(true); // Vẫn còn trang sau -> Mở khóa
+        setHasNext(true);
       }
       if (page === 1) setComments(res.data.results);
-      else if (page > 1) setComments((prev) => [...prev, ...res.data.results]);
+      else if (page > 1) setComments([...comments, ...res.data.results]);
     } catch (ex) {
       if (ex.response && ex.response.status === 404 && page > 1) {
-        setHasNext(false); // Khóa lại để không gọi nữa
-        console.log("Đã tải hết comment (End of list)."); // Log nhẹ nhàng thôi
+        setHasNext(false);
+        console.log("Đã tải hết comment (End of list).");
       } else {
-        // Những lỗi khác (500, mất mạng...) thì mới in đỏ
         console.error("Lỗi tải comment:", ex);
       }
     }
@@ -201,7 +199,7 @@ function LessonDetail({ route }) {
       let res = await authApis(token).post(endpoints["add-comment"](lessonId), {
         content: content,
       });
-      setComments((prev) => [...prev, ...res.data.results]);
+      setComments([res.data, ...comments]);
       setContent("");
     } catch (ex) {
       console.error(ex);
@@ -244,7 +242,6 @@ function LessonDetail({ route }) {
           <FlatList
             data={comments}
             keyExtractor={(item) => item.id.toString()}
-            // 1. Header chứa Video + Input
             ListHeaderComponent={
               <View>
                 <View style={styles.titleSection}>
@@ -412,7 +409,7 @@ function LessonDetail({ route }) {
                       >
                         <Ionicons
                           name={isLiked ? "heart" : "heart-outline"}
-                          size={24} // Giảm size chút cho vừa vặn
+                          size={24}
                           color={isLiked ? "#ef4444" : "#6b7280"}
                         />
                       </TouchableOpacity>
@@ -484,7 +481,6 @@ function LessonDetail({ route }) {
                 </View>
               </View>
             }
-            // 2. Render từng comment
             renderItem={({ item }) => (
               <View style={styles.commentItem}>
                 <Image
@@ -506,10 +502,8 @@ function LessonDetail({ route }) {
                 </View>
               </View>
             )}
-            // 3. Logic Load More
             onEndReached={loadMore}
             onEndReachedThreshold={0.1}
-            // 4. Footer Loading (khi cuộn xuống dưới)
             ListFooterComponent={
               loading && page > 1 ? (
                 <ActivityIndicator
@@ -519,7 +513,6 @@ function LessonDetail({ route }) {
                 />
               ) : null
             }
-            // 5. Empty State (Nếu chưa có cmt)
             ListEmptyComponent={
               !loading && (
                 <Text
@@ -534,7 +527,6 @@ function LessonDetail({ route }) {
                 </Text>
               )
             }
-            // 6. Style cho list
             contentContainerStyle={{ paddingBottom: 20 }}
             showsVerticalScrollIndicator={false}
           />
